@@ -24,6 +24,7 @@
   "build": {
     "appId": "com.serpenseth.saiphai",
     "productName": "SaiphAI",
+    "publish": null,
     "directories": {
       "output": "dist"
     },
