@@ -34,7 +34,7 @@ jobs:
         run: npm version ${{ github.event.inputs.version }} --no-git-tag-version --allow-same-version
 
       - name: Build Electron App
-        run: npm run build
+        run: npm run build -- --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
 
