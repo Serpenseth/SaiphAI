@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SaiphAI</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <!-- First Run Modal -->
+  <div id="first-run-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>Welcome to SaiphAI</h2>
+      <p class="subtitle">Let's set up your AI model preference</p>
+
+      <div class="model-options">
+        <!-- TinyLlama -->
+        <div class="model-card  recommended" id="option-tinyllama">
+          <div class="model-icon">🚀</div>
+          <h3>TinyLlama</h3>
+          <p>Fast and lightweight model perfect for quick assistance and smaller projects. Runs efficiently on most hardware.</p>
+          <button class="btn btn-primary">Select TinyLlama</button>
+        </div>
+        <!-- Ollama -->
+        <div class="model-card" id="option-ollama">
+          <div class="badge">Advanced</div>
+          <div class="model-icon">🧠</div>
+          <h3>Ollama Integration</h3>
+          <p>Full-powered local AI with access to CodeLlama, Mistral, and other advanced models. Requires more resources.</p>
+          <button class="btn btn-primary">Select Ollama</button>
+        </div>
+      </div>
+
+      <p class="hint">Don't worry, you can change this later</p>
+    </div>
+  </div>
+
+  <!-- Download Progress Modal -->
+  <div id="download-modal" class="modal hidden">
+    <div class="modal-content small">
+      <h3>Downloading Model</h3>
+      <p id="download-status">Initializing download...</p>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <p class="progress-text" id="progress-text">0%</p>
+      <div class="download-controls" style="margin-top: 1rem; display: flex; gap: 0.5rem; justify-content: center;">
+        <button id="btn-pause-download" class="download-control-btn" title="Pause">
+          <!-- Pause icon (shown when downloading) -->
+          <svg id="icon-pause" class="icon" viewBox="0 0 24 24" width="24" height="24">
+            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+          </svg>
+          <!-- Resume icon (shown when paused) - initially hidden -->
+          <svg id="icon-resume" class="icon hidden" viewBox="0 0 24 24" width="24" height="24">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+        </button>
+        <button id="btn-stop-download" class="btn-warning">Stop</button>
+        <button id="btn-cancel-download" class="btn-danger">Cancel</button>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <div id="app" class="hidden">
+    <!-- Title Bar -->
+    <div class="title-bar">
+      <div class="title-bar-left">
+        <button class="btn-icon" id="btn-select-workspace" title="Select Workspace" style='font-size: 0.8rem; padding: 0.5rem 1rem'>
+          Change workspace
+        </button>
+
+        <span class="workspace-path" id="workspace-path"></span>
+
+        <button class="btn-icon" id="btn-refresh-index" title="Rebuild Index">
+          <img style='height: 24px; width: 24px; align-item: self;' src="../assets/refresh.png">
+        </button>
+      </div>
+      <div class="title-bar-right">
+        <button id="build-toggle-btn" class="btn-icon" title="Toggle Build Panel">
+          🔨
+        </button>
+        <!-- Settings -->
+        <button class="btn-icon" id="btn-settings" title="AI Model Settings">
+          <img style='height: 24px; width: 24px; align-item: self;' src="../assets/settings.png">
+        </button>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <div class="file-tree" id="file-tree">
+          <div class="empty-state">No workspace selected</div>
+        </div>
+      </div>
+
+      <!-- Content Area -->
+      <div class="content">
+        <!-- Tabs -->
+        <div class="tabs" id="tabs">
+          <div class="tab active" data-tab="chat">
+            <span>Chat</span>
+          </div>
+          <button id='history' class='btn-icon'>
+            History <img style='height: 24px; width: 24px; align-item: self;' src="../assets/history.png">
+          </button>
+        </div>
+
+
+        <!-- Tab Content -->
+        <div class="tab-contents">
+          <!-- Chat Panel -->
+          <div class="tab-panel active" id="chat-panel">
+            <div class="chat-messages" id="chat-messages">
+              <div id="welcome-hub" class="welcome-hub hidden">
+                <div class="hub-content">
+                  <h2 id="hub-title">Ready to code?</h2>
+                  <p id="hub-subtitle" class="hub-subtitle">Select a workspace to get started</p>
+
+                  <div class="hub-suggestions" id="hub-suggestions"></div>
+                  <button class="btn-hide-hub" id="btn-hide-hub" title="Hide these suggestions">
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="chat-input-container">
+              <textarea id="chat-input" placeholder="Type a message" rows="3"></textarea>
+              <div class='data-actions'>
+                <button id='insert-file' class='btn-icon'>
+                  <img style='height: 24px; width: 24px; align-item: self;' src="../assets/plus.png">
+                </button>
+              </div>
+              <div class="input-actions">
+                </select>
+                <button id="btn-send" class="btn btn-primary send-btn">Send</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Editor Panels will be added dynamically -->
+          <div id="editor-container" class="editor-container">
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <div id="history-modal" class="modal hidden">
+    <div class="modal-content history-modal-content">
+      <div class="modal-header">
+        <h2>Chat History</h2>
+        <button id="btn-close-history" class="btn-close">×</button>
+      </div>
+      <div class="modal-body">
+        <button id="btn-new-chat" class="btn-primary" style="margin-bottom: 1rem; width: 100%;">
+          + New Chat
+        </button>
+        <div id="history-list" class="history-list">
+          <!-- History items populated here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="modal hidden">
+    <div class="modal-content small">
+        <h2>Settings</h2>
+        <div class="settings-section">
+            <div class="model-selection">
+              <label>
+                  <input type="radio" name="settings-model" value="tinyllama" ${this.currentModel === 'tinyllama' ? 'checked' : ''}>
+                  TinyLlama - Fast, lightweight (1.1B parameters)
+              </label>
+              <label>
+                  <input type="radio" name="settings-model" value="ollama" ${this.currentModel === 'ollama' ? 'checked' : ''}>
+                  Ollama - Advanced code understanding (requires manual setup)
+              </label>
+          </div>
+        </div>
+
+        <div id='current-model'>
+          <p>Current model:</p>
+          <select id="ollama-model-selector" class="hidden"></select>
+        </div>
+
+        <div class="settings-section">
+            <h3>Interface</h3>
+            <label class="checkbox-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin-bottom: 0.5rem;">
+              <input type="checkbox" id="setting-show-hub" ${this.showWelcomeHub ? 'checked' : ''}>
+              <span>Show contextual suggestions in empty chat</span>
+            </label>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-left: 1.5rem; margin-bottom: 1rem;">
+              Display AI assistance suggestions based on your experience level and workspace state
+            </p>
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="app.closeSettingsModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="app.saveSettings()">Save Changes</button>
+        </div>
+    </div>
+  </div>
+
+  <div id="build-panel" class="hidden">
+    <!-- Dynamically created -->
+  </div>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <!-- Monaco Editor -->
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+  <!-- Renderer -->
+  <script src="./renderer.js"></script>
+</body>
+</html>
