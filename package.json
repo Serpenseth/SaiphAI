@@ -28,10 +28,10 @@
       "output": "dist"
     },
     "files": [
-      "src/main/**/*.js",
-      "src/preload/**/*.js",
-      "src/renderer/**/*",
-      "renderer.js"
+      "main/**/*.js",
+      "preload/**/*.js",
+      "renderer/**/*",
+      "package.json"
     ]
   }
 }
