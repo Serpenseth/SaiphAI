@@ -87,9 +87,27 @@ jobs:
         run: |
             VERSION="${{ github.event.inputs.version }}"
             VERSION="${VERSION#v}"
+
+            # Find all installer files (excluding debug YAML files)
+            files=$(find artifacts -type f \( \
+                -name "*.exe" -o \
+                -name "*.dmg" -o \
+                -name "*.AppImage" -o \
+                -name "*.deb" -o \
+                -name "*.rpm" -o \
+                -name "*.zip" -o \
+                -name "*.msi" -o \
+                -name "*.pkg" \
+            \) ! -name "*debug*" ! -name "latest-*.yml")
+
+            if [ -z "$files" ]; then
+                echo "No release files found!"
+                exit 1
+            fi
+
             gh release create "v${VERSION}" \
-            --title "Release-${VERSION}" \
+            --title "Release v${VERSION}" \
             --draft="${{ github.event.inputs.draft }}" \
-            artifacts/**/*.{exe,dmg,AppImage,deb,msi,zip,pkg}
+            $files
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
