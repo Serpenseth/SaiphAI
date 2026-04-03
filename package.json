@@ -25,6 +25,9 @@
     "appId": "com.serpenseth.saiphai",
     "productName": "SaiphAI",
     "artifactName": "${productName}-${version}.${ext}",
+    "win": {
+      "target": "nsis"
+    },
     "directories": {
       "output": "dist"
     },

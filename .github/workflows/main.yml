@@ -98,7 +98,7 @@ jobs:
                 -name "*.zip" -o \
                 -name "*.msi" -o \
                 -name "*.pkg" \
-            \) ! -name "*debug*" ! -name "latest-*.yml")
+            \) ! -name "*debug*" ! -name "latest-*.yml"  ! -name "elevated.exe")
 
             if [ -z "$files" ]; then
                 echo "No release files found!"
