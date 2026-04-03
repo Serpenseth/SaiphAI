@@ -85,9 +85,11 @@ jobs:
 
       - name: Create Release
         run: |
-            gh release create "v${{ github.event.inputs.version }}" \
-            --title "Release v${{ github.event.inputs.version }}" \
+            VERSION="${{ github.event.inputs.version }}"
+            VERSION="${VERSION#v}"
+            gh release create "v${VERSION}" \
+            --title "Release-${VERSION}" \
             --draft="${{ github.event.inputs.draft }}" \
-            artifacts/**/*
+            artifacts/**/*.{exe,dmg,AppImage,deb,msi,zip,pkg}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
