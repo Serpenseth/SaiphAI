@@ -205,7 +205,11 @@ class App {
   _buildTemplate(type, data) {
     if (type === 'empty') {
       return `
+        </div>
         <div class="build-empty">
+          <button class="btn-icon no-workspace-close" onclick="app.toggleBuildPanel()" title="Close build panel" style="margin-left: auto; ">
+            ✕
+          </button>
           <div class="icon">${data.icon}</div>
          <div class="message">${data.message}</div>
           <div class="subtitle">Open a project folder to detect build configuration and start building</div>
