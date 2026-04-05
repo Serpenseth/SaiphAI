@@ -150,6 +150,7 @@ class App {
     const history = document.querySelector('.build-history');
     const output = document.querySelector('.build-output');
     const handle = document.createElement('div');
+
     handle.className = 'resize-handle';
 
     let isResizing = false;
@@ -185,87 +186,90 @@ class App {
   }
 
   async initBuildSystem() {
-    if (this.workspacePath) {
       await this.detectProjectBuildConfig();
-    }
   }
 
   async detectProjectBuildConfig() {
-    try {
-      const result = await window.electronAPI.detectBuildConfig(this.workspacePath);
+    const result = await window.electronAPI.detectBuildConfig(this.workspacePath);
 
-      if (result.success && result.config.language) {
-        this.currentBuildConfig = result.config;
-        this.updateBuildStatus(`Detected ${result.config.language} project`);
-        this.renderBuildPanel();
-      }
-      else {
-        this.updateBuildStatus('No build configuration detected');
-      }
+    if (result.success && result.config.language) {
+      this.currentBuildConfig = result.config;
+      this.updateBuildStatus(`Detected ${result.config.language} project`);
+      this.renderBuildPanel();
     }
-    catch (e) {
-      console.error('Build detection failed:', e);
+    else {
+      this.updateBuildStatus('No build configuration detected');
     }
   }
 
   _buildTemplate(type, data) {
-    const templates = {
-      empty: `
+    if (type === 'empty') {
+      return `
         <div class="build-empty">
-          <div style="font-size: 2rem; opacity: 0.5;">${data.icon}</div>
-          <div>${data.message}</div>
+          <div class="icon">${data.icon}</div>
+         <div class="message">${data.message}</div>
+          <div class="subtitle">Open a project folder to detect build configuration and start building</div>
+          <button class="action-btn" onclick="app.selectWorkspace()">Select Workspace</button>
         </div>
-      `,
+      `;
+    }
 
-      panel: `
+    else {
+      return `
         <div class="build-header">
-          <div class="build-project-info">
-              <div class="build-lang-icon">${data.icon}</div>
-              <div class="build-details">
-                  <div class="build-lang">${data.language.toUpperCase()}</div>
-                  <div class="build-system">${data.detectedFiles}</div>
-              </div>
-          </div>
-          <button class="btn-icon" onclick="app.toggleBuildPanel()" title="Close build panel" style="margin-left: auto; ">✕</button>
-      </div>
-      <div class="build-actions">
-          <button class="build-btn" onclick="app.runBuild()" title="Build project">Build</button>
-          <button class="build-btn" onclick="app.runInstall()" title="Install dependencies">Install</button>
-          <button class="build-btn" onclick="app.runTest()" title="Run tests">Test</button>
-          ${data.language === 'javascript' || data.language === 'typescript' ?
-          `<button class="build-btn" onclick="app.runScript('start')" title="Run start script">Run</button>` : ''}
-      </div>
-        <div class="build-output">
-          <div class="build-output-header">
-            <span>Output</span>
-            <button class="btn-icon" onclick="app.clearBuildOutput()" title="Clear output">Clear</button>
-          </div>
-          <div id="build-output-content" class="build-output-content">
-            <div class="build-starting">Ready to build...</div>
-          </div>
+            <div class="build-project-info">
+                <div class="build-lang-icon">${data.icon}</div>
+                <div class="build-details">
+                    <div class="build-lang">${data.language.toUpperCase()}</div>
+                    <div class="build-system">${data.detectedFiles}</div>
+                </div>
+            </div>
+            <button class="btn-icon" onclick="app.toggleBuildPanel()" title="Close build panel" style="margin-left: auto; ">✕</button>
         </div>
-        <div class="build-history">
-          <div class="build-section-title">Recent Builds</div>
-          <div id="build-history-list" class="build-history-list"></div>
+        <div class="build-actions">
+            <button class="build-btn" onclick="app.runBuild()" title="Build project">Build</button>
+            <button class="build-btn" onclick="app.runInstall()" title="Install dependencies">Install</button>
+            <button class="build-btn" onclick="app.runTest()" title="Run tests">Test</button>
+            ${data.language === 'javascript' || data.language === 'typescript' ?
+            `<button class="build-btn" onclick="app.runScript('start')" title="Run start script">Run</button>` : ''}
         </div>
-      `
-    };
-
-    return templates[type] || '';
+          <div class="build-output">
+            <div class="build-output-header">
+              <span>Output</span>
+              <button class="btn-icon" onclick="app.clearBuildOutput()" title="Clear output">Clear</button>
+            </div>
+            <div id="build-output-content" class="build-output-content">
+              <div class="build-starting">Ready to build...</div>
+            </div>
+          </div>
+          <div class="build-history">
+            <div class="build-section-title">Recent Builds</div>
+            <div id="build-history-list" class="build-history-list"></div>
+          </div>
+      `;
+    }
   }
 
   renderBuildPanel() {
     const panel = document.getElementById('build-panel');
 
-    if (!panel)
+    if (!panel.classList.contains('visible'))
       return;
+
+    if (!this.workspacePath || this.workspacePath === null) {
+      panel.innerHTML = this._buildTemplate('empty', {
+        message: 'No Workspace Selected',
+        icon: '📂'
+      });
+      return;
+    }
 
     const config = this.currentBuildConfig;
 
-    if (!config?.buildSystem) {
+    if (!config?.buildSystem || !config) {
       panel.innerHTML = this._buildTemplate('empty', {
         message: 'Open a workspace to detect build configuration',
-        icon: '🔨'
+        icon: '🔧'
       });
       return;
     }
@@ -293,7 +297,10 @@ class App {
     const sorted = [...scripts].sort((a, b) => {
       const aIdx = priority.indexOf(a);
       const bIdx = priority.indexOf(b);
-      if (aIdx === -1 && bIdx === -1) return a.localeCompare(b);
+
+      if (aIdx === -1 && bIdx === -1)
+        return a.localeCompare(b);
+
       return aIdx === -1 ? 1 : bIdx === -1 ? -1 : aIdx - bIdx;
     });
 
@@ -301,6 +308,7 @@ class App {
       `<button class="btn-script" onclick="app.runScript('${script}')">${script}</button>`
     ).join('');
   }
+
   _renderBuildActions(config) {
     const bs = config.buildSystem;
 
@@ -325,19 +333,25 @@ class App {
   }
 
   async runBuild() {
-    if (!this.currentBuildConfig) return;
+    if (!this.currentBuildConfig)
+      return;
+
     const bs = this.currentBuildConfig.buildSystem;
     await this.executeBuild('build', bs.defaultCommand, bs.defaultArgs);
   }
 
   async runInstall() {
-    if (!this.currentBuildConfig) return;
+    if (!this.currentBuildConfig)
+      return;
+
     const bs = this.currentBuildConfig.buildSystem;
     await this.executeBuild('install', bs.installCommand[0], bs.installCommand.slice(1));
   }
 
   async runTest() {
-    if (!this.currentBuildConfig) return;
+    if (!this.currentBuildConfig)
+      return;
+
     const bs = this.currentBuildConfig.buildSystem;
     await this.executeBuild('test', bs.testCommand[0], bs.testCommand.slice(1));
   }
@@ -391,7 +405,9 @@ class App {
 
   appendBuildOutput(text, type = 'stdout') {
     const container = document.getElementById('build-output-content');
-    if (!container) return;
+
+    if (!container)
+      return;
 
     const line = document.createElement('div');
     line.className = `build-line build-${type}`;
@@ -408,16 +424,20 @@ class App {
 
   clearBuildOutput() {
     const container = document.getElementById('build-output-content');
-    if (container) container.innerHTML = '';
+
+    if (container)
+      container.innerHTML = '';
   }
 
   async loadBuildHistory() {
     try {
       const result = await window.electronAPI.getBuildHistory(10);
+
       if (result.success) {
         this.renderBuildHistory(result.history);
       }
-    } catch (e) {
+    }
+    catch (e) {
       console.error('Failed to load build history:', e);
     }
   }
@@ -447,7 +467,9 @@ class App {
 
   showErrorAnalysis(result, buildType) {
     const panel = document.getElementById('build-output-container');
-    if (!panel) return;
+
+    if (!panel)
+      return;
 
     const analysisDiv = document.createElement('div');
     analysisDiv.className = 'build-error-analysis';
@@ -464,7 +486,9 @@ class App {
   async analyzeBuildError(buildType) {
     // Integrate with chat system
     const buildData = Array.from(this.activeBuilds.values()).find(b => b.type === buildType);
-    if (!buildData) return;
+
+    if (!buildData)
+      return;
 
     // Add message to chat requesting analysis
     const message = `Please analyze the build error for ${this.currentBuildConfig?.language} project. Check the build output above.`;
@@ -477,26 +501,43 @@ class App {
 
   updateBuildStatus(text) {
     const statusEl = document.getElementById('build-status');
-    if (statusEl) statusEl.textContent = text;
+
+    if (statusEl)
+      statusEl.textContent = text;
   }
 
   toggleBuildPanel() {
     const panel = document.getElementById('build-panel');
     const btn = document.getElementById('build-toggle-btn');
 
-    if (!panel) return;
+    if (!panel)
+      return;
 
-    const isVisible = panel.classList.toggle('visible');
+    const isCurrentlyVisible = panel.classList.contains('visible');
 
-    // Update button state if exists
-    if (btn) {
-      btn.classList.toggle('active', isVisible);
-      btn.title = isVisible ? 'Hide Build Panel' : 'Show Build Panel';
+    if (isCurrentlyVisible) {
+      panel.classList.remove('visible');
+
+      if (btn) {
+        btn.classList.remove('active');
+        btn.title = 'Show Build Panel';
+      }
     }
+    else {
+      panel.classList.add('visible');
+      panel.classList.remove('hidden');
 
-    // Auto-detect config when opening if not already loaded
-    if (isVisible && !this.currentBuildConfig && this.workspacePath) {
-      this.detectProjectBuildConfig();
+      if (btn) {
+        btn.classList.add('active');
+        btn.title = 'Hide Build Panel';
+      }
+
+      if (!this.currentBuildConfig && this.workspacePath) {
+        this.detectProjectBuildConfig();
+      }
+      else {
+        this.renderBuildPanel();
+      }
     }
   }
 
@@ -507,11 +548,7 @@ class App {
     });
 
     document.getElementById('build-toggle-btn').addEventListener('click', () => {
-      const panel = document.getElementById('build-panel');
-
-      panel.classList.toggle('hidden');
-      panel.classList.toggle('visible');
-      this.classList.toggle('active');
+      this.toggleBuildPanel();
     });
 
     document.addEventListener('keydown', (e) => {
