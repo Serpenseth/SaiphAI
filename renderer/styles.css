@@ -1231,9 +1231,50 @@ body {
 }
 
 .build-empty {
-  padding: 2rem;
-  text-align: center;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
   color: var(--text-secondary);
+  text-align: center;
+  gap: 1rem;
+
+}
+
+.build-empty .icon {
+  font-size: 2rem;
+  opacity: 0.75;
+}
+
+.build-empty .message {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.build-empty .subtitle {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+.build-empty .action-btn {
+  padding: 0.75rem 1.5rem;
+  background: var(--send-btn);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.build-empty .action-btn:hover {
+  filter: brightness(1.4);
+  transform: translateY(-2px);
 }
 
 .build-empty-history {
@@ -1325,18 +1366,18 @@ body {
 }
 
 .resize-handle {
-    position: absolute;
-    top: -4px;
-    left: 0;
-    right: 0;
-    height: 8px;
-    cursor: ns-resize;
-    background: transparent;
-    z-index: 20;
-    transition: background 0.2s;
+  position: absolute;
+  top: -4px;
+  left: 0;
+  right: 0;
+  height: 8px;
+  cursor: ns-resize;
+  background: transparent;
+  z-index: 20;
+  transition: background 0.2s;
 }
 
 .resize-handle:hover {
-    background: var(--accent-color);
-    opacity: 0.3;
+  background: var(--accent-color);
+  opacity: 0.3;
 }
