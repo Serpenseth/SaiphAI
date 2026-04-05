@@ -1,3 +1,5 @@
+[![Build and Release Electron App](https://github.com/Serpenseth/SaiphAI/actions/workflows/main.yml/badge.svg)](https://github.com/Serpenseth/SaiphAI/actions/workflows/main.yml)
+
 SaiphAI is a desktop AI coding assistant built on Electron, designed for local operation with support for both lightweight on-device models (TinyLlama via Transformers.js) and external Ollama instances. The application provides integrated codebase indexing, persistent chat history, and a built-in code editor with context-aware retrieval.
 
 # Core Capabilities
@@ -25,10 +27,20 @@ The application follows Electron's multi-process architecture:
 *   npm or yarn
 
 ### Steps:
+Clone the repository
 ```bash
 git clone "https://github.com/Serpenseth/saiphai"
+```
+Enter into the cloned directory
+```bash
 cd saiphai
+```
+Install `SaiphAI`
+```bash
 npm install
+```
+Finally, run `SaiphAI`
+```bash
 npm start
 ```
 
@@ -143,12 +155,17 @@ The build process uses electron-builder, outputting to the `dist` directory. Con
 
 ```
 saiphai/
-├── main.js              # Electron main process, IPC handlers, indexing logic
-├── preload.js          # ContextBridge API definitions
-├── renderer.js         # UI logic, editor integration, chat management
-├── index.html          # Application markup
-├── styles.css          # Application styles (referenced, not provided in context)
-└── package.json     # Dependencies and build configuration
+├── main/
+│   └── index.js          # Electron main process, IPC handlers, indexing logic
+├── preload/
+│   └── preload.js        # ContextBridge API definitions
+├── renderer/
+│   ├── index.html        # Application markup
+│   ├── renderer.js       # UI logic, editor integration, chat management
+│   └── styles.css        # Application styles
+├── package.json          # Dependencies and build configuration
+├── package-lock.json     # Dependency lock file
+└── README.md             # Project documentation
 ```
 
 # Dependencies
