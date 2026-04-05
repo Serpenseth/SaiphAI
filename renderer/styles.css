@@ -1230,6 +1230,13 @@ body {
   align-items: center;
 }
 
+.no-workspace-close {
+  position: relative;
+  right: 64px;
+  background: none;
+  border: none;
+}
+
 .build-empty {
   display: flex;
   flex: 1;
@@ -1240,7 +1247,6 @@ body {
   color: var(--text-secondary);
   text-align: center;
   gap: 1rem;
-
 }
 
 .build-empty .icon {
