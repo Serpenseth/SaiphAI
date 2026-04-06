@@ -1,5 +1,5 @@
 [![Build and Release Electron App](https://github.com/Serpenseth/SaiphAI/actions/workflows/main.yml/badge.svg)](https://github.com/Serpenseth/SaiphAI/actions/workflows/main.yml)
-[![Github All Releases](https://img.shields.io/github/downloads/serpenseth/tigerwallet/total.svg)]()
+[![Github All Releases](https://img.shields.io/github/downloads/serpenseth/SaiphAI/total.svg)]()
 
 SaiphAI is a desktop AI coding assistant built on Electron, designed for local operation with support for both lightweight on-device models (TinyLlama via Transformers.js) and external Ollama instances. The application provides integrated codebase indexing, persistent chat history, and a built-in code editor with context-aware retrieval.
 
