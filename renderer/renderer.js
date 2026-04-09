@@ -1352,6 +1352,7 @@ class App {
           throw new Error(result.error);
 
         responseText = result.response;
+        responseText = responseText.replace(/^<\/think>\s*/, '');
       }
       else {
         throw new Error('No model configured');
