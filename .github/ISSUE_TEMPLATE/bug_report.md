@@ -1,7 +1,7 @@
 ---
 name: Bug Report
 about: Create a report to help improve SaiphAI
-title: "[BUG]: "
+title: "[Bug]: "
 labels: bug
 assignees: ''
 ---
@@ -20,7 +20,7 @@ assignees: ''
 <!-- What should be happening -->
 
 ## Actual Behavior
-<!-- What is currently happening
+<!-- What is currently happening -->
 
 ## Environment
 <!-- Platform where the error occurs.
@@ -30,9 +30,9 @@ Use **OS**: ALL if it's not platform specific -->
 
 ## Screenshots / Logs
 <!-- Screenshots displaying the error and any additional logs, if applicable.
-Use none if you don't provide a Screenshot or logs -->
+Use None if you don't provide a Screenshot or logs -->
 
 ## Additional Context
 <!-- Any additional information that is relevant to the bug report.
-Use none if no additional context is needed -->
+Use None if no additional context is needed -->
 
