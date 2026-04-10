@@ -551,6 +551,11 @@ class App {
       this.handleBuildProgress(data);
     });
 
+    // listener for the Chat tab
+    document.querySelector('[data-tab="chat"]')?.addEventListener('click', () => {
+      this.switchToTab('chat');
+    });
+
     document.getElementById('build-toggle-btn').addEventListener('click', () => {
       this.toggleBuildPanel();
     });
@@ -1352,6 +1357,9 @@ class App {
           throw new Error(result.error);
 
         responseText = result.response;
+
+        console.log('[DEBUG]: ', responseText);
+
         responseText = responseText.replace(/^<\/think>\s*/, '');
       }
       else {
