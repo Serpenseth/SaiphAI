@@ -1357,9 +1357,6 @@ class App {
           throw new Error(result.error);
 
         responseText = result.response;
-
-        console.log('[DEBUG]: ', responseText);
-
         responseText = responseText.replace(/^<\/think>\s*/, '');
       }
       else {
