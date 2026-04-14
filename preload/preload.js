@@ -1,4 +1,5 @@
 const { contextBridge, ipcRenderer } = require('electron');
+const path = require('path');
 
 async function loadTransformers() {
   const transformers = await import('@xenova/transformers');
@@ -26,6 +27,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onFileSystemEvent: (callback) => ipcRenderer.on('file-system-event', (_, data) => callback(data)),
   updateFileInIndex: (relativePath) => ipcRenderer.invoke('update-file-index', relativePath),
   selectFiles: () => ipcRenderer.invoke('select-files'),
+  getProjectMetadata: () => ipcRenderer.invoke('get-project-metadata'),
 
   // History
   saveCurrentChatJson: (chatData) => ipcRenderer.invoke('save-current-chat-json', chatData),
@@ -38,6 +40,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Indexing
   buildIndex: () => ipcRenderer.invoke('build-index'),
   searchIndex: (query) => ipcRenderer.invoke('search-index', query),
+  // In preload.js or main process IPC handlers:
+  getIndexStats: async () => {
+    // Return { count: numberOfIndexedFiles } or null if index empty
+    if (!global.workspaceIndex)
+      return { count: 0 };
+
+    return { count: global.workspaceIndex.size };
+  },
 
   // Build System
   detectBuildConfig: (projectPath) => ipcRenderer.invoke('detect-build-config', projectPath),

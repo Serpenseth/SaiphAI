@@ -572,10 +572,12 @@ async function getFilesRecursive(dir, ig, baseDir = dir) {
 
     for (const entry of entries) {
       const fullPath = path.join(currentDir, entry.name);
-      const relativePath = path.relative(baseDir, fullPath);
+      const relativePath = path.relative(baseDir, fullPath).replace(/\\/g, '/');
 
-      if (ig.ignores(relativePath))
+      if (ig.ignores(relativePath)) {
+        console.log('Ignoring:', relativePath); // Add this
         continue;
+      }
 
       if (entry.name.startsWith('.') && entry.name !== '.gitignore')
         continue;
@@ -606,6 +608,8 @@ class WorkspaceIndex {
       '*.log', '.DS_Store', 'Thumbs.db', '__tests__', '.bundle/**',
       'package-lock.json', '.*'
     ]);
+    this.projectMetadata = null;
+    this.entryPoints = [];
   }
 
   setWorkspace(workspacePath) {
@@ -633,7 +637,7 @@ class WorkspaceIndex {
 
     for (const filePath of files) {
       try {
-        const relativePath = path.relative(this.workspacePath, filePath);
+        const relativePath = path.relative(this.workspacePath, filePath).replace(/\\/g, '/');
         const stats = await fs.stat(filePath);
         const ext = path.extname(filePath).toLowerCase();
         const binaryExts = ['.exe', '.dll', '.so', '.dylib', '.bin', '.png', '.jpg', '.jpeg', '.gif', '.ico', '.pdf', '.zip', '.tar', '.gz'];
@@ -669,6 +673,8 @@ class WorkspaceIndex {
       })),
       timestamp: Date.now()
     });
+
+    await this.analyzeProject();
 
     return this.index.size;
   }
@@ -865,6 +871,158 @@ class WorkspaceIndex {
       extension: path.extname(relativePath)
     });
   }
+
+  async analyzeProject() {
+    if (!this.workspacePath)
+      return null;
+
+    const metadata = {
+      name: path.basename(this.workspacePath),
+      description: '',
+      type: 'unknown',
+      techStack: [],
+      entryPoints: [],
+      framework: null,
+      keyFiles: []
+    };
+
+    // Priority files for project identity
+    const readmeFiles = ['README.md', 'readme.md', 'README.txt', 'readme.txt'];
+
+    const configPatterns = [
+      { file: 'package.json', type: 'node', parser: this.parsePackageJson },
+      { file: 'Cargo.toml', type: 'rust', parser: this.parseCargoToml },
+      { file: 'pyproject.toml', type: 'python', parser: this.parsePyProject },
+      { file: 'setup.py', type: 'python', parser: null },
+      { file: 'go.mod', type: 'go', parser: this.parseGoMod },
+      { file: 'pom.xml', type: 'java', parser: null },
+      { file: 'build.gradle', type: 'java', parser: null },
+      { file: 'CMakeLists.txt', type: 'cpp', parser: null },
+      { file: 'requirements.txt', type: 'python', parser: null }
+    ];
+
+    // Extract from README first
+    for (const readme of readmeFiles) {
+      const readmePath = path.join(this.workspacePath, readme);
+
+      if (fsSync.existsSync(readmePath)) {
+        const content = await fs.readFile(readmePath, 'utf8');
+
+        metadata.description = this.extractReadmeDescription(content);
+        metadata.keyFiles.push({ path: readme, type: 'documentation', priority: 10 });
+        break;
+      }
+    }
+
+    // Detect tech stack and framework
+    for (const config of configPatterns) {
+      const configPath = path.join(this.workspacePath, config.file);
+      if (fsSync.existsSync(configPath)) {
+        metadata.type = config.type;
+        metadata.techStack.push(config.type);
+        metadata.keyFiles.push({ path: config.file, type: 'config', priority: 9 });
+
+        if (config.parser) {
+          try {
+            const content = await fs.readFile(configPath, 'utf8');
+            const parsed = config.parser(content);
+            metadata.framework = parsed.framework || metadata.framework;
+            metadata.entryPoints = [...metadata.entryPoints, ...(parsed.entryPoints || [])];
+            if (parsed.name) metadata.name = parsed.name;
+            if (parsed.description) metadata.description = parsed.description || metadata.description;
+          } catch (e) {}
+        }
+      }
+    }
+
+    // Detect entry points by common patterns if not found in configs
+    if (metadata.entryPoints.length === 0) {
+      const commonEntries = {
+        node: ['index.js', 'main.js', 'app.js', 'server.js', 'src/index.js'],
+        python: ['main.py', 'app.py', 'run.py', '__main__.py'],
+        rust: ['src/main.rs'],
+        go: ['main.go', 'cmd/main.go']
+      };
+
+      if (commonEntries[metadata.type]) {
+        for (const entry of commonEntries[metadata.type]) {
+          const entryPath = path.join(this.workspacePath, entry);
+          if (fsSync.existsSync(entryPath)) {
+            metadata.entryPoints.push(entry);
+            metadata.keyFiles.push({ path: entry, type: 'entry', priority: 8 });
+            break;
+          }
+        }
+      }
+    }
+
+    this.projectMetadata = metadata;
+    return metadata;
+  }
+
+  extractReadmeDescription(content) {
+    // Extract first meaningful paragraph (skip badges and headings)
+    const lines = content.split('\n').filter(l => l.trim());
+    let desc = '';
+    let inHeader = true;
+
+    for (const line of lines) {
+      if (line.startsWith('#')) {
+        inHeader = false;
+        if (!desc) continue;
+        break;
+      }
+      if (!inHeader && line.trim() && !line.startsWith('![') && !line.startsWith('[')) {
+        desc += line + ' ';
+        if (desc.length > 200) break;
+      }
+    }
+    return desc.trim().substring(0, 500);
+  }
+
+  parsePackageJson(content) {
+    try {
+      const pkg = JSON.parse(content);
+      const framework = pkg.dependencies?.react ? 'React' :
+                      pkg.dependencies?.vue ? 'Vue' :
+                      pkg.dependencies?.express ? 'Express' :
+                      pkg.dependencies?.next ? 'Next.js' : null;
+      return {
+        name: pkg.name,
+        description: pkg.description,
+        framework,
+        entryPoints: pkg.main ? [pkg.main] : []
+      };
+    } catch (e) { return {}; }
+  }
+
+  parseCargoToml(content) {
+    // Simple regex parsing for Cargo.toml
+    const name = content.match(/^name\s*=\s*"([^"]+)"/m)?.[1];
+    const desc = content.match(/^description\s*=\s*"([^"]+)"/m)?.[1];
+    return { name, description: desc, entryPoints: ['src/main.rs'] };
+  }
+
+  parsePyProject(content) {
+    const framework = content.includes('django') ? 'Django' :
+                    content.includes('flask') ? 'Flask' :
+                    content.includes('fastapi') ? 'FastAPI' : null;
+    return { framework, entryPoints: ['main.py', 'app.py'] };
+  }
+
+  parseGoMod(content) {
+    const module = content.match(/^module\s+(.+)$/m)?.[1];
+    return { name: module, entryPoints: ['main.go'] };
+  }
+
+  getProjectSummary() {
+    if (!this.projectMetadata) return null;
+    const meta = this.projectMetadata;
+    return {
+      text: `Project: ${meta.name}\nType: ${meta.type}${meta.framework ? ` (${meta.framework})` : ''}\nDescription: ${meta.description || 'No description available'}\nTech Stack: ${meta.techStack.join(', ')}\nEntry Points: ${meta.entryPoints.join(', ') || 'Not detected'}`,
+      keyFiles: meta.keyFiles
+    };
+  }
 }
 
 const workspaceIndex = new WorkspaceIndex();
@@ -1015,7 +1173,7 @@ ipcMain.handle('get-file-tree', async (event, dirPath) => {
 
   for (const entry of entries) {
     const fullPath = path.join(dirPath, entry.name);
-    const relativePath = path.relative(workspaceIndex.workspacePath, fullPath);
+    const relativePath = path.relative(workspaceIndex.workspacePath, fullPath).replace(/\\/g, '/');
 
     if (workspaceIndex.ig.ignores(relativePath))
       continue;
@@ -1630,6 +1788,25 @@ ipcMain.handle('get-build-history', async (event, limit) => {
 ipcMain.handle('analyze-build-error', async (event, buildOutput, language) => {
   const analysis = await buildManager.analyzeBuildError(buildOutput, language);
   return { success: true, analysis };
+});
+
+ipcMain.handle('get-project-metadata', () => {
+  if (!workspaceIndex.projectMetadata)
+    return null;
+
+    const indexedFiles = Array.from(workspaceIndex.index.entries()).map(([relativePath, file]) => ({
+      path: relativePath,
+      relativePath: relativePath,
+      absolutePath: file.absolutePath,
+      name: path.basename(relativePath),
+      size: file.size,
+      extension: file.extension
+    }));
+
+    return {
+      ...workspaceIndex.projectMetadata,
+      indexedFiles: indexedFiles
+    };
 });
 
 app.whenReady().then(() => {

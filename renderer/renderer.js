@@ -61,6 +61,11 @@ class App {
     this.activeBuilds = new Map();
     this.buildHistory = [];
     this.currentBuildConfig = null;
+    // Workspace index cache
+    this.workspaceIndex = {
+      index: new Map(),
+      projectMetadata: null
+    };
 
     this.init();
   }
@@ -1276,65 +1281,165 @@ class App {
 
     const loadingId = this.addMessage('assistant', '<div class="loading"></div> Thinking...');
 
+    if (this.workspacePath) {
+      try {
+        const indexStats = await window.electronAPI.getIndexStats?.().catch(() => ({ count: 0 }));
+
+        if (!indexStats || indexStats.count === 0) {
+          console.log('Building workspace index...');
+          await window.electronAPI.buildIndex();
+          // Sync local cache after building
+          await this.syncWorkspaceIndex();
+        }
+      } catch (e) {
+        console.warn('Index check/build failed:', e);
+      }
+    }
+
     try {
       let responseText;
       let relevantFiles = [];
       const basePrompt = await window.electronAPI.getSystemPrompt();
       let contextPrompt = basePrompt;
-
       const isTinyLlama = this.currentModel === 'tinyllama';
 
       if (this.attachedFiles.length > 0) {
         contextPrompt += `\n\nThe user has uploaded ${this.attachedFiles.length} file(s). `;
-        contextPrompt += `Relevant sections have been selected based on the question. `;
-        contextPrompt += `Analyze relationships between different sections of the code.\n\n`;
+        contextPrompt += `Relevant sections have been selected based on the question.\n\n`;
 
-        const fileContext = await this.buildSmartContext(
-          this.attachedFiles,
-          message,
-          isTinyLlama
-        );
-
+        const fileContext = await this.buildSmartContext(this.attachedFiles, message, isTinyLlama);
         contextPrompt += fileContext;
       }
-
       else if (this.workspacePath) {
         try {
+          // Get semantically relevant files
           relevantFiles = await window.electronAPI.searchIndex?.(message, true) || [];
-        }
-        catch (e) {
-          console.warn('Index search unavailable:', e);
-        }
 
-        if (relevantFiles.length > 0) {
-          const filesWithContent = relevantFiles.slice(0, isTinyLlama ? 3 : 6).map(f => {
-            // If chunks are available, concatenate them with line number annotations
-            let content;
-            if (f.chunks && f.chunks.length > 0) {
-              content = f.chunks.map(chunk =>
-                `// Lines ${chunk.startLine}-${chunk.endLine}\n${chunk.content}`
-              ).join('\n\n');
-            } else {
-              // Fallback to full content or read from disk
-              content = f.content;
+          // Extract explicit file mentions from query
+          const explicitRefs = this.extractFileReferences(message);
+
+          // Ensure explicitly mentioned files are included even if semantic search missed them
+          for (const ref of explicitRefs) {
+            const alreadyIncluded = relevantFiles.some(f =>
+                f.relativePath?.replace(/\\/g, '/').endsWith(ref.replace(/\\/g, '/')) ||
+                f.path?.replace(/\\/g, '/').endsWith(ref.replace(/\\/g, '/')) ||
+                f.name === ref.split(/[\/\\]/).pop()
+            );
+
+            if (!alreadyIncluded) {
+              let explicitFile = this.findFileInWorkspace(ref);
+
+              // FALLBACK: If not in index, try reading directly from disk
+              if (!explicitFile && this.workspacePath) {
+                try {
+                  let testPath = ref;
+
+                  // If not absolute, resolve relative to workspace
+                  if (!path.isAbsolute(ref)) {
+                    testPath = path.join(this.workspacePath, ref);
+                  }
+
+                  // Verify file exists and read it
+                  const content = await window.electronAPI.readFile(testPath);
+                  const relativePath = path.relative(this.workspacePath, testPath);
+
+                  explicitFile = {
+                    name: path.basename(testPath),
+                    relativePath: relativePath,
+                    absolutePath: testPath,
+                    path: testPath,
+                    content: content,
+                    size: content.length
+                  };
+                }
+                catch (e) {
+                  console.log('File not found in index or on disk:', ref);
+                  explicitFile = null;
+                }
+              }
+
+              if (explicitFile) {
+                // Load content if not already present (for files found in index but without content)
+                if (!explicitFile.content && (explicitFile.absolutePath || explicitFile.path)) {
+                  try {
+                      const pathToRead = explicitFile.absolutePath || explicitFile.path;
+                      explicitFile.content = await window.electronAPI.readFile(pathToRead);
+                  }
+                  catch (e) {
+                      console.warn('Failed to load explicit file reference:', ref, e);
+                      continue;
+                  }
+                }
+
+                // Add with high relevance priority so it's included in context
+                relevantFiles.unshift({
+                  ...explicitFile,
+                  relevance: 9999,
+                  isExplicitReference: true
+                });
+              }
             }
+          }
 
+          if (explicitRefs.length > 0) {
+            const foundExplicit = relevantFiles.filter(f => f.relevance === 9999 || f.isExplicitReference);
+            const missingRefs = explicitRefs.filter(ref =>
+              !foundExplicit.some(f =>
+                (f.relativePath || '').replace(/\\/g, '/').endsWith(ref.replace(/\\/g, '/')) ||
+                f.name === ref.split(/[\/\\]/).pop()
+              )
+            );
+
+            if (missingRefs.length > 0) {
+              contextPrompt += `\n\nNote: The user referenced specific files (${missingRefs.join(', ')}) that could not be found in the workspace index.`;
+            }
+          }
+
+          // Ensure minimum files for context
+          const minFiles = isTinyLlama ? 3 : 6;
+          // ... rest of existing logic for key files ...
+
+          if (relevantFiles.length < minFiles && this.workspaceIndex.projectMetadata?.keyFiles) {
+            // ... existing key files logic ...
+          }
+
+          // If explicit files were requested but we found nothing, warn in context
+          if (explicitRefs.length > 0 && !relevantFiles.some(f => explicitRefs.some(ref =>
+            f.relativePath?.endsWith(ref) || f.name === ref
+          ))) {
+            contextPrompt += `\n\nNote: The user referenced specific files (${explicitRefs.join(', ')}) that could not be found in the workspace index.`;
+          }
+
+          // Sort by relevance (explicit refs will be first due to score 9999)
+          relevantFiles.sort((a, b) => (b.relevance || 0) - (a.relevance || 0));
+
+          // Build context from files (limit to avoid token overflow)
+          const filesWithContent = relevantFiles.map(f => {
+            let content = f.content;
+            if (f.chunks && f.chunks.length > 0) {
+              content = f.chunks.map(chunk => `// Lines ${chunk.startLine}-${chunk.endLine}\n${chunk.content}`).join('\n\n');
+            }
             return {
               ...f,
               content: content || '',
-              path: f.absolutePath || f.path
+              absolutePath: f.absolutePath || f.path // Ensure absolutePath exists
             };
           });
 
-          const fileContext = await this.buildSmartContext(
-            filesWithContent,
-            message,
-            isTinyLlama
-          )
+          const fileContext = await this.buildSmartContext(filesWithContent, message, isTinyLlama);
 
           if (fileContext) {
             contextPrompt += `\n\nRelevant workspace files:\n\n${fileContext}`;
           }
+          else if (this.workspacePath) {
+            // Last resort: at least mention the workspace path
+            contextPrompt += `\n\nThe user is working in workspace: ${this.workspacePath}. `;
+            contextPrompt += `Answer based on general knowledge if specific files aren't relevant.`;
+          }
+        }
+        catch (e) {
+          console.warn('Index search unavailable:', e);
+          contextPrompt += `\n\nNote: The user has a workspace open at ${this.workspacePath}, but file search is temporarily unavailable.`;
         }
       }
 
@@ -1357,14 +1462,14 @@ class App {
           throw new Error(result.error);
 
         responseText = result.response;
-        responseText = responseText.replace(/^<\/think>\s*/, '');
       }
       else {
         throw new Error('No model configured');
       }
 
-      document.getElementById(loadingId)?.remove();
+      responseText = responseText.replace(/^<\/think>\s*/, '');
 
+      document.getElementById(loadingId)?.remove();
       this.addMessage('assistant', responseText);
       this.updateCurrentChat(responseText, 'assistant');
       this.attachedFiles = [];
@@ -1386,45 +1491,56 @@ class App {
 
     console.log(`File event: ${eventType} - ${relativePath}`);
 
-    // Handle specific events immediately if needed
     switch (eventType) {
       case 'add':
       case 'unlink':
       case 'addDir':
       case 'unlinkDir':
-        // Structural changes - full tree refresh needed
         this.pendingChanges.add('structure');
         break;
       case 'change':
-        // Content change - update index only for this file
-        this.updateFileInIndex(relativePath);
+        this.pendingChanges.add('change');
+        this.pendingChanges.add(relativePath); // Track specific changed files
         break;
     }
 
-    // Debounce rapid successive events (git checkout, npm install, etc.)
     clearTimeout(this.fsChangeTimeout);
     this.fsChangeTimeout = setTimeout(async () => {
       await this.refreshWorkspaceView();
-    }, 50);
+    }, 300);
   }
 
   async refreshWorkspaceView() {
-    //alert('Refreshing view, pending changes:', this.pendingChanges);
+    const changes = Array.from(this.pendingChanges);
 
-    if (this.pendingChanges.has('structure')) {
+    // Handle structural changes (add/remove directories/files)
+    if (changes.includes('structure')) {
       try {
         await this.loadFileTree(this.workspacePath);
         await window.electronAPI.buildIndex();
+        // Re-sync index after rebuild
+        await this.syncWorkspaceIndex();
       }
       catch(e) {
         console.error(e);
-        throw e;
       }
       finally {
-        this.pendingChanges.clear();
+        // Only clear structure flag, keep content changes for next cycle
+        this.pendingChanges.delete('structure');
       }
     }
-  }
+
+    // Handle individual file content changes without full rebuild
+    const contentChanges = changes.filter(c => c !== 'structure' && c !== 'change');
+
+    if (contentChanges.length > 0 && !changes.includes('structure')) {
+      for (const filePath of contentChanges) {
+        await this.updateFileInIndex(filePath);
+      }
+      this.pendingChanges.delete('change');
+      contentChanges.forEach(c => this.pendingChanges.delete(c));
+    }
+}
 
   async updateFileInIndex(relativePath) {
     // If file is open in editor, could check for external modifications here
@@ -1472,11 +1588,31 @@ class App {
   async loadWorkspace(path) {
     document.getElementById('workspace-path').textContent = path;
     this.workspacePath = path;
-
     await window.electronAPI.setConfig({ lastWorkspace: path });
     await this.loadFileTree(path);
-    await this.initBuildSystem();
 
+    try {
+      await window.electronAPI.buildIndex();
+      const metadata = await window.electronAPI.getProjectMetadata();
+
+      if (metadata) {
+        this.workspaceIndex.projectMetadata = metadata;
+        // Populate local index Map so size checks work correctly
+        if (metadata.indexedFiles) {
+          this.workspaceIndex.index.clear();
+
+          metadata.indexedFiles.forEach(file => {
+            this.workspaceIndex.index.set(file.path, file);
+          });
+          console.log(`Indexed ${this.workspaceIndex.index.size} files. Detected: ${metadata.type} project`);
+        }
+      }
+    }
+    catch (e) {
+      console.error('Failed to build/load index:', e);
+    }
+
+    await this.initBuildSystem();
   }
 
   async loadFileTree(dirPath, parentElement = null) {
@@ -1830,7 +1966,36 @@ class App {
     if (!this.workspacePath)
       return;
 
-    const count = await window.electronAPI.buildIndex();
+    try {
+      const count = await window.electronAPI.buildIndex();
+
+      await this.syncWorkspaceIndex(); // Sync after rebuild
+      this.updateStatus(`Workspace indexed: ${count} files`);
+    }
+    catch (e) {
+      console.error('Rebuild failed:', e);
+      this.updateStatus('Index rebuild failed');
+    }
+  }
+
+  async syncWorkspaceIndex() {
+    try {
+      const metadata = await window.electronAPI.getProjectMetadata();
+
+      if (metadata) {
+        this.workspaceIndex.projectMetadata = metadata;
+        this.workspaceIndex.index.clear();
+
+        if (metadata.indexedFiles) {
+          metadata.indexedFiles.forEach(file => {
+            this.workspaceIndex.index.set(file.path, file);
+          });
+        }
+      }
+    }
+    catch (e) {
+      console.error('Failed to sync workspace index:', e);
+    }
   }
 
   updateStatus(text) {
@@ -1908,66 +2073,186 @@ class App {
           score += 15;
 
         // Usage bonus
-        if (chunkLower.includes(ref.toLowerCase())) score += 3;
+        if (chunkLower.includes(ref.toLowerCase()))
+          score += 3;
       });
 
       return { ...chunk, score };
     }).sort((a, b) => b.score - a.score);
   }
 
+  // Extract potential file references from text (e.g., "utils.js", "src/main.py")
+  extractFileReferences(text) {
+    const pattern = /(?:[\w\-]+\/)*[\w\-]+\.(js|ts|jsx|tsx|py|java|cpp|c|h|hpp|cs|go|rs|rb|php|swift|kt|scala|r|css|scss|html|json|xml|yaml|yml|md|txt|sql|vue|svelte)\b/gi;
+
+    const refs = new Set();
+    let match;
+
+    while ((match = pattern.exec(text)) !== null) {
+      let ref = match[0].trim();
+      // Remove trailing punctuation and quotes
+      ref = ref.replace(/[.,;:!?'"`]+$/, '');
+      // Remove leading ./
+      ref = ref.replace(/^\.\//, '');
+      if (ref) refs.add(ref);
+    }
+
+    return Array.from(refs);
+  }
+
+  // Find file in workspace index by reference
+  findFileInWorkspace(fileRef) {
+    if (!this.workspaceIndex?.index || this.workspaceIndex.index.size === 0) {
+        return null;
+      }
+
+      // Normalize the reference
+      const normalizedRef = fileRef.replace(/\\/g, '/').replace(/^\.\//, '');
+      const refBasename = normalizedRef.split('/').pop();
+
+      for (const [relativePath, file] of this.workspaceIndex.index) {
+        const normalizedPath = relativePath.replace(/\\/g, '/');
+        const pathBasename = normalizedPath.split('/').pop();
+
+        // Match if path ends with reference or basename matches
+        if (normalizedPath.endsWith(normalizedRef) ||
+          pathBasename === refBasename ||
+          pathBasename === normalizedRef) {
+
+          // Ensure we have an absolute path
+          const absolutePath = file.absolutePath ||
+            path.join(this.workspacePath, relativePath);
+
+          return {
+            ...file,
+            name: pathBasename,
+            relativePath: relativePath,
+            absolutePath: absolutePath,
+            path: absolutePath
+        };
+      }
+    }
+
+    return null;
+  }
+
+  isProjectOverviewQuery(query) {
+    const patterns = [
+      /what\s+(?:is|does)\s+(?:this|the)\s+project/i,
+      /explain\s+(?:this|the)\s+(?:project|codebase|app)/i,
+      /what\s+is\s+this/i,
+      /tell\s+me\s+about\s+this/i,
+      /project\s+(?:overview|summary|description)/i,
+      /what\s+language/i,
+      /what\s+framework/i,
+      /how\s+is\s+this\s+built/i
+    ];
+    return patterns.some(p => p.test(query.toLowerCase()));
+  }
+
   async buildSmartContext(files, query, isTinyLlama = true) {
-    const maxChars = isTinyLlama ? 3000 : 10000;
+    const isOverview = this.isProjectOverviewQuery(query);
+    const maxChars = isTinyLlama ? 12000 : 50000;
+    const processedPaths = new Set();
+
     let context = '';
     let usedChars = 0;
 
     for (const file of files) {
-      // Ensure we have full content, not just preview
+      if (usedChars >= maxChars) break;
+
+      const filePath = file.relativePath || file.path;
+      if (processedPaths.has(filePath)) continue;
+
       let content = file.content;
 
-      if (!content && file.path) {
+      if (!content && (file.absolutePath || file.path)) {
         try {
-          content = await window.electronAPI.readFile(file.path);
-        } catch (e) {
+          // Prefer absolutePath over path (path might be relative)
+          const pathToRead = file.absolutePath || file.path;
+          content = await window.electronAPI.readFile(pathToRead);
+        }
+        catch (e) {
+          console.warn('Failed to read file in buildSmartContext:', filePath, e);
           continue;
         }
       }
-      if (!content) continue;
 
-      const fileName = file.name || file.relativePath || 'file';
+      if (!content)
+        continue;
 
-      // If file is small enough, include entirely
-      if (content.length < 2000 && usedChars + content.length < maxChars) {
-        context += `File: ${fileName}\n\`\`\`\n${content}\n\`\`\`\n\n`;
-        usedChars += content.length;
+      // Treat explicit references or high-relevance files like overviews
+      // to include more content when user specifically asks about them
+      const isExplicitReference = file.relevance > 9000 || file.isExplicitReference;
+
+      if (isOverview || isExplicitReference || content.length < 8000) {
+        // For explicit references, be more generous with truncation
+        const limit = isExplicitReference ? 12000 : 8000;
+        const truncated = content.length > limit
+          ? content.substring(0, limit) + '\n... [truncated]'
+          : content;
+
+        context += `File: ${file.relativePath || file.name}\n\`\`\`\n${truncated}\n\`\`\`\n\n`;
+        usedChars += truncated.length;
+        processedPaths.add(filePath);
         continue;
       }
 
-      // For larger files, extract relevant chunks
+      // For larger files with specific query, chunk and score
       const chunks = this.chunkFileContent(content);
       const scoredChunks = this.scoreChunkRelevance(chunks, query);
 
-      // Select top chunks until we hit the limit
+      const hasHighScores = scoredChunks.some(c => c.score > 0);
+      const chunksToInclude = hasHighScores
+        ? scoredChunks.filter(c => c.score > 0).slice(0, 15)
+        : scoredChunks.slice(0, 3); // Include first 3 chunks if no matches
+
       let fileContext = '';
       let fileChars = 0;
 
-      for (const chunk of scoredChunks) {
+      for (const chunk of chunksToInclude) {
         if (usedChars + fileChars + chunk.content.length > maxChars)
           break;
-
-        if (chunk.score === 0)
-          continue; // Skip irrelevant chunks
 
         fileContext += `// Lines ${chunk.startLine}-${chunk.endLine}\n${chunk.content}\n\n`;
         fileChars += chunk.content.length + 50;
       }
 
       if (fileContext) {
-        context += `File: ${fileName}\n\`\`\`\n${fileContext}\n\`\`\`\n\n`;
+        context += `File: ${file.relativePath || file.name}\n\`\`\`\n${fileContext}\n\`\`\`\n\n`;
         usedChars += fileChars;
+        processedPaths.add(filePath);
       }
     }
 
+    if (!context && files.length > 0) {
+      context = `Workspace contains ${files.length} relevant files including: ${files.slice(0, 5).map(f => f.relativePath || f.name).join(', ')}.`;
+    }
+
     return context;
+  }
+
+  extractEntryPointOverview(content) {
+    // Extract imports and first class/function for quick understanding
+    const lines = content.split('\n');
+    const imports = [];
+    const definitions = [];
+    let inImports = true;
+
+    for (const line of lines) {
+      if (inImports && (line.startsWith('import') || line.startsWith('from') || line.startsWith('const') || line.startsWith('require'))) {
+        imports.push(line);
+      } else {
+        inImports = false;
+      }
+
+      if (line.match(/^(class|function|def|const|async function|export)/)) {
+        definitions.push(line);
+        if (definitions.length >= 3) break; // First few definitions only
+      }
+    }
+
+    return [...imports.slice(0, 10), '', ...definitions.slice(0, 5)].join('\n');
   }
 
   initMonaco() {
