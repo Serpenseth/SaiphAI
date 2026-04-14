@@ -1395,14 +1395,6 @@ class App {
             }
           }
 
-          // Ensure minimum files for context
-          const minFiles = isTinyLlama ? 3 : 6;
-          // ... rest of existing logic for key files ...
-
-          if (relevantFiles.length < minFiles && this.workspaceIndex.projectMetadata?.keyFiles) {
-            // ... existing key files logic ...
-          }
-
           // If explicit files were requested but we found nothing, warn in context
           if (explicitRefs.length > 0 && !relevantFiles.some(f => explicitRefs.some(ref =>
             f.relativePath?.endsWith(ref) || f.name === ref
