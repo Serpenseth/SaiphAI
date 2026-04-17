@@ -575,7 +575,7 @@ async function getFilesRecursive(dir, ig, baseDir = dir) {
       const relativePath = path.relative(baseDir, fullPath).replace(/\\/g, '/');
 
       if (ig.ignores(relativePath)) {
-        console.log('Ignoring:', relativePath); // Add this
+        console.log('Ignoring:', relativePath);
         continue;
       }
 

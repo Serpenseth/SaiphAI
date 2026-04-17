@@ -50,8 +50,6 @@ class App {
       date: new Date().toISOString()
     };
     this.chatHistory = [];
-    // Load current chat from JSON on init
-    this.loadCurrentChatFromJson();
     // Welcome hub
     this.showWelcomeHub = !this.config.hideWelcomeHub;
     this.hubUpdateTimeout = null;
@@ -114,6 +112,8 @@ class App {
         setTimeout(() => this.loadWorkspace(this.config.lastWorkspace), 1000);
       }
     }
+
+    await this.loadCurrentChatFromJson();
 
     document.getElementById('app').classList.remove('hidden');
     this.initMonaco();
@@ -906,10 +906,12 @@ class App {
     const hub = document.getElementById('welcome-hub');
     const container = document.getElementById('chat-messages');
 
-    // Only show if enabled and chat is empty
-    if (!this.showWelcomeHub || this.currentChat.messages.length > 0 || this.currentChat.id) {
-      hub?.classList.add('hidden');
-      return;
+    if (!this.showWelcomeHub ||
+        this.currentChat.messages.length > 0 ||
+        this.currentChat.id)
+    {
+        hub?.classList.add('hidden');
+        return;
     }
 
     hub?.classList.remove('hidden');
@@ -1164,7 +1166,7 @@ class App {
 
     try {
       if (modelType === 'tinyllama') {
-        // ... existing TinyLlama download logic ...
+        // FIXME ... existing TinyLlama download logic ...
       }
       else {
         // Ollama path: Hide first-run modal immediately
@@ -1178,14 +1180,33 @@ class App {
         this.currentModel = 'ollama';
         this.updateStatus('Ready: Ollama (select model below)');
 
-        // Safe Ollama initialization with error handling
-        try {
-          await this.populateOllamaModels();
-        }
-        catch (ollamaErr) {
-          console.error('Failed to populate Ollama models:', ollamaErr);
-          this.updateStatus('Ollama selected (model list unavailable)');
-        }
+        // Delay slightly to ensure DOM is ready, then populate
+        setTimeout(async () => {
+          try {
+            await this.populateOllamaModels();
+
+            // Only save config after we have the model name
+            if (this.currentOllamaModel) {
+              await window.electronAPI.setConfig({
+                modelType: 'ollama',
+                modelName: this.currentOllamaModel
+              });
+              this.updateStatus(`Ready: Ollama (${this.currentOllamaModel})`);
+            }
+            else {
+              // No models found or Ollama not running
+              await window.electronAPI.setConfig({
+                modelType: 'ollama',
+                modelName: null
+              });
+              this.updateStatus('Ollama connected but no models found');
+            }
+          }
+          catch (ollamaErr) {
+            console.error('Failed to populate Ollama models:', ollamaErr);
+            this.updateStatus('Ollama selected (model list unavailable)');
+          }
+        }, 100);
       }
 
       this.config = await window.electronAPI.getConfig();
@@ -1230,43 +1251,87 @@ class App {
   }
 
   async populateOllamaModels() {
-    if (!this.ollamaModelSelect) {
-      console.warn('Ollama model selector not found in DOM');
-      return;
+    let selector = this.ollamaModelSelect;
+
+    if (!selector || !document.contains(selector)) {
+      selector = document.getElementById('ollama-model-selector');
+      this.ollamaModelSelect = selector;
     }
 
-    if (this.currentModel !== 'ollama') {
-      this.ollamaModelSelect.classList.add('hidden');
-      return;
+    if (!selector) {
+      console.warn('Ollama model selector not found in DOM, updating state only');
     }
+/*
+    if (this.currentModel !== 'ollama') {
+        selector.classList.add('hidden');
+        return;
+    }*/
 
     try {
-      const result = await window.electronAPI.getOllamaModels();
-      if (result.success && result.models.length > 0) {
-        this.availableOllamaModels = result.models;
-        this.ollamaModelSelect.innerHTML = result.models.map(m =>
-          `<option value="${m.name}" ${m.name === this.currentOllamaModel ? 'selected' : ''}>${m.name}</option>`
-        ).join('');
-        this.ollamaModelSelect.classList.remove('hidden');
+        const result = await window.electronAPI.getOllamaModels();
 
-        if (!this.currentOllamaModel && result.models.length > 0) {
-          this.currentOllamaModel = result.models[0].name;
-          this.ollamaModelSelect.value = this.currentOllamaModel;
+        // Safely handle cases where models might be null/undefined or not an array
+        const models = Array.isArray(result.models) ? result.models : [];
+
+        if (result.success && models.length > 0) {
+          this.availableOllamaModels = models;
+
+          if (selector) {
+            selector.innerHTML = models.map(m =>
+                `<option value="${m.name}" ${m.name === this.currentOllamaModel ? 'selected' : ''}>${m.name}</option>`
+            ).join('');
+            selector.classList.remove('hidden');
+          }
+
+          // Auto-select first model regardless of DOM state
+          if (!this.currentOllamaModel) {
+            this.currentOllamaModel = models[0].name;
+
+            if (selector) {
+                selector.value = this.currentOllamaModel;
+            }
+
+            // Persist selection immediately so it's available for chat
+            await window.electronAPI.setConfig({
+                modelType: 'ollama',
+                modelName: this.currentOllamaModel
+            });
+          }
         }
-      }
-      else {
-        this.ollamaModelSelect.innerHTML = '<option value="">No models found</option>';
-        this.ollamaModelSelect.classList.remove('hidden');
-      }
+        else if (result.success) {
+            // Ollama is running but has no models pulled
+            selector.innerHTML = '<option value="">No models installed (run: ollama pull)</option>';
+            selector.classList.remove('hidden');
+            this.currentOllamaModel = null; // Explicitly null when empty
+        }
+        else {
+            throw new Error(result.error || 'Failed to fetch models');
+        }
     }
     catch (e) {
-      console.error('Failed to get Ollama models:', e);
-      this.ollamaModelSelect.innerHTML = '<option value="">Connection error</option>';
-      this.ollamaModelSelect.classList.remove('hidden');
+        console.error('Failed to get Ollama models:', e);
+        selector.innerHTML = '<option value="">Ollama not running</option>';
+        selector.classList.remove('hidden');
+        this.currentOllamaModel = null; // Explicitly null on error
     }
   }
 
   async sendMessage(text = null) {
+    if (!this.currentOllamaModel) {
+      // Try to populate models once more
+      await this.populateOllamaModels();
+
+      if (!this.currentOllamaModel) {
+        throw new Error('No Ollama model selected. Please open Settings and select a model.');
+      }
+    }
+
+    const hub = document.getElementById('welcome-hub');
+
+    if (hub) {
+      hub.style.display = 'none';
+    }
+
     const input = document.getElementById('chat-input');
     const message = text || input.value.trim();
 
@@ -1278,6 +1343,7 @@ class App {
 
     this.addMessage('user', message);
     this.updateCurrentChat(message, 'user');
+    this.renderWelcomeHub();
 
     const loadingId = this.addMessage('assistant', '<div class="loading"></div> Thinking...');
 
@@ -1460,8 +1526,8 @@ class App {
       }
 
       responseText = responseText.replace(/^<\/think>\s*/, '');
-
       document.getElementById(loadingId)?.remove();
+
       this.addMessage('assistant', responseText);
       this.updateCurrentChat(responseText, 'assistant');
       this.attachedFiles = [];
@@ -1914,6 +1980,9 @@ class App {
   }
 
   parseMarkdown(text) {
+    if (!text)
+      return '';
+
     // Extract code blocks first to protect them from newline replacement
     const codeBlocks = [];
     let processedText = text
@@ -2262,7 +2331,7 @@ class App {
       if (currentModelDiv)
         currentModelDiv.style.display = "none";
 
-
+    this.populateOllamaModels();
 
     // Grab user's theme so we can restore it on cancel
     this._originalTheme = document.documentElement.getAttribute('data-theme') || 'system';
