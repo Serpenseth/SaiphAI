@@ -2171,8 +2171,6 @@ class App {
     this.lastActiveChatTab = tabId;
     this.saveEditorState(); // Persist active tab
 
-    return;
-
     if (tabId === 'chat') {
       document.querySelector('[data-tab="chat"]')?.classList.add('active');
       document.getElementById('chat-panel')?.classList.add('active');
