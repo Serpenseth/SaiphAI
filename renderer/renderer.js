@@ -64,6 +64,13 @@ class App {
       index: new Map(),
       projectMetadata: null
     };
+    // Multi-chat state
+    this.openChats = new Map(); // tabId -> { id, title, messages, isGenerating, pendingRequestId }
+    this.chatTabCounter = 0;
+    this.lastActiveChatTab = null; // For persistence
+
+    // Message routing safety - tracks which tab initiated which request
+    this.activeRequests = new Map(); // requestId -> tabId
 
     this.init();
   }
@@ -1332,6 +1339,16 @@ class App {
       hub.style.display = 'none';
     }
 
+    const tabId = targetTabId || this.activeTab;
+    const chatData = this.openChats.get(tabId);
+
+    if (!chatData)
+      return;
+
+    // Prevent sending if already generating in this tab
+    if (chatData.isGenerating)
+      return;
+
     const input = document.getElementById('chat-input');
     const message = text || input.value.trim();
 
@@ -1341,11 +1358,24 @@ class App {
     if (!text)
       input.value = '';
 
+    if (chatData.messages.length === 0) {
+      const summary = this.generateTabTitle(message);
+      chatData.title = summary;
+      this.updateTabTitle(tabId, summary);
+    }
+
+    // Add user message to correct tab
+    chatData.messages.push({
+      role: 'user',
+      content: message,
+      timestamp: Date.now()
+    });
+
     this.addMessage('user', message);
     this.updateCurrentChat(message, 'user');
     this.renderWelcomeHub();
 
-    const loadingId = this.addMessage('assistant', '<div class="loading"></div> Thinking...');
+    const loadingId = this.addMessage(tabId, 'assistant', '<div class="loading"></div> Thinking...');
 
     if (this.workspacePath) {
       try {
@@ -1525,21 +1555,54 @@ class App {
         throw new Error('No model configured');
       }
 
+      const currentChat = this.openChats.get(tabId);
+
+      if (currentChat?.pendingRequestId !== requestId) {
+        console.warn('Stale request detected, discarding');
+        return;
+      }
+
       responseText = responseText.replace(/^<\/think>\s*/, '');
       document.getElementById(loadingId)?.remove();
 
+      // Add response to chat data
+      currentChat.messages.push({
+        role: 'assistant',
+        content: responseText,
+        timestamp: Date.now()
+      });
+      currentChat.isGenerating = false;
+      currentChat.pendingRequestId = null;
+
+      /*
       this.addMessage('assistant', responseText);
       this.updateCurrentChat(responseText, 'assistant');
       this.attachedFiles = [];
       this.renderAttachedFiles();
+      */
 
-      if (this.currentChat.messages.length >= 2 && !this.currentChat.id) {
-        await this.saveChatToHistory();
+      if (this.activeTab === tabId) {
+        this.addMessageToTab(tabId, 'assistant', responseText);
       }
+      else {
+        this.setTabUnreadIndicator(tabId, true);
+      }
+
+      await this.saveChatToHistory(currentChat);
     }
     catch (e) {
       document.getElementById(loadingId)?.remove();
-      this.addMessage('assistant', `Error: ${e.message}`);
+
+      if (this.openChats.has(tabId)) {
+        this.openChats.get(tabId).isGenerating = false;
+        this.openChats.get(tabId).pendingRequestId = null;
+      }
+      if (this.activeTab === tabId) {
+        this.addMessageToTab(tabId, 'assistant', `Error: ${e.message}`);
+      }
+    }
+    finally {
+      this.activeRequests.delete(requestId);
     }
   }
 
@@ -1793,18 +1856,31 @@ class App {
 
   async saveEditorState() {
     const openFilesData = [];
-
     for (const [tabId, file] of this.openFiles) {
       openFilesData.push({
-        path: file.path,
-        name: file.name,
-        viewState: file.editor ? file.editor.saveViewState() : null
+        type: 'file',
+        tabId, path:
+        file.path,
+        name: file.name
+      });
+    }
+
+    const openChatsData = [];
+    for (const [tabId, chat] of this.openChats) {
+      openChatsData.push({
+        type: 'chat',
+        tabId,
+        chatId: chat.id,
+        title: chat.title,
+        messages: chat.messages
       });
     }
 
     await window.electronAPI.setConfig({
       openFiles: openFilesData,
-      activeFile: this.activeFilePath
+      openChats: openChatsData,
+      activeTab: this.activeTab,
+      lastActiveChatTab: this.lastActiveChatTab
     });
   }
 
@@ -1818,7 +1894,38 @@ class App {
 
   async restoreEditorState() {
     const config = await window.electronAPI.getConfig();
-    if (!config.openFiles || config.openFiles.length === 0) return;
+
+    if (!config.openFiles || config.openFiles.length === 0)
+      return;
+
+    // Restore chat tabs
+    if (config.openChats && config.openChats.length > 0) {
+      for (const chatConfig of config.openChats) {
+        if (chatConfig.type === 'chat') {
+          this.createChatTab({
+            id: chatConfig.chatId,
+            title: chatConfig.title,
+            messages: chatConfig.messages || []
+          });
+        }
+      }
+    }
+    else {
+      // Create default chat if none restored
+      this.createChatTab();
+    }
+
+    // Restore active tab
+    if (config.activeTab && (
+      this.openChats.has(config.activeTab) ||
+      this.openFiles.has(config.activeTab) ||
+      config.activeTab === 'chat'
+    )) {
+      this.switchToTab(config.activeTab);
+    }
+    else if (config.lastActiveChatTab && this.openChats.has(config.lastActiveChatTab)) {
+      this.switchToTab(config.lastActiveChatTab);
+    }
 
     // Open all files without switching, except the active one
     for (let i = 0; i < config.openFiles.length; i++) {
@@ -1882,6 +1989,129 @@ class App {
     }, 0);
   }
 
+  createChatTab(existingChat = null) {
+    const tabId = `chat-${Date.now()}-${this.chatTabCounter++}`;
+    const chatId = existingChat?.id || null;
+
+    // Create tab data
+    const chatData = {
+      tabId,
+      id: chatId,
+      title: existingChat?.title || 'New Chat',
+      messages: existingChat?.messages || [],
+      isGenerating: false,
+      pendingRequestId: null
+    };
+
+    this.openChats.set(tabId, chatData);
+
+    // Create DOM tab (insert before file tabs, after existing chat tabs)
+    const tabsContainer = document.getElementById('tabs');
+    const tab = document.createElement('div');
+    tab.className = 'tab chat-tab';
+    tab.dataset.tab = tabId;
+    tab.draggable = true; // Enable dragging
+
+    tab.innerHTML = `
+      <span class="chat-tab-title">${this.escapeHtml(chatData.title)}</span>
+      <span class="tab-close" onclick="app.closeChatTab('${tabId}', event)">×</span>
+    `;
+
+    // Insert into chat section (before Monaco tabs)
+    const firstFileTab = Array.from(tabsContainer.children).find(t =>
+      t.dataset.tab && t.dataset.tab.startsWith('tab-')
+    );
+    if (firstFileTab) {
+      tabsContainer.insertBefore(tab, firstFileTab);
+    } else {
+      tabsContainer.appendChild(tab);
+    }
+
+    // Event listeners
+    tab.addEventListener('click', (e) => {
+      if (!e.target.classList.contains('tab-close')) {
+        this.switchToTab(tabId);
+      }
+    });
+
+    // Drag handlers
+    this.setupTabDragHandlers(tab, tabId, 'chat');
+
+    // Create panel (hidden initially)
+    this.createChatPanel(tabId);
+
+    this.switchToTab(tabId);
+    return tabId;
+  }
+
+  async closeChatTab(tabId, event) {
+    if (event) event.stopPropagation();
+
+    const chatData = this.openChats.get(tabId);
+    if (!chatData) return;
+
+    // Save before closing
+    if (chatData.messages.length > 0) {
+      await this.saveChatToHistory(chatData);
+    }
+
+    // If generating, cancel
+    if (chatData.isGenerating && chatData.pendingRequestId) {
+      // Optionally implement cancellation logic
+    }
+
+    // Remove DOM
+    document.querySelector(`[data-tab="${tabId}"]`)?.remove();
+    document.getElementById(tabId)?.remove();
+
+    // Remove from state
+    this.openChats.delete(tabId);
+
+    // Switch to another tab
+    if (this.activeTab === tabId) {
+      if (this.openChats.size > 0) {
+        this.switchToTab(this.openChats.keys().next().value);
+      } else {
+        this.switchToTab('chat'); // Original chat tab or create new
+        this.createChatTab();
+      }
+    }
+
+    await this.saveEditorState();
+  }
+
+  generateTabTitle(firstMessage) {
+    // Remove emojis and special characters, limit to 25 chars
+    const clean = firstMessage
+      .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
+      .replace(/[^\w\s\-]/g, '') // Remove special chars except spaces/hyphens
+      .trim()
+      .substring(0, 25);
+
+    return clean || 'New Chat';
+  }
+
+  createChatPanel(tabId) {
+    const container = document.querySelector('.tab-contents');
+    const panel = document.createElement('div');
+    panel.id = tabId;
+    panel.className = 'tab-panel chat-panel';
+    panel.innerHTML = `<div class="chat-messages" id="messages-${tabId}"></div>`;
+    container.appendChild(panel);
+  }
+
+  updateTabTitle(tabId, title) {
+    const tab = document.querySelector(`[data-tab="${tabId}"]`);
+    if (tab) {
+      const titleSpan = tab.querySelector('.chat-tab-title');
+      if (titleSpan) titleSpan.textContent = title;
+    }
+    // Update data model
+    if (this.openChats.has(tabId)) {
+      this.openChats.get(tabId).title = title;
+    }
+  }
+
   getLanguageFromExt(ext) {
     const map = { '.js': 'javascript', '.ts': 'typescript', '.html': 'html', '.css': 'css', '.py': 'python', '.json': 'json', '.md': 'markdown' };
     return map[ext] || 'plaintext';
@@ -1890,6 +2120,15 @@ class App {
   switchToTab(tabId) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+
+    // Clear unread indicator
+    this.setTabUnreadIndicator(tabId, false);
+
+    this.activeTab = tabId;
+    this.lastActiveChatTab = tabId;
+    this.saveEditorState(); // Persist active tab
+
+    return;
 
     if (tabId === 'chat') {
       document.querySelector('[data-tab="chat"]')?.classList.add('active');
@@ -2519,13 +2758,20 @@ class App {
     this.saveCurrentChatToJson();
   }
 
-  async saveChatToHistory() {
-    if (this.currentChat.messages.length === 0) return;
+  async saveChatToHistory(chatData) {
+    if (!chatData || chatData.messages.length === 0)
+      return;
 
-    const result = await window.electronAPI.saveChat(this.currentChat);
-    if (result.success) {
-      this.currentChat.id = result.id;
-      await this.saveCurrentChatToJson();
+    const payload = {
+      id: chatData.id,
+      title: chatData.title,
+      messages: chatData.messages,
+      date: chatData.messages[0]?.timestamp || new Date().toISOString()
+    };
+
+    const result = await window.electronAPI.saveChat(payload);
+    if (result.success && !chatData.id) {
+      chatData.id = result.id;
     }
   }
 
