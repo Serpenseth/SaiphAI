@@ -1867,7 +1867,7 @@ class App {
       const instance = monaco.editor.create(document.getElementById(`editor-${tabId}`), {
         value: content,
         language: this.getLanguageFromExt(filePath.match(/\.[^.]+$/)?.[0] || ''),
-        theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'vs-dark' : 'vs',
+        theme:  'vs-dark',
         automaticLayout: true
       });
       this.openFiles.get(tabId).editor = instance;
