@@ -158,6 +158,23 @@ class App {
     });
   }
 
+  escapeHtml(text) {
+    if (!text) return '';
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  setTabUnreadIndicator(tabId, hasUnread) {
+    const tab = document.querySelector(`[data-tab="${tabId}"]`);
+    if (tab) {
+      tab.classList.toggle('has-unread', hasUnread);
+    }
+  }
+
   setupResizeHandle() {
     const history = document.querySelector('.build-history');
     const output = document.querySelector('.build-output');
@@ -1323,7 +1340,33 @@ class App {
     }
   }
 
-  async sendMessage(text = null) {
+  addMessageToTab(tabId, role, content, isLoading = false) {
+    const container = document.getElementById(`messages-${tabId}`);
+
+    if (!container)
+      return null;
+
+    const id = `msg-${Date.now()}`;
+    const div = document.createElement('div');
+    div.id = id;
+    div.className = `message ${role}`;
+
+    const bubble = document.createElement('div');
+    bubble.className = 'message-bubble';
+    bubble.innerHTML = isLoading ? content : this.parseMarkdown(content);
+
+    div.appendChild(bubble);
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+
+    if (typeof hljs !== 'undefined' && !isLoading) {
+      bubble.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
+    }
+
+    return id;
+  }
+
+  async sendMessage(text = null, targetTabId = null) {
     if (!this.currentOllamaModel) {
       // Try to populate models once more
       await this.populateOllamaModels();
