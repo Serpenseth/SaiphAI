@@ -2036,6 +2036,40 @@ class App {
     }, 0);
   }
 
+  setupTabDragHandlers(tab, tabId, type) {
+    tab.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', tabId);
+        e.dataTransfer.effectAllowed = 'move';
+        tab.classList.add('dragging');
+        this.draggedTab = tabId;
+    });
+
+    tab.addEventListener('dragend', () => {
+        tab.classList.remove('dragging');
+        this.draggedTab = null;
+    });
+
+    tab.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    });
+
+    tab.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (!this.draggedTab || this.draggedTab === tabId) return;
+
+        // Get the tabs container
+        const tabsContainer = document.getElementById('tabs');
+        const draggedEl = document.querySelector(`[data-tab="${this.draggedTab}"]`);
+        const targetEl = document.querySelector(`[data-tab="${tabId}"]`);
+
+        if (draggedEl && targetEl) {
+            // Insert dragged tab before target tab
+            tabsContainer.insertBefore(draggedEl, targetEl);
+        }
+    });
+  }
+
   createChatTab(existingChat = null) {
     const tabId = `chat-${Date.now()}-${this.chatTabCounter++}`;
     const chatId = existingChat?.id || null;
@@ -2070,8 +2104,14 @@ class App {
     );
     if (firstFileTab) {
       tabsContainer.insertBefore(tab, firstFileTab);
-    } else {
+    }
+    else {
       tabsContainer.appendChild(tab);
+    }
+
+    const newChatBtn = document.getElementById('btn-new-chat-tab');
+    if (newChatBtn) {
+        tab.after(newChatBtn);
     }
 
     // Event listeners
@@ -2111,6 +2151,32 @@ class App {
     document.querySelector(`[data-tab="${tabId}"]`)?.remove();
     document.getElementById(tabId)?.remove();
 
+    const tabsContainer = document.getElementById('tabs');
+
+    // Reposition + button to after last remaining chat tab
+    const newChatBtn = document.getElementById('btn-new-chat-tab');
+    if (newChatBtn) {
+        const chatTabs = Array.from(tabsContainer.children).filter(t =>
+            t.classList.contains('chat-tab')
+        );
+
+        if (chatTabs.length > 0) {
+            chatTabs[chatTabs.length - 1].after(newChatBtn);
+        }
+        else {
+            // No chat tabs left - move to beginning before file tabs
+            const firstFileTab = tabsContainer.children.find(t =>
+                t.dataset.tab?.startsWith('tab-')
+            );
+            if (firstFileTab) {
+                tabsContainer.insertBefore(newChatBtn, firstFileTab);
+            }
+            else {
+                tabsContainer.appendChild(newChatBtn);
+            }
+        }
+    }
+
     // Remove from state
     this.openChats.delete(tabId);
 
@@ -2118,7 +2184,8 @@ class App {
     if (this.activeTab === tabId) {
       if (this.openChats.size > 0) {
         this.switchToTab(this.openChats.keys().next().value);
-      } else {
+      }
+      else {
         this.switchToTab('chat'); // Original chat tab or create new
         this.createChatTab();
       }
