@@ -670,8 +670,12 @@ class App {
     document.getElementById('history')?.addEventListener('click', () => this.showHistoryModal());
     document.getElementById('btn-close-history')?.addEventListener('click', () => this.closeHistoryModal());
     document.getElementById('btn-new-chat')?.addEventListener('click', () => {
-      this.startNewChat();
+      this.createChatTab();
       this.closeHistoryModal();
+    });
+
+    document.getElementById('btn-new-chat-tab')?.addEventListener('click', () => {
+      this.createChatTab();
     });
   }
 
