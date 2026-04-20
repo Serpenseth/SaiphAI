@@ -1387,7 +1387,14 @@ class App {
     }
 
     const tabId = targetTabId || this.activeTab;
-    const chatData = this.openChats.get(tabId);
+    let chatData;
+
+    if (tabId === 'chat') {
+        chatData = this.currentChat;
+    }
+    else {
+        chatData = this.openChats.get(tabId);
+    }
 
     if (!chatData)
       return;
@@ -1414,7 +1421,10 @@ class App {
     if (chatData.messages.length === 0) {
       const summary = this.generateTabTitle(message);
       chatData.title = summary;
-      this.updateTabTitle(tabId, summary);
+
+      if (tabId !== 'chat') {
+        this.updateTabTitle(tabId, summary);
+      }
     }
 
     // Add user message to correct tab
@@ -1424,11 +1434,25 @@ class App {
       timestamp: Date.now()
     });
 
-    this.addMessage('user', message);
-    this.updateCurrentChat(message, 'user');
+    if (tabId === 'chat') {
+        this.addMessage('user', message);
+        this.updateCurrentChat(message, 'user');
+    }
+    else {
+        this.addMessageToTab(tabId, 'user', message);
+    }
+
+
     this.renderWelcomeHub();
 
-    const loadingId = this.addMessage(tabId, 'assistant', '<div class="loading"></div> Thinking...');
+    const loadingId = tabId === 'chat'
+        ? this.addMessage('assistant', '<div class="loading"></div> Thinking...')
+        : this.addMessageToTab(tabId, 'assistant', '<div class="loading"></div> Thinking...', true);
+
+    const requestId = Date.now() + Math.random().toString(36).substr(2, 9);
+    chatData.isGenerating = true;
+    chatData.pendingRequestId = requestId;
+    this.activeRequests.set(requestId, tabId);
 
     if (this.workspacePath) {
       try {
@@ -1440,7 +1464,8 @@ class App {
           // Sync local cache after building
           await this.syncWorkspaceIndex();
         }
-      } catch (e) {
+      }
+      catch (e) {
         console.warn('Index check/build failed:', e);
       }
     }
@@ -1608,10 +1633,9 @@ class App {
         throw new Error('No model configured');
       }
 
-      const currentChat = this.openChats.get(tabId);
-
-      if (currentChat?.pendingRequestId !== requestId) {
+      if (chatData?.pendingRequestId !== requestId) {
         console.warn('Stale request detected, discarding');
+        document.getElementById(loadingId)?.remove();
         return;
       }
 
@@ -1619,13 +1643,13 @@ class App {
       document.getElementById(loadingId)?.remove();
 
       // Add response to chat data
-      currentChat.messages.push({
+      chatData.messages.push({
         role: 'assistant',
         content: responseText,
         timestamp: Date.now()
       });
-      currentChat.isGenerating = false;
-      currentChat.pendingRequestId = null;
+      chatData.isGenerating = false;
+      chatData.pendingRequestId = null;
 
       /*
       this.addMessage('assistant', responseText);
@@ -1635,13 +1659,19 @@ class App {
       */
 
       if (this.activeTab === tabId) {
-        this.addMessageToTab(tabId, 'assistant', responseText);
+        if (tabId === 'chat') {
+          this.addMessage('assistant', responseText);
+          this.updateCurrentChat(responseText, 'assistant');
+        }
+        else {
+          this.addMessageToTab(tabId, 'assistant', responseText);
+        }
       }
       else {
         this.setTabUnreadIndicator(tabId, true);
       }
 
-      await this.saveChatToHistory(currentChat);
+      await this.saveChatToHistory(chatData);
     }
     catch (e) {
       document.getElementById(loadingId)?.remove();
@@ -1651,11 +1681,25 @@ class App {
         this.openChats.get(tabId).pendingRequestId = null;
       }
       if (this.activeTab === tabId) {
-        this.addMessageToTab(tabId, 'assistant', `Error: ${e.message}`);
+        if (tabId === 'chat') {
+          this.addMessage('assistant', `Error: ${e.message}`);
+        }
+        else {
+          this.addMessageToTab(tabId, 'assistant', `Error: ${e.message}`);
+        }
       }
     }
     finally {
       this.activeRequests.delete(requestId);
+
+      if (loadingId) {
+        document.getElementById(loadingId)?.remove();
+      }
+
+      if (chatData) {
+        chatData.isGenerating = false;
+        chatData.pendingRequestId = null;
+      }
     }
   }
 
@@ -3061,7 +3105,7 @@ class App {
   }
 
   updateCurrentChat(message, role) {
-    this.currentChat.messages.push({
+    this.chatChat.messages.push({
       role,
       content: message,
       timestamp: new Date().toISOString()
