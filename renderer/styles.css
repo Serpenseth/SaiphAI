@@ -358,7 +358,7 @@ body {
   background: none;
   border-bottom: 3.5px solid var(--accent-color);
   margin-bottom: -1px;
-  filter: brightness(2);
+  filter: brightness(1.4);
 }
 
 .tab-close {
@@ -664,7 +664,7 @@ body {
   }
 }
 
-#chat-input {
+.chat-input {
   resize: none;
   border: none;
   border-radius: 12px;
@@ -698,7 +698,7 @@ body {
   padding-top: 24px;
 }
 
-#insert-file {
+.insert-file {
   background: var(--send-btn);
   margin-left: 14px;
   transition: all 0.1s;
@@ -1444,4 +1444,15 @@ body {
 /* Ensure close button doesn't trigger drag */
 .tab-close {
   -webkit-user-drag: none;
+}
+
+.tab-new-btn {
+  padding: 4px;
+  background: transparent;
+  border: none;
+  margin-left: 2px;
+}
+
+.tab-new-btn:hover {
+  filter: brightness(2);
 }
