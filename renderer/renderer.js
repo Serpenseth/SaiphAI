@@ -1345,7 +1345,7 @@ class App {
   }
 
   addMessageToTab(tabId, role, content, isLoading = false) {
-    const container = document.getElementById(`messages-${tabId}`);
+    const container = document.getElementById(`chat-messages-${tabId}`);
 
     if (!container)
       return null;
@@ -2379,7 +2379,7 @@ class App {
 
     sendBtn.addEventListener('click', () => this.sendMessage(null, tabId));
     insertFileBtn.addEventListener('click', () => this.selectFiles());
-    hideHubBtn.addEventListener('click', () => {
+    hideHubBtn?.addEventListener('click', () => {
       welcomeHub?.classList.add('hidden');
     });
 
@@ -2388,7 +2388,24 @@ class App {
 
     // Clear any messages that were cloned from main chat
     const messagesContainer = document.getElementById(`chat-messages-${tabId}`);
-    if (messagesContainer) messagesContainer.innerHTML = '';
+
+    if (messagesContainer)
+      messagesContainer.innerHTML = '';
+
+    if (input) {
+      input.value = ''; // Clear cloned input text
+      input.style.height = '60px'; // Reset height
+    }
+
+    // Ensure welcome hub is visible for new empty tabs
+    if (welcomeHub) {
+      welcomeHub.style.display = 'block';
+    }
+
+    // Reset scroll position
+    if (messagesContainer) {
+      messagesContainer.scrollTop = 0;
+    }
 
     // Restore messages for this tab if they exist
     const chatData = this.openChats.get(tabId);
