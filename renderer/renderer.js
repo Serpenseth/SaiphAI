@@ -1396,7 +1396,13 @@ class App {
     if (chatData.isGenerating)
       return;
 
-    const input = document.getElementById('chat-input');
+    let  input;
+    if (tabId === 'chat') {
+      input = document.getElementById('chat-input');
+    } else {
+      input = document.getElementById(`chat-input-${tabId}`);
+    }
+
     const message = text || input.value.trim();
 
     if (!message)
@@ -2205,13 +2211,192 @@ class App {
     return clean || 'New Chat';
   }
 
+  _renderWelcomeHubContent(tabId) {
+    const title = document.getElementById(`hub-title-${tabId}`);
+    const subtitle = document.getElementById(`hub-subtitle-${tabId}`);
+    const suggestions = document.getElementById(`hub-suggestions-${tabId}`);
+
+    if (!title || !subtitle || !suggestions)
+      return;
+
+    if (!this.workspacePath) {
+      if (this.currentModel === 'tinyllama') {
+        title.textContent = 'Ready to collaborate';
+        subtitle.textContent = 'TinyLlama runs entirely on your machine - no setup needed. Open a workspace folder to analyze your code, or ask to generate a new project';
+        suggestions.innerHTML = `
+          <button class="hub-suggestion-btn" onclick="app.selectWorkspace()">
+            <div class="suggestion-icon">📂</div>
+            <div class="suggestion-content">
+              <div class="suggestion-title">Open workspace folder</div>
+              <div class="suggestion-desc">Browse and analyze your local code repository</div>
+            </div>
+          </button>
+          <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Help me understand how to use this app')">
+            <div class="suggestion-icon">💡</div>
+            <div class="suggestion-content">
+              <div class="suggestion-title">How does this work?</div>
+              <div class="suggestion-desc">Learn about features and keyboard shortcuts</div>
+            </div>
+          </button>
+        `;
+      }
+      else {
+        title.textContent = 'Ready to collaborate';
+        subtitle.textContent = 'Ollama lets you use open-source models (such as Mistral, Kimi, Deepseek, etc) either locally or via cloud. This requires Ollama installation';
+        suggestions.innerHTML = `
+          <button class="hub-suggestion-btn" onclick="app.selectWorkspace()">
+            <span>📂</span> Open workspace folder
+          </button>
+          <button class="hub-suggestion-btn" onclick="window.open('https://ollama.com', '_blank')">
+            <span>🔗</span> Get Ollama app
+          </button>
+          <button class="hub-suggestion-btn" onclick="app.showSettingsModal()">
+            <span>⚙️</span> Choose model
+          </button>
+        `;
+      }
+    }
+    else {
+      title.textContent = 'Ready to collaborate';
+      subtitle.textContent = 'What shall we work on?';
+
+      if (this.currentModel === 'tinyllama') {
+        suggestions.innerHTML = `
+          <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Explain what this project does')">
+            <div class="suggestion-icon">🔍</div>
+            <div class="suggestion-content">
+              <div class="suggestion-title">Explain the codebase</div>
+              <div class="suggestion-desc">Get an overview of the project structure and purpose</div>
+            </div>
+          </button>
+          <button class="hub-suggestion-btn" onclick="app.sendSuggestion('How do I run this project?')">
+            <div class="suggestion-icon">🚀</div>
+            <div class="suggestion-content">
+              <div class="suggestion-title">Getting started</div>
+              <div class="suggestion-desc">Find setup instructions and dependencies</div>
+            </div>
+          </button>
+          <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Find potential bugs')">
+            <div class="suggestion-icon">🐛</div>
+            <div class="suggestion-content">
+              <div class="suggestion-title">Check for issues</div>
+              <div class="suggestion-desc">Scan for common bugs and code smells</div>
+            </div>
+          </button>
+        `;
+      }
+      else {
+        suggestions.innerHTML = `
+        <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Review the architecture')">
+          <div class="suggestion-icon">🏗️</div>
+          <div class="suggestion-content">
+            <div class="suggestion-title">Architecture review</div>
+            <div class="suggestion-desc">Analyze design patterns and structure</div>
+          </div>
+        </button>
+        <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Optimize for performance')">
+          <div class="suggestion-icon">⚡</div>
+          <div class="suggestion-content">
+            <div class="suggestion-title">Optimize code</div>
+            <div class="suggestion-desc">Identify bottlenecks and improve efficiency</div>
+          </div>
+        </button>
+        <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Security audit')">
+          <div class="suggestion-icon">🔒</div>
+          <div class="suggestion-content">
+            <div class="suggestion-title">Security check</div>
+            <div class="suggestion-desc">Scan for vulnerabilities and best practices</div>
+          </div>
+        </button>
+        <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Generate documentation')">
+          <div class="suggestion-icon">📝</div>
+          <div class="suggestion-content">
+            <div class="suggestion-title">Document code</div>
+            <div class="suggestion-desc">Create README and inline documentation</div>
+          </div>
+        </button>
+      `;
+      }
+    }
+  }
+
   createChatPanel(tabId) {
     const container = document.querySelector('.tab-contents');
-    const panel = document.createElement('div');
+    const mainPanel = document.getElementById('chat-panel');
+
+    if (!mainPanel) {
+      console.error('Main chat panel not found');
+      return;
+    }
+
+    const panel = mainPanel.cloneNode(true);
     panel.id = tabId;
-    panel.className = 'tab-panel chat-panel';
-    panel.innerHTML = `<div class="chat-messages" id="messages-${tabId}"></div>`;
+    panel.classList.remove('active'); // Don't activate immediately
+
+    // Update all IDs to be unique for this tab, preserving the structure
+    const elementsWithId = panel.querySelectorAll('[id]');
+    elementsWithId.forEach(el => {
+      el.id = `${el.id}-${tabId}`;
+    });
+
     container.appendChild(panel);
+
+    // Get references using the new IDs
+    const input = document.getElementById(`chat-input-${tabId}`);
+    const sendBtn = document.getElementById(`btn-send-${tabId}`);
+    const insertFileBtn = document.getElementById(`insert-file-${tabId}`);
+    const hideHubBtn = document.getElementById(`btn-hide-hub-${tabId}`);
+    const welcomeHub = document.getElementById(`welcome-hub-${tabId}`);
+
+    // Wire up event listeners (identical behavior to main chat)
+    input?.addEventListener('input', (e) => {
+      const textarea = e.target;
+      const minHeight = 60;
+      const maxHeight = 320;
+      const lineHeight = parseInt(getComputedStyle(textarea).lineHeight) || 20;
+      const threshold = lineHeight * 2;
+
+      textarea.style.height = 'auto';
+      if (textarea.value.trim().length === 0) {
+        textarea.style.height = minHeight + 'px';
+        return;
+      }
+      const scrollHeight = textarea.scrollHeight;
+      if (scrollHeight > minHeight + threshold) {
+        textarea.style.height = Math.min(scrollHeight, maxHeight) + 'px';
+      }
+      else {
+        textarea.style.height = minHeight + 'px';
+      }
+    });
+
+    input?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        this.sendMessage(null, tabId);
+      }
+    });
+
+    sendBtn.addEventListener('click', () => this.sendMessage(null, tabId));
+    insertFileBtn.addEventListener('click', () => this.selectFiles());
+    hideHubBtn.addEventListener('click', () => {
+      welcomeHub?.classList.add('hidden');
+    });
+
+    // Populate welcome hub content
+    this._renderWelcomeHubContent(tabId);
+
+    // Clear any messages that were cloned from main chat
+    const messagesContainer = document.getElementById(`chat-messages-${tabId}`);
+    if (messagesContainer) messagesContainer.innerHTML = '';
+
+    // Restore messages for this tab if they exist
+    const chatData = this.openChats.get(tabId);
+    if (chatData?.messages?.length > 0) {
+      chatData.messages.forEach(msg => {
+        this.addMessageToTab(tabId, msg.role, msg.content);
+      });
+    }
   }
 
   updateTabTitle(tabId, title) {
@@ -2798,14 +2983,19 @@ class App {
   }
 
   renderAttachedFiles() {
-    // Create container if it doesn't exist (place it before the textarea)
-    let container = document.getElementById('attached-files-container');
+    // Determine target elements based on active tab
+    const isClonedTab = this.activeTab !== 'chat';
+    const chatInputId = isClonedTab ? `chat-input-${this.activeTab}` : 'chat-input';
+    const containerId = isClonedTab ? `attached-files-container-${this.activeTab}` : 'attached-files-container';
+
+    let container = document.getElementById(containerId);
+    const chatInput = document.getElementById(chatInputId);
+
+    if (!chatInput) return; // Safety check
 
     if (!container) {
-      const chatInput = document.getElementById('chat-input');
-
       container = document.createElement('div');
-      container.id = 'attached-files-container';
+      container.id = containerId;
       container.style.cssText = 'display: flex; flex-wrap: wrap; gap: 8px; padding: 8px; border-bottom: 1px solid var(--border-color);';
       chatInput.parentNode.insertBefore(container, chatInput);
     }
@@ -2813,7 +3003,6 @@ class App {
     container.innerHTML = '';
     this.attachedFiles.forEach((file, index) => {
       const chip = document.createElement('div');
-
       chip.className = 'file-chip';
       chip.style.cssText = 'display: flex; align-items: center; gap: 6px; background: var(--accent-color); color: white; padding: 4px 12px; border-radius: 16px; font-size: 0.85em;';
       chip.innerHTML = `
@@ -2822,7 +3011,7 @@ class App {
       `;
       container.appendChild(chip);
     });
-  }
+}
 
   removeAttachedFile(index) {
     this.attachedFiles.splice(index, 1);
