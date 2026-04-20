@@ -64,6 +64,13 @@ class App {
       index: new Map(),
       projectMetadata: null
     };
+    // Multi-chat state
+    this.openChats = new Map(); // tabId -> { id, title, messages, isGenerating, pendingRequestId }
+    this.chatTabCounter = 0;
+    this.lastActiveChatTab = null; // For persistence
+
+    // Message routing safety - tracks which tab initiated which request
+    this.activeRequests = new Map(); // requestId -> tabId
 
     this.init();
   }
@@ -149,6 +156,23 @@ class App {
     window.addEventListener('beforeunload', () => {
       this.saveEditorState();
     });
+  }
+
+  escapeHtml(text) {
+    if (!text) return '';
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  setTabUnreadIndicator(tabId, hasUnread) {
+    const tab = document.querySelector(`[data-tab="${tabId}"]`);
+    if (tab) {
+      tab.classList.toggle('has-unread', hasUnread);
+    }
   }
 
   setupResizeHandle() {
@@ -646,8 +670,12 @@ class App {
     document.getElementById('history')?.addEventListener('click', () => this.showHistoryModal());
     document.getElementById('btn-close-history')?.addEventListener('click', () => this.closeHistoryModal());
     document.getElementById('btn-new-chat')?.addEventListener('click', () => {
-      this.startNewChat();
+      this.createChatTab();
       this.closeHistoryModal();
+    });
+
+    document.getElementById('btn-new-chat-tab')?.addEventListener('click', () => {
+      this.createChatTab();
     });
   }
 
@@ -1316,7 +1344,33 @@ class App {
     }
   }
 
-  async sendMessage(text = null) {
+  addMessageToTab(tabId, role, content, isLoading = false) {
+    const container = document.getElementById(`chat-messages-${tabId}`);
+
+    if (!container)
+      return null;
+
+    const id = `msg-${Date.now()}`;
+    const div = document.createElement('div');
+    div.id = id;
+    div.className = `message ${role}`;
+
+    const bubble = document.createElement('div');
+    bubble.className = 'message-bubble';
+    bubble.innerHTML = isLoading ? content : this.parseMarkdown(content);
+
+    div.appendChild(bubble);
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+
+    if (typeof hljs !== 'undefined' && !isLoading) {
+      bubble.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
+    }
+
+    return id;
+  }
+
+  async sendMessage(text = null, targetTabId = null) {
     if (!this.currentOllamaModel) {
       // Try to populate models once more
       await this.populateOllamaModels();
@@ -1332,7 +1386,23 @@ class App {
       hub.style.display = 'none';
     }
 
-    const input = document.getElementById('chat-input');
+    const tabId = targetTabId || this.activeTab;
+    const chatData = this.openChats.get(tabId);
+
+    if (!chatData)
+      return;
+
+    // Prevent sending if already generating in this tab
+    if (chatData.isGenerating)
+      return;
+
+    let  input;
+    if (tabId === 'chat') {
+      input = document.getElementById('chat-input');
+    } else {
+      input = document.getElementById(`chat-input-${tabId}`);
+    }
+
     const message = text || input.value.trim();
 
     if (!message)
@@ -1341,11 +1411,24 @@ class App {
     if (!text)
       input.value = '';
 
+    if (chatData.messages.length === 0) {
+      const summary = this.generateTabTitle(message);
+      chatData.title = summary;
+      this.updateTabTitle(tabId, summary);
+    }
+
+    // Add user message to correct tab
+    chatData.messages.push({
+      role: 'user',
+      content: message,
+      timestamp: Date.now()
+    });
+
     this.addMessage('user', message);
     this.updateCurrentChat(message, 'user');
     this.renderWelcomeHub();
 
-    const loadingId = this.addMessage('assistant', '<div class="loading"></div> Thinking...');
+    const loadingId = this.addMessage(tabId, 'assistant', '<div class="loading"></div> Thinking...');
 
     if (this.workspacePath) {
       try {
@@ -1525,21 +1608,54 @@ class App {
         throw new Error('No model configured');
       }
 
+      const currentChat = this.openChats.get(tabId);
+
+      if (currentChat?.pendingRequestId !== requestId) {
+        console.warn('Stale request detected, discarding');
+        return;
+      }
+
       responseText = responseText.replace(/^<\/think>\s*/, '');
       document.getElementById(loadingId)?.remove();
 
+      // Add response to chat data
+      currentChat.messages.push({
+        role: 'assistant',
+        content: responseText,
+        timestamp: Date.now()
+      });
+      currentChat.isGenerating = false;
+      currentChat.pendingRequestId = null;
+
+      /*
       this.addMessage('assistant', responseText);
       this.updateCurrentChat(responseText, 'assistant');
       this.attachedFiles = [];
       this.renderAttachedFiles();
+      */
 
-      if (this.currentChat.messages.length >= 2 && !this.currentChat.id) {
-        await this.saveChatToHistory();
+      if (this.activeTab === tabId) {
+        this.addMessageToTab(tabId, 'assistant', responseText);
       }
+      else {
+        this.setTabUnreadIndicator(tabId, true);
+      }
+
+      await this.saveChatToHistory(currentChat);
     }
     catch (e) {
       document.getElementById(loadingId)?.remove();
-      this.addMessage('assistant', `Error: ${e.message}`);
+
+      if (this.openChats.has(tabId)) {
+        this.openChats.get(tabId).isGenerating = false;
+        this.openChats.get(tabId).pendingRequestId = null;
+      }
+      if (this.activeTab === tabId) {
+        this.addMessageToTab(tabId, 'assistant', `Error: ${e.message}`);
+      }
+    }
+    finally {
+      this.activeRequests.delete(requestId);
     }
   }
 
@@ -1793,18 +1909,31 @@ class App {
 
   async saveEditorState() {
     const openFilesData = [];
-
     for (const [tabId, file] of this.openFiles) {
       openFilesData.push({
-        path: file.path,
-        name: file.name,
-        viewState: file.editor ? file.editor.saveViewState() : null
+        type: 'file',
+        tabId, path:
+        file.path,
+        name: file.name
+      });
+    }
+
+    const openChatsData = [];
+    for (const [tabId, chat] of this.openChats) {
+      openChatsData.push({
+        type: 'chat',
+        tabId,
+        chatId: chat.id,
+        title: chat.title,
+        messages: chat.messages
       });
     }
 
     await window.electronAPI.setConfig({
       openFiles: openFilesData,
-      activeFile: this.activeFilePath
+      openChats: openChatsData,
+      activeTab: this.activeTab,
+      lastActiveChatTab: this.lastActiveChatTab
     });
   }
 
@@ -1818,7 +1947,38 @@ class App {
 
   async restoreEditorState() {
     const config = await window.electronAPI.getConfig();
-    if (!config.openFiles || config.openFiles.length === 0) return;
+
+    if (!config.openFiles || config.openFiles.length === 0)
+      return;
+
+    // Restore chat tabs
+    if (config.openChats && config.openChats.length > 0) {
+      for (const chatConfig of config.openChats) {
+        if (chatConfig.type === 'chat') {
+          this.createChatTab({
+            id: chatConfig.chatId,
+            title: chatConfig.title,
+            messages: chatConfig.messages || []
+          });
+        }
+      }
+    }
+    else {
+      // Create default chat if none restored
+      this.createChatTab();
+    }
+
+    // Restore active tab
+    if (config.activeTab && (
+      this.openChats.has(config.activeTab) ||
+      this.openFiles.has(config.activeTab) ||
+      config.activeTab === 'chat'
+    )) {
+      this.switchToTab(config.activeTab);
+    }
+    else if (config.lastActiveChatTab && this.openChats.has(config.lastActiveChatTab)) {
+      this.switchToTab(config.lastActiveChatTab);
+    }
 
     // Open all files without switching, except the active one
     for (let i = 0; i < config.openFiles.length; i++) {
@@ -1882,6 +2042,392 @@ class App {
     }, 0);
   }
 
+  setupTabDragHandlers(tab, tabId, type) {
+    tab.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', tabId);
+        e.dataTransfer.effectAllowed = 'move';
+        tab.classList.add('dragging');
+        this.draggedTab = tabId;
+    });
+
+    tab.addEventListener('dragend', () => {
+        tab.classList.remove('dragging');
+        this.draggedTab = null;
+    });
+
+    tab.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    });
+
+    tab.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (!this.draggedTab || this.draggedTab === tabId) return;
+
+        // Get the tabs container
+        const tabsContainer = document.getElementById('tabs');
+        const draggedEl = document.querySelector(`[data-tab="${this.draggedTab}"]`);
+        const targetEl = document.querySelector(`[data-tab="${tabId}"]`);
+
+        if (draggedEl && targetEl) {
+            // Insert dragged tab before target tab
+            tabsContainer.insertBefore(draggedEl, targetEl);
+        }
+    });
+  }
+
+  createChatTab(existingChat = null) {
+    const tabId = `chat-${Date.now()}-${this.chatTabCounter++}`;
+    const chatId = existingChat?.id || null;
+
+    // Create tab data
+    const chatData = {
+      tabId,
+      id: chatId,
+      title: existingChat?.title || 'New Chat',
+      messages: existingChat?.messages || [],
+      isGenerating: false,
+      pendingRequestId: null
+    };
+
+    this.openChats.set(tabId, chatData);
+
+    // Create DOM tab (insert before file tabs, after existing chat tabs)
+    const tabsContainer = document.getElementById('tabs');
+    const tab = document.createElement('div');
+    tab.className = 'tab chat-tab';
+    tab.dataset.tab = tabId;
+    tab.draggable = true; // Enable dragging
+
+    tab.innerHTML = `
+      <span class="chat-tab-title">${this.escapeHtml(chatData.title)}</span>
+      <span class="tab-close" onclick="app.closeChatTab('${tabId}', event)">×</span>
+    `;
+
+    // Insert into chat section (before Monaco tabs)
+    const firstFileTab = Array.from(tabsContainer.children).find(t =>
+      t.dataset.tab && t.dataset.tab.startsWith('tab-')
+    );
+    if (firstFileTab) {
+      tabsContainer.insertBefore(tab, firstFileTab);
+    }
+    else {
+      tabsContainer.appendChild(tab);
+    }
+
+    const newChatBtn = document.getElementById('btn-new-chat-tab');
+    if (newChatBtn) {
+        tab.after(newChatBtn);
+    }
+
+    // Event listeners
+    tab.addEventListener('click', (e) => {
+      if (!e.target.classList.contains('tab-close')) {
+        this.switchToTab(tabId);
+      }
+    });
+
+    // Drag handlers
+    this.setupTabDragHandlers(tab, tabId, 'chat');
+
+    // Create panel (hidden initially)
+    this.createChatPanel(tabId);
+
+    this.switchToTab(tabId);
+    return tabId;
+  }
+
+  async closeChatTab(tabId, event) {
+    if (event) event.stopPropagation();
+
+    const chatData = this.openChats.get(tabId);
+    if (!chatData) return;
+
+    // Save before closing
+    if (chatData.messages.length > 0) {
+      await this.saveChatToHistory(chatData);
+    }
+
+    // If generating, cancel
+    if (chatData.isGenerating && chatData.pendingRequestId) {
+      // Optionally implement cancellation logic
+    }
+
+    // Remove DOM
+    document.querySelector(`[data-tab="${tabId}"]`)?.remove();
+    document.getElementById(tabId)?.remove();
+
+    const tabsContainer = document.getElementById('tabs');
+
+    // Reposition + button to after last remaining chat tab
+    const newChatBtn = document.getElementById('btn-new-chat-tab');
+    if (newChatBtn) {
+        const chatTabs = Array.from(tabsContainer.children).filter(t =>
+            t.classList.contains('chat-tab')
+        );
+
+        if (chatTabs.length > 0) {
+            chatTabs[chatTabs.length - 1].after(newChatBtn);
+        }
+        else {
+            // No chat tabs left - move to beginning before file tabs
+            const firstFileTab = tabsContainer.children.find(t =>
+                t.dataset.tab?.startsWith('tab-')
+            );
+            if (firstFileTab) {
+                tabsContainer.insertBefore(newChatBtn, firstFileTab);
+            }
+            else {
+                tabsContainer.appendChild(newChatBtn);
+            }
+        }
+    }
+
+    // Remove from state
+    this.openChats.delete(tabId);
+
+    // Switch to another tab
+    if (this.activeTab === tabId) {
+      if (this.openChats.size > 0) {
+        this.switchToTab(this.openChats.keys().next().value);
+      }
+      else {
+        this.switchToTab('chat'); // Original chat tab or create new
+        this.createChatTab();
+      }
+    }
+
+    await this.saveEditorState();
+  }
+
+  generateTabTitle(firstMessage) {
+    // Remove emojis and special characters, limit to 25 chars
+    const clean = firstMessage
+      .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
+      .replace(/[^\w\s\-]/g, '') // Remove special chars except spaces/hyphens
+      .trim()
+      .substring(0, 25);
+
+    return clean || 'New Chat';
+  }
+
+  _renderWelcomeHubContent(tabId) {
+    const title = document.getElementById(`hub-title-${tabId}`);
+    const subtitle = document.getElementById(`hub-subtitle-${tabId}`);
+    const suggestions = document.getElementById(`hub-suggestions-${tabId}`);
+
+    if (!title || !subtitle || !suggestions)
+      return;
+
+    if (!this.workspacePath) {
+      if (this.currentModel === 'tinyllama') {
+        title.textContent = 'Ready to collaborate';
+        subtitle.textContent = 'TinyLlama runs entirely on your machine - no setup needed. Open a workspace folder to analyze your code, or ask to generate a new project';
+        suggestions.innerHTML = `
+          <button class="hub-suggestion-btn" onclick="app.selectWorkspace()">
+            <div class="suggestion-icon">📂</div>
+            <div class="suggestion-content">
+              <div class="suggestion-title">Open workspace folder</div>
+              <div class="suggestion-desc">Browse and analyze your local code repository</div>
+            </div>
+          </button>
+          <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Help me understand how to use this app')">
+            <div class="suggestion-icon">💡</div>
+            <div class="suggestion-content">
+              <div class="suggestion-title">How does this work?</div>
+              <div class="suggestion-desc">Learn about features and keyboard shortcuts</div>
+            </div>
+          </button>
+        `;
+      }
+      else {
+        title.textContent = 'Ready to collaborate';
+        subtitle.textContent = 'Ollama lets you use open-source models (such as Mistral, Kimi, Deepseek, etc) either locally or via cloud. This requires Ollama installation';
+        suggestions.innerHTML = `
+          <button class="hub-suggestion-btn" onclick="app.selectWorkspace()">
+            <span>📂</span> Open workspace folder
+          </button>
+          <button class="hub-suggestion-btn" onclick="window.open('https://ollama.com', '_blank')">
+            <span>🔗</span> Get Ollama app
+          </button>
+          <button class="hub-suggestion-btn" onclick="app.showSettingsModal()">
+            <span>⚙️</span> Choose model
+          </button>
+        `;
+      }
+    }
+    else {
+      title.textContent = 'Ready to collaborate';
+      subtitle.textContent = 'What shall we work on?';
+
+      if (this.currentModel === 'tinyllama') {
+        suggestions.innerHTML = `
+          <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Explain what this project does')">
+            <div class="suggestion-icon">🔍</div>
+            <div class="suggestion-content">
+              <div class="suggestion-title">Explain the codebase</div>
+              <div class="suggestion-desc">Get an overview of the project structure and purpose</div>
+            </div>
+          </button>
+          <button class="hub-suggestion-btn" onclick="app.sendSuggestion('How do I run this project?')">
+            <div class="suggestion-icon">🚀</div>
+            <div class="suggestion-content">
+              <div class="suggestion-title">Getting started</div>
+              <div class="suggestion-desc">Find setup instructions and dependencies</div>
+            </div>
+          </button>
+          <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Find potential bugs')">
+            <div class="suggestion-icon">🐛</div>
+            <div class="suggestion-content">
+              <div class="suggestion-title">Check for issues</div>
+              <div class="suggestion-desc">Scan for common bugs and code smells</div>
+            </div>
+          </button>
+        `;
+      }
+      else {
+        suggestions.innerHTML = `
+        <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Review the architecture')">
+          <div class="suggestion-icon">🏗️</div>
+          <div class="suggestion-content">
+            <div class="suggestion-title">Architecture review</div>
+            <div class="suggestion-desc">Analyze design patterns and structure</div>
+          </div>
+        </button>
+        <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Optimize for performance')">
+          <div class="suggestion-icon">⚡</div>
+          <div class="suggestion-content">
+            <div class="suggestion-title">Optimize code</div>
+            <div class="suggestion-desc">Identify bottlenecks and improve efficiency</div>
+          </div>
+        </button>
+        <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Security audit')">
+          <div class="suggestion-icon">🔒</div>
+          <div class="suggestion-content">
+            <div class="suggestion-title">Security check</div>
+            <div class="suggestion-desc">Scan for vulnerabilities and best practices</div>
+          </div>
+        </button>
+        <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Generate documentation')">
+          <div class="suggestion-icon">📝</div>
+          <div class="suggestion-content">
+            <div class="suggestion-title">Document code</div>
+            <div class="suggestion-desc">Create README and inline documentation</div>
+          </div>
+        </button>
+      `;
+      }
+    }
+  }
+
+  createChatPanel(tabId) {
+    const container = document.querySelector('.tab-contents');
+    const mainPanel = document.getElementById('chat-panel');
+
+    if (!mainPanel) {
+      console.error('Main chat panel not found');
+      return;
+    }
+
+    const panel = mainPanel.cloneNode(true);
+    panel.id = tabId;
+    panel.classList.remove('active'); // Don't activate immediately
+
+    // Update all IDs to be unique for this tab, preserving the structure
+    const elementsWithId = panel.querySelectorAll('[id]');
+    elementsWithId.forEach(el => {
+      el.id = `${el.id}-${tabId}`;
+    });
+
+    container.appendChild(panel);
+
+    // Get references using the new IDs
+    const input = document.getElementById(`chat-input-${tabId}`);
+    const sendBtn = document.getElementById(`btn-send-${tabId}`);
+    const insertFileBtn = document.getElementById(`insert-file-${tabId}`);
+    const hideHubBtn = document.getElementById(`btn-hide-hub-${tabId}`);
+    const welcomeHub = document.getElementById(`welcome-hub-${tabId}`);
+
+    // Wire up event listeners (identical behavior to main chat)
+    input?.addEventListener('input', (e) => {
+      const textarea = e.target;
+      const minHeight = 60;
+      const maxHeight = 320;
+      const lineHeight = parseInt(getComputedStyle(textarea).lineHeight) || 20;
+      const threshold = lineHeight * 2;
+
+      textarea.style.height = 'auto';
+      if (textarea.value.trim().length === 0) {
+        textarea.style.height = minHeight + 'px';
+        return;
+      }
+      const scrollHeight = textarea.scrollHeight;
+      if (scrollHeight > minHeight + threshold) {
+        textarea.style.height = Math.min(scrollHeight, maxHeight) + 'px';
+      }
+      else {
+        textarea.style.height = minHeight + 'px';
+      }
+    });
+
+    input?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        this.sendMessage(null, tabId);
+      }
+    });
+
+    sendBtn.addEventListener('click', () => this.sendMessage(null, tabId));
+    insertFileBtn.addEventListener('click', () => this.selectFiles());
+    hideHubBtn?.addEventListener('click', () => {
+      welcomeHub?.classList.add('hidden');
+    });
+
+    // Populate welcome hub content
+    this._renderWelcomeHubContent(tabId);
+
+    // Clear any messages that were cloned from main chat
+    const messagesContainer = document.getElementById(`chat-messages-${tabId}`);
+
+    if (messagesContainer)
+      messagesContainer.innerHTML = '';
+
+    if (input) {
+      input.value = ''; // Clear cloned input text
+      input.style.height = '60px'; // Reset height
+    }
+
+    // Ensure welcome hub is visible for new empty tabs
+    if (welcomeHub) {
+      welcomeHub.style.display = 'block';
+    }
+
+    // Reset scroll position
+    if (messagesContainer) {
+      messagesContainer.scrollTop = 0;
+    }
+
+    // Restore messages for this tab if they exist
+    const chatData = this.openChats.get(tabId);
+    if (chatData?.messages?.length > 0) {
+      chatData.messages.forEach(msg => {
+        this.addMessageToTab(tabId, msg.role, msg.content);
+      });
+    }
+  }
+
+  updateTabTitle(tabId, title) {
+    const tab = document.querySelector(`[data-tab="${tabId}"]`);
+    if (tab) {
+      const titleSpan = tab.querySelector('.chat-tab-title');
+      if (titleSpan) titleSpan.textContent = title;
+    }
+    // Update data model
+    if (this.openChats.has(tabId)) {
+      this.openChats.get(tabId).title = title;
+    }
+  }
+
   getLanguageFromExt(ext) {
     const map = { '.js': 'javascript', '.ts': 'typescript', '.html': 'html', '.css': 'css', '.py': 'python', '.json': 'json', '.md': 'markdown' };
     return map[ext] || 'plaintext';
@@ -1890,6 +2436,13 @@ class App {
   switchToTab(tabId) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+
+    // Clear unread indicator
+    this.setTabUnreadIndicator(tabId, false);
+
+    this.activeTab = tabId;
+    this.lastActiveChatTab = tabId;
+    this.saveEditorState(); // Persist active tab
 
     if (tabId === 'chat') {
       document.querySelector('[data-tab="chat"]')?.classList.add('active');
@@ -2447,14 +3000,19 @@ class App {
   }
 
   renderAttachedFiles() {
-    // Create container if it doesn't exist (place it before the textarea)
-    let container = document.getElementById('attached-files-container');
+    // Determine target elements based on active tab
+    const isClonedTab = this.activeTab !== 'chat';
+    const chatInputId = isClonedTab ? `chat-input-${this.activeTab}` : 'chat-input';
+    const containerId = isClonedTab ? `attached-files-container-${this.activeTab}` : 'attached-files-container';
+
+    let container = document.getElementById(containerId);
+    const chatInput = document.getElementById(chatInputId);
+
+    if (!chatInput) return; // Safety check
 
     if (!container) {
-      const chatInput = document.getElementById('chat-input');
-
       container = document.createElement('div');
-      container.id = 'attached-files-container';
+      container.id = containerId;
       container.style.cssText = 'display: flex; flex-wrap: wrap; gap: 8px; padding: 8px; border-bottom: 1px solid var(--border-color);';
       chatInput.parentNode.insertBefore(container, chatInput);
     }
@@ -2462,7 +3020,6 @@ class App {
     container.innerHTML = '';
     this.attachedFiles.forEach((file, index) => {
       const chip = document.createElement('div');
-
       chip.className = 'file-chip';
       chip.style.cssText = 'display: flex; align-items: center; gap: 6px; background: var(--accent-color); color: white; padding: 4px 12px; border-radius: 16px; font-size: 0.85em;';
       chip.innerHTML = `
@@ -2471,7 +3028,7 @@ class App {
       `;
       container.appendChild(chip);
     });
-  }
+}
 
   removeAttachedFile(index) {
     this.attachedFiles.splice(index, 1);
@@ -2519,13 +3076,20 @@ class App {
     this.saveCurrentChatToJson();
   }
 
-  async saveChatToHistory() {
-    if (this.currentChat.messages.length === 0) return;
+  async saveChatToHistory(chatData) {
+    if (!chatData || chatData.messages.length === 0)
+      return;
 
-    const result = await window.electronAPI.saveChat(this.currentChat);
-    if (result.success) {
-      this.currentChat.id = result.id;
-      await this.saveCurrentChatToJson();
+    const payload = {
+      id: chatData.id,
+      title: chatData.title,
+      messages: chatData.messages,
+      date: chatData.messages[0]?.timestamp || new Date().toISOString()
+    };
+
+    const result = await window.electronAPI.saveChat(payload);
+    if (result.success && !chatData.id) {
+      chatData.id = result.id;
     }
   }
 

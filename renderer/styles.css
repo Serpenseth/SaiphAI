@@ -358,7 +358,7 @@ body {
   background: none;
   border-bottom: 3.5px solid var(--accent-color);
   margin-bottom: -1px;
-  filter: brightness(2);
+  filter: brightness(1.4);
 }
 
 .tab-close {
@@ -664,7 +664,7 @@ body {
   }
 }
 
-#chat-input {
+.chat-input {
   resize: none;
   border: none;
   border-radius: 12px;
@@ -698,7 +698,7 @@ body {
   padding-top: 24px;
 }
 
-#insert-file {
+.insert-file {
   background: var(--send-btn);
   margin-left: 14px;
   transition: all 0.1s;
@@ -1388,4 +1388,71 @@ body {
 .resize-handle:hover {
   background: var(--accent-color);
   opacity: 0.3;
+}
+
+.chat-tab {
+  background: var(--bg-secondary);
+  border-bottom: 3px solid transparent;
+}
+
+.chat-tab.active {
+  border-bottom: 3px solid var(--accent-color);
+  background: var(--bg-primary);
+}
+
+.chat-tab.has-unread::after {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: var(--accent-color);
+  border-radius: 50%;
+  margin-left: 6px;
+}
+
+.chat-tab-title {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+/* Dragging state */
+.tab.dragging {
+  opacity: 0.5;
+  cursor: move;
+}
+
+/* Chat panels */
+.chat-panel {
+  display: none;
+  height: 100%;
+  flex-direction: column;
+}
+
+.chat-panel.active {
+  display: flex;
+}
+
+.chat-panel .chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+/* Ensure close button doesn't trigger drag */
+.tab-close {
+  -webkit-user-drag: none;
+}
+
+.tab-new-btn {
+  padding: 4px;
+  background: transparent;
+  border: none;
+  margin-left: 2px;
+}
+
+.tab-new-btn:hover {
+  filter: brightness(2);
 }
