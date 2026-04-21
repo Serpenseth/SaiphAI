@@ -1008,6 +1008,18 @@ body {
   font-size: 0.9em;
 }
 
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#btn-close-history {
+  background: transparent;
+  border: none;
+  margin-left: auto;
+}
+
 .btn-load {
   background: var(--accent-color);
   color: #eff1f3;
