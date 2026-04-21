@@ -68,9 +68,10 @@ class App {
     this.openChats = new Map(); // tabId -> { id, title, messages, isGenerating, pendingRequestId }
     this.chatTabCounter = 0;
     this.lastActiveChatTab = null; // For persistence
-
     // Message routing safety - tracks which tab initiated which request
     this.activeRequests = new Map(); // requestId -> tabId
+    // Event listeners
+    this.eventListeners = [];
 
     this.init();
   }
@@ -155,6 +156,7 @@ class App {
 
     window.addEventListener('beforeunload', () => {
       this.saveEditorState();
+      this.cleanupEventListeners();
     });
   }
 
@@ -580,103 +582,218 @@ class App {
       this.handleBuildProgress(data);
     });
 
-    // listener for the Chat tab
-    document.querySelector('[data-tab="chat"]')?.addEventListener('click', () => {
-      this.switchToTab('chat');
+    /**
+     *  Helper function to attach listeners to DOM elements
+     *
+     *  @param {element} element - The DOM element to attach the listener to
+     *  @param {object} event - The event that we connect with the element
+     *  @param {function} handler - The function that triggers on event
+     */
+    const addListener = (element, event, handler) => {
+      if (!element)
+        return;
+
+      element.addEventListener(event, handler);
+      this.eventListeners.push({ element, event, handler });
+    };
+
+    const addIpcListener = (channel, handler) => {
+      const unsubscribe = window.electronAPI[channel](handler);
+
+      this.eventListeners.push({ type: 'ipc', unsubscribe });
+    };
+
+    addIpcListener('onDownloadProgress', (data) => {
+      this.updateDownloadProgress(data);
     });
 
-    document.getElementById('build-toggle-btn').addEventListener('click', () => {
-      this.toggleBuildPanel();
+    addIpcListener('onFileSystemEvent', (data) => {
+      this.handleFileSystemChange(data);
     });
 
-    document.addEventListener('keydown', (e) => {
+    addIpcListener('onBuildProgress', (data) => {
+      this.handleBuildProgress(data);
+    });
+
+    addListener(
+      document.querySelector('[data-tab="chat"]'),
+      'click',
+      () => this.switchToTab('chat')
+    );
+
+    addListener(
+      document.getElementById('build-toggle-btn'),
+      'click', () => this.toggleBuildPanel()
+    );
+
+    addListener(
+      document,
+      'keydown', (e) => {
         if (e.key === 'Escape') {
-            const panel = document.getElementById('build-panel');
-            if (panel?.classList.contains('visible')) {
-                this.toggleBuildPanel();
-            }
+          const panel = document.getElementById('build-panel');
+
+          if (panel?.classList.contains('visible')) {
+            this.toggleBuildPanel()
+          }
         }
-    });
+      }
+    );
 
-    document.getElementById('btn-pause-download')?.addEventListener('click', () => this.togglePauseDownload());
-    document.getElementById('btn-stop-download')?.addEventListener('click', () => {
-      this.stopDownload();
-      this.showFirstRunModal();
-    });
-    document.getElementById('btn-cancel-download')?.addEventListener('click', () => this.cancelDownload());
+    addListener(
+      document.getElementById('btn-pause-download'),
+      'click', () => this.togglePauseDownload()
+    );
 
-    document.getElementById('option-tinyllama')?.addEventListener('click', () => {
-      console.log('TinyLlama selected');
-      this.selectModel('tinyllama');
-    });
+    addListener(
+      document.getElementById('btn-stop-download'),
+      'click', () => {
+        this.stopDownload();
+        this.showFirstRunModal();
+      }
+    );
+
+    addListener(
+      document.getElementById('btn-cancel-download'),
+      'click', () => this.cancelDownload()
+    );
+
+    addListener(
+      document.getElementById('option-tinyllama'),
+      'click', () => {
+        console.log('TinyLlama selected');
+        this.selectModel('tinyllama');
+      }
+    );
 
     // Ollama option - Requires external Ollama
-    document.getElementById('option-ollama')?.addEventListener('click', () => {
-      console.log('Ollama selected');
-      this.selectModel('ollama');
-    });
-
-    document.getElementById('btn-settings')?.addEventListener('click', () => this.showSettingsModal());
-    document.getElementById('btn-select-workspace')?.addEventListener('click', () => this.selectWorkspace());
-    document.getElementById('btn-refresh-index')?.addEventListener('click', () => this.rebuildIndex());
-
-    document.getElementById('btn-send')?.addEventListener('click', () => this.sendMessage());
-    document.getElementById('chat-input')?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        this.sendMessage();
+    addListener(
+      document.getElementById('option-ollama'),
+      'click', () => {
+        console.log('Ollama selected');
+        this.selectModel('ollama');
       }
-    });
+    );
 
-    document.getElementById('insert-file')?.addEventListener('click', () => this.selectFiles());
-    document.getElementById('chat-input')?.addEventListener('input', (e) => {
-      const textarea = e.target;
-      const minHeight = 60;
-      const maxHeight = 320;
-      const lineHeight = parseInt(getComputedStyle(textarea).lineHeight);
-      const threshold = lineHeight * 2; // Don't expand until 1.5 lines needed
+    addListener(
+      document.getElementById('btn-settings'),
+      'click',  () => this.showSettingsModal()
+    );
 
-      // Reset to auto to allow shrinking measurement
-      textarea.style.height = 'auto';
+    addListener(
+      document.getElementById('btn-select-workspace'),
+      'click', () => this.selectWorkspace()
+    );
 
-      // Explicitly handle empty/whitespace-only to ensure shrinking
-      if (textarea.value.trim().length === 0) {
-          textarea.style.height = minHeight + 'px';
-          return;
+    addListener(
+      document.getElementById('btn-refresh-index'),
+      'click', () => this.rebuildIndex()
+    );
+
+    addListener(
+      document.getElementById('btn-send'),
+      'click', () => this.sendMessage()
+    );
+
+    addListener(
+      document.getElementById('chat-input'),
+      'keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          this.sendMessage();
+        }
       }
+    );
 
-      const scrollHeight = textarea.scrollHeight;
+    addListener(
+      document.getElementById('insert-file'),
+      'click', () => this.selectFiles()
+    );
 
-      // Only expand if content exceeds minHeight + threshold
-      // This prevents expansion for the first 1-2 characters
-      if (scrollHeight > minHeight + threshold) {
-          textarea.style.height = Math.min(scrollHeight, maxHeight) + 'px';
+    addListener(
+      document.getElementById('chat-input'),
+      'input', (e) => {
+        const textarea = e.target;
+        const minHeight = 60;
+        const maxHeight = 320;
+        const lineHeight = parseInt(getComputedStyle(textarea).lineHeight);
+        const threshold = lineHeight * 2; // Don't expand until 1.5 lines needed
+
+        // Reset to auto to allow shrinking measurement
+        textarea.style.height = 'auto';
+
+        // Explicitly handle empty/whitespace-only to ensure shrinking
+        if (textarea.value.trim().length === 0) {
+            textarea.style.height = minHeight + 'px';
+            return;
+        }
+
+        const scrollHeight = textarea.scrollHeight;
+
+        // Only expand if content exceeds minHeight + threshold
+        // This prevents expansion for the first 1-2 characters
+        if (scrollHeight > minHeight + threshold) {
+            textarea.style.height = Math.min(scrollHeight, maxHeight) + 'px';
+        }
+        else {
+            // Stay at minimum height
+            textarea.style.height = minHeight + 'px';
+        }
+      }
+    );
+
+    addListener(
+      document.getElementById('ollama-model-selector'),
+      'change', (e) => {
+        this.currentOllamaModel = e.target.value;
+        // Optionally save to config
+        window.electronAPI.setConfig({
+          modelType: 'ollama',
+          modelName: this.currentOllamaModel
+        });
+      }
+    );
+
+    addListener(
+      document.getElementById('history'),
+      'click',  () => this.showHistoryModal()
+    );
+
+    addListener(
+      document.getElementById('btn-close-history'),
+      'click', () => this.closeHistoryModal()
+    );
+
+    addListener(
+      document.getElementById('btn-new-chat'),
+      'click', () => {
+        this.createChatTab();
+        this.closeHistoryModal();
+      }
+    );
+
+    addListener(
+      document.getElementById('btn-new-chat-tab'),
+      'click', () => this.createChatTab()
+    );
+  }
+
+  cleanupEventListeners() {
+    this.eventListeners.forEach(listener => {
+      if (listener.type === 'ipc') {
+        listener.unsubscribe();
       }
       else {
-          // Stay at minimum height
-          textarea.style.height = minHeight + 'px';
+        // Standard DOM listener
+        listener.element?.removeEventListener(listener.event, listener.handler);
       }
     });
 
-    document.getElementById('ollama-model-selector')?.addEventListener('change', (e) => {
-      this.currentOllamaModel = e.target.value;
-      // Optionally save to config
-      window.electronAPI.setConfig({
-        modelType: 'ollama',
-        modelName: this.currentOllamaModel
-      });
-    });
+    // Clear the array
+    this.eventListeners = [];
 
-    document.getElementById('history')?.addEventListener('click', () => this.showHistoryModal());
-    document.getElementById('btn-close-history')?.addEventListener('click', () => this.closeHistoryModal());
-    document.getElementById('btn-new-chat')?.addEventListener('click', () => {
-      this.createChatTab();
-      this.closeHistoryModal();
-    });
-
-    document.getElementById('btn-new-chat-tab')?.addEventListener('click', () => {
-      this.createChatTab();
-    });
+    // Also clear any lingering timeouts
+    clearTimeout(this.fsChangeTimeout);
+    clearTimeout(this.hubUpdateTimeout);
   }
 
   showFirstRunModal() {
