@@ -585,13 +585,15 @@ class App {
     /**
      *  Helper function to attach listeners to DOM elements
      *
-     *  @param {element} element - The DOM element to attach the listener to
-     *  @param {object} event - The event that we connect with the element
+     *  @param {object} element - The DOM element to attach the listener to
+     *  @param {string} event - The event that we connect with the element
      *  @param {function} handler - The function that triggers on event
      */
     const addListener = (element, event, handler) => {
       if (!element)
         return;
+
+      console.log(typeof(handler));
 
       element.addEventListener(event, handler);
       this.eventListeners.push({ element, event, handler });
