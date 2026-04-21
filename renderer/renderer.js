@@ -1311,7 +1311,43 @@ class App {
 
     try {
       if (modelType === 'tinyllama') {
-        // FIXME ... existing TinyLlama download logic ...
+        document.getElementById('first-run-modal')?.classList.add('hidden');
+        document.getElementById('download-modal')?.classList.remove('hidden');
+
+        const statusEl = document.getElementById('download-status');
+        const fillEl = document.getElementById('progress-fill');
+        const textEl = document.getElementById('progress-text');
+
+        if (fillEl)
+          fillEl.style.width = '0%';
+
+        if (textEl)
+          textEl.textContent = '0%';
+
+        try {
+          await this.initTinyLlama((progress) => {
+            if (progress.status === 'progress') {
+              const percent = Math.round((progress.loaded / progress.total) * 100);
+
+              if (fillEl)
+                fillEl.style.width = `${percent}%`;
+
+              if (textEl)
+                textEl.textContent = `${percent}%`;
+
+              if (statusEl)
+                statusEl.textContent = `Downloading: ${percent}%`;
+            }
+          });
+        }
+        catch (e) {
+          if (e.message !== 'PAUSED') {
+            console.error('TinyLlama download failed:', e);
+
+            if (statusEl)
+              statusEl.textContent = `Error: ${e.message}`;
+          }
+        }
       }
       else {
         // Ollama path: Hide first-run modal immediately
