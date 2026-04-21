@@ -2,7 +2,7 @@
   "name": "saiphai",
   "productName": "SaiphAI",
   "author": "Serpenseth",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "AI coding assistant with TinyLlama and Ollama support",
   "main": "./main/index.js",
   "scripts": {
