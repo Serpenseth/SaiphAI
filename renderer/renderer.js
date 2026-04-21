@@ -2301,8 +2301,35 @@ class App {
   async closeChatTab(tabId, event) {
     if (event) event.stopPropagation();
 
+    const tabElement = document.querySelector(`[data-tab="${tabId}"]`);
     const chatData = this.openChats.get(tabId);
-    if (!chatData) return;
+
+    if (!chatData)
+      return;
+
+    let nextTabId = null;
+    if (this.activeTab === tabId) {
+      let prev = tabElement?.previousElementSibling;
+
+      while (prev && !prev.dataset.tab) { // Skip non-tab elements
+        prev = prev.previousElementSibling;
+      }
+
+      if (prev?.dataset.tab) {
+        nextTabId = prev.dataset.tab;
+      }
+      else {
+        // Try next sibling
+        let next = tabElement?.nextElementSibling;
+
+        while (next && !next.dataset.tab) {
+            next = next.nextElementSibling;
+        }
+
+        if (next?.dataset.tab)
+          nextTabId = next.dataset.tab;
+      }
+    }
 
     // Save before closing
     if (chatData.messages.length > 0) {
@@ -2311,12 +2338,13 @@ class App {
 
     // If generating, cancel
     if (chatData.isGenerating && chatData.pendingRequestId) {
-      // Optionally implement cancellation logic
+      // TODO: implement cancellation logic
     }
 
     // Remove DOM
-    document.querySelector(`[data-tab="${tabId}"]`)?.remove();
+    tabElement?.remove();
     document.getElementById(tabId)?.remove();
+
 
     const tabsContainer = document.getElementById('tabs');
 
@@ -2332,8 +2360,8 @@ class App {
         }
         else {
             // No chat tabs left - move to beginning before file tabs
-            const firstFileTab = tabsContainer.children.find(t =>
-                t.dataset.tab?.startsWith('tab-')
+            const firstFileTab = Array.from(tabsContainer.children).find(t =>
+              t.dataset.tab?.startsWith('tab-')
             );
             if (firstFileTab) {
                 tabsContainer.insertBefore(newChatBtn, firstFileTab);
@@ -2348,14 +2376,15 @@ class App {
     this.openChats.delete(tabId);
 
     // Switch to another tab
-    if (this.activeTab === tabId) {
-      if (this.openChats.size > 0) {
+    if (nextTabId) {
+        this.switchToTab(nextTabId);
+    }
+    else if (this.openChats.size > 0) {
         this.switchToTab(this.openChats.keys().next().value);
-      }
-      else {
-        this.switchToTab('chat'); // Original chat tab or create new
+    }
+    else {
+        this.switchToTab('chat');
         this.createChatTab();
-      }
     }
 
     await this.saveEditorState();
@@ -2625,7 +2654,33 @@ class App {
     if (event)
       event.stopPropagation();
 
+    const tabElement = document.querySelector(`[data-tab="${tabId}"]`);
     const file = this.openFiles.get(tabId);
+
+    let nextTabId = null;
+    if (this.activeTab === tabId) {
+      // Try previous sibling (skip the new-chat button if present)
+      let prev = tabElement?.previousElementSibling;
+
+      while (prev && (!prev.dataset.tab || prev.id === 'btn-new-chat-tab')) {
+        prev = prev.previousElementSibling;
+      }
+
+      if (prev?.dataset.tab) {
+        nextTabId = prev.dataset.tab;
+      }
+      else {
+        // No previous, try next sibling
+        let next = tabElement?.nextElementSibling;
+
+        while (next && (!next.dataset.tab || next.id === 'btn-new-chat-tab')) {
+          next = next.nextElementSibling;
+        }
+
+        if (next?.dataset.tab)
+          nextTabId = next.dataset.tab;
+      }
+    }
 
     if (file?.path === this.activeFilePath)
       this.setActiveFile(null);
@@ -2635,13 +2690,16 @@ class App {
 
     await this.saveEditorState();
 
-    document.querySelector(`[data-tab="${tabId}"]`)?.remove();
+    tabElement?.remove();
     document.getElementById(tabId)?.remove();
     this.openFiles.delete(tabId);
 
-    if (this.openFiles.size === 0) {
-      this.switchToTab('chat');
-      this.setActiveFile(null);
+    if (nextTabId) {
+        this.switchToTab(nextTabId);
+    }
+    else if (this.openFiles.size === 0) {
+        this.switchToTab('chat');
+        this.setActiveFile(null);
     }
 
     await this.saveEditorState();
