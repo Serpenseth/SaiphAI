@@ -593,8 +593,6 @@ class App {
       if (!element)
         return;
 
-      console.log(typeof(handler));
-
       element.addEventListener(event, handler);
       this.eventListeners.push({ element, event, handler });
     };
