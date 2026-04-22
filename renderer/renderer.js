@@ -1403,18 +1403,6 @@ class App {
       if (modelType !== 'tinyllama') {
         document.getElementById('download-modal')?.classList.add('hidden');
       }
-
-      /*
-      const chatMessages = document.getElementById('chat-messages');
-
-      if (chatMessages) {
-        chatMessages.innerHTML = '';
-        const msg = modelType === 'tinyllama'
-          ? '✅ **TinyLlama** loaded!'
-          : '✅ Ollama ready to go!';
-        this.addMessage('assistant', msg);
-      }
-      */
     }
     catch (e) {
       // Don't reset to first run for Ollama errors unless it's a config error
@@ -3170,7 +3158,8 @@ class App {
       if (currentModelDiv)
         currentModelDiv.style.display = "none";
 
-    this.populateOllamaModels();
+    if (this.currentModel !== 'tinyllama')
+      this.populateOllamaModels();
 
     // Grab user's theme so we can restore it on cancel
     this._originalTheme = document.documentElement.getAttribute('data-theme') || 'system';
