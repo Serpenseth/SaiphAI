@@ -1284,9 +1284,13 @@ class App {
       }
     );
 
-    console.log('TinyLlama ready');
     // Clear download state on success
     await window.electronAPI.clearDownloadState?.('tinyllama');
+
+    // Save config after successful initialization
+    await window.electronAPI.setConfig({
+      modelType: 'tinyllama'
+    });
   }
 
   async selectModel(modelType) {
