@@ -1299,6 +1299,7 @@ class App {
     if (modelType === 'tinyllama') {
       document.getElementById('first-run-modal')?.classList.add('hidden');
       document.getElementById('download-modal')?.classList.remove('hidden');
+      this.currentModel = 'tinyllama';
     }
 
     const statusEl = document.getElementById('download-status');
@@ -1399,6 +1400,7 @@ class App {
         document.getElementById('download-modal')?.classList.add('hidden');
       }
 
+      /*
       const chatMessages = document.getElementById('chat-messages');
 
       if (chatMessages) {
@@ -1408,6 +1410,7 @@ class App {
           : '✅ Ollama ready to go!';
         this.addMessage('assistant', msg);
       }
+      */
     }
     catch (e) {
       // Don't reset to first run for Ollama errors unless it's a config error
@@ -1428,9 +1431,7 @@ class App {
       this.isDownloading = false;
       document.getElementById('download-modal')?.classList.add('hidden');
 
-      if (modelType !== 'tinyllama') {
-        setTimeout(() => this.renderWelcomeHub(), 100);
-      }
+      setTimeout(() => this.renderWelcomeHub(), 300);
     }
   }
 
