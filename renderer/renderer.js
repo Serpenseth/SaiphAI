@@ -1823,13 +1823,6 @@ class App {
       chatData.isGenerating = false;
       chatData.pendingRequestId = null;
 
-      /*
-      this.addMessage('assistant', responseText);
-      this.updateCurrentChat(responseText, 'assistant');
-      this.attachedFiles = [];
-      this.renderAttachedFiles();
-      */
-
       if (this.activeTab === tabId) {
         if (tabId === 'chat') {
           this.addMessage('assistant', responseText);
@@ -1878,8 +1871,6 @@ class App {
   handleFileSystemChange({ eventType, relativePath, absolutePath }) {
     if (!this.workspacePath)
       return;
-
-    console.log(`File event: ${eventType} - ${relativePath}`);
 
     switch (eventType) {
       case 'add':
@@ -3336,7 +3327,7 @@ class App {
   }
 
   updateCurrentChat(message, role) {
-    this.chatChat.messages.push({
+    this.currentChat.messages.push({
       role,
       content: message,
       timestamp: new Date().toISOString()
