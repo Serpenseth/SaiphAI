@@ -1271,6 +1271,8 @@ class App {
       await this.downloadModelFiles(progressCallback);
     }
 
+    const modelFilesExist = await this.checkModelFilesExist();
+
     // Load from local files once downloaded
     this.tinyLlamaPipeline = await pipeline(
       'text-generation',
@@ -1278,7 +1280,7 @@ class App {
       {
         progress_callback: progressCallback || ((x) => console.log('Loading:', x.status, x)),
         quantized: true,
-        local_files_only: true // Use downloaded files
+        local_files_only: modelFilesExist // Use downloaded files
       }
     );
 
@@ -1424,10 +1426,34 @@ class App {
     }
     finally {
       this.isDownloading = false;
+      document.getElementById('download-modal')?.classList.add('hidden');
 
       if (modelType !== 'tinyllama') {
         setTimeout(() => this.renderWelcomeHub(), 100);
       }
+    }
+  }
+
+  async checkModelFilesExist() {
+    try {
+      const modelCachePath = await window.electronAPI.getModelCachePath?.();
+      if (!modelCachePath) return false;
+
+      // Check if at least one essential model file exists
+      const essentialFiles = ['config.json', 'tokenizer.json'];
+
+      for (const file of essentialFiles) {
+        const filePath = `${modelCachePath}/Xenova/TinyLlama-1.1B-Chat-v1.0/${file}`;
+        const exists = await window.electronAPI.checkFileExists?.(filePath);
+
+        if (!exists)
+          return false;
+
+        return true;
+      }
+    }
+    catch (e) {
+      return false;
     }
   }
 
