@@ -73,35 +73,54 @@ class SettingsManager {
       let finalData = await this.read();
 
       batch.forEach(item => {
-        finalData = { ...finalData, ...item.data };
+        finalData = this.deepMerge(finalData, item.data);
       });
 
       this.cache = finalData;
 
       try {
-        // ATOMIC WRITE: Write to temp, then rename
         const tempPath = this.filePath + '.tmp';
+        const backupPath = this.filePath + '.backup';
 
         // Write to temporary file
         await fs.writeFile(tempPath, JSON.stringify(finalData, null, 2));
 
-        // Create backup of current file (if it exists)
-        try { await fs.rename(this.filePath, this.filePath + '.backup') }
-        catch (e) {}
+        // Check if main file exists before attempting backup rename
+        let mainFileExists = false;
+        try {
+          await fs.access(this.filePath);
+          mainFileExists = true;
+        }
+        catch (e) { /* File doesn't exist, that's ok for first run */ }
+
+        // Create backup of current file (only if it exists)
+        if (mainFileExists) {
+          try {
+            // Remove old backup first to avoid issues on Windows
+            try { await fs.unlink(backupPath) }
+            catch (e) { /* ignore */ }
+
+            await fs.rename(this.filePath, backupPath);
+          }
+          catch (e) {
+            // If rename fails (e.g., cross-device), try copy+unlink
+            try {
+              await fs.copyFile(this.filePath, backupPath);
+              await fs.unlink(this.filePath);
+            }
+            catch (copyErr) { console.error('Backup failed:', copyErr) }
+          }
+        }
 
         // Atomic rename (POSIX guarantee, near-atomic on Windows)
         await fs.rename(tempPath, this.filePath);
-
-        // Success - remove backup after a delay
-        setTimeout(async () => {
-          try { await fs.unlink(this.filePath + '.backup') }
-          catch (e) { console.error(e) }
-        }, 5000);
 
         batch.forEach(item => item.resolve());
       }
       catch (e) {
         console.error('Settings write failed:', e);
+
+        this.writeQueue = [...batch, ...this.writeQueue];
         batch.forEach(item => item.reject(e));
 
         // Try to restore from backup on critical failure
@@ -109,11 +128,51 @@ class SettingsManager {
           const backup = await fs.readFile(this.filePath + '.backup', 'utf8');
           await fs.writeFile(this.filePath, backup);
         }
-        catch (e) { console.error(e) }
+        catch (e) {
+          console.error('Settings write failed:', e);
+
+          // Re-add failed batch items back to queue for retry
+          this.writeQueue = [...batch, ...this.writeQueue];
+
+          batch.forEach(item => item.reject(e));
+
+          // Try to restore from backup on critical failure
+          try {
+            const backup = await fs.readFile(this.filePath + '.backup', 'utf8');
+            await fs.writeFile(this.filePath, backup);
+          }
+          catch (e) { console.error('Backup restore failed:', e); }
+
+          // Break to stop processing and let the next cycle retry
+          break;
+        }
+      }
+      finally {
+        // Only clear writePromise when queue is fully processed
+        if (this.writeQueue.length === 0) {
+          this.writePromise = null;
+        }
+        else {
+          // Re-trigger processing if items were re-added
+          this.writePromise = this.processQueue();
+        }
+      }
+    }
+  }
+
+  // Helper method for deep merging objects
+  deepMerge(target, source) {
+    const result = { ...target };
+
+    for (const key of Object.keys(source)) {
+      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+        result[key] = this.deepMerge(target[key] || {}, source[key]);
+      } else {
+        result[key] = source[key];
       }
     }
 
-    this.writePromise = null;
+    return result;
   }
 
   async update(updates) {
@@ -136,7 +195,7 @@ class SettingsManager {
     await this.write(settings);
     return settings.config;
   }
-}
+  }
 
 const settingsManager = new SettingsManager(SETTINGS_FILE);
 
