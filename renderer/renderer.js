@@ -1790,14 +1790,12 @@ class App {
 
       if (isTinyLlama && this.tinyLlamaPipeline) {
         const output = await this.tinyLlamaPipeline(fullPrompt, {
-          max_new_tokens: 1024,
+          max_new_tokens: 256,
           temperature: 0.3,
           do_sample: true,
           top_k: 128,
           repetition_penalty: 1.1
         });
-        //responseText = output[0].generated_text.replace(fullPrompt, '').trim();
-
         const rawOutput = output[0].generated_text;
         const assistantToken = '<|assistant|>';
         const assistantIndex = rawOutput.indexOf(assistantToken);
@@ -3055,7 +3053,7 @@ class App {
 
   async buildSmartContext(files, query, isTinyLlama = true) {
     const isOverview = this.isProjectOverviewQuery(query);
-    const maxChars = isTinyLlama ? 12000 : 50000;
+    const maxChars = isTinyLlama ? 1250 : 50000;
     const processedPaths = new Set();
 
     let context = '';
