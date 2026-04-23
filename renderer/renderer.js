@@ -1543,12 +1543,17 @@ class App {
   }
 
   async sendMessage(text = null, targetTabId = null) {
-    if (!this.currentOllamaModel) {
-      // Try to populate models once more
-      await this.populateOllamaModels();
+    const config = await window.electronAPI.getConfig();
 
+    // Aggressive check, just to be safe
+    if (this.currentModel === 'ollama' && config.modelType === 'ollama') {
       if (!this.currentOllamaModel) {
-        throw new Error('No Ollama model selected. Please open Settings and select a model.');
+        // Try to populate models once more if the model is Ollama
+        await this.populateOllamaModels();
+
+        if (!this.currentOllamaModel) {
+          throw new Error('No Ollama model selected. Please open Settings and select a model.');
+        }
       }
     }
 
@@ -1788,9 +1793,28 @@ class App {
           max_new_tokens: 1024,
           temperature: 0.3,
           do_sample: true,
-          top_k: 128
+          top_k: 128,
+          repetition_penalty: 1.1
         });
-        responseText = output[0].generated_text.replace(fullPrompt, '').trim();
+        //responseText = output[0].generated_text.replace(fullPrompt, '').trim();
+
+        const rawOutput = output[0].generated_text;
+        const assistantToken = '<|assistant|>';
+        const assistantIndex = rawOutput.indexOf(assistantToken);
+
+        if (assistantIndex !== -1) {
+          responseText = rawOutput.substring(assistantIndex + assistantToken.length).trim();
+        }
+        else {
+          // Fallback: try to remove fullPrompt, handling potential whitespace variations
+          const promptPattern = fullPrompt.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          responseText = rawOutput.replace(new RegExp(promptPattern, 'i'), '').trim();
+        }
+        responseText = responseText
+          .replace(/<\|system\|>.*?<\/s>/gi, '')
+          .replace(/<\|user\|>.*?<\/s>/gi, '')
+          .replace(/<\/s>/g, '')
+          .trim();
       }
       else if (this.currentModel === 'ollama') {
         const selectedModel = this.currentOllamaModel;
