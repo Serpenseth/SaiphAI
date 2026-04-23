@@ -392,7 +392,6 @@ ipcMain.handle('select-workspace', async () => {
     await settingsManager.update({ workspacePath });
     workspaceIndex.setWorkspace(workspacePath);
 
-    startFileWatcher(workspacePath);
     return workspacePath;
   }
   return null;
@@ -685,6 +684,7 @@ class WorkspaceIndex {
       }
     }
     this.buildIndex().catch(console.error);
+    startFileWatcher(workspacePath);
   }
 
   async buildIndex() {
@@ -1879,7 +1879,7 @@ app.whenReady().then(() => {
     .then(settings => {
       if (settings.workspacePath) {
         workspaceIndex.setWorkspace(settings.workspacePath);
-        startFileWatcher(settings.workspacePath);
+        //startFileWatcher(settings.workspacePath);
       }
     });
 });

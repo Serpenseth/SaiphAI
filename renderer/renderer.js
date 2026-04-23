@@ -114,11 +114,6 @@ class App {
       else {
         await this.populateOllamaModels();
       }
-
-      if (this.config.lastWorkspace) {
-        this.workspacePath = this.config.lastWorkspace;
-        setTimeout(() => this.loadWorkspace(this.config.lastWorkspace), 1000);
-      }
     }
 
     await this.loadCurrentChatFromJson();
@@ -131,11 +126,9 @@ class App {
     });
 
     this.renderWelcomeHub();
-
-    this.config = await window.electronAPI.getConfig();
     this.activeFilePath = this.config.activeFile || null; // Restore from settings
 
-    if (this.config.lastWorkspace) {
+    if (this.config.lastWorkspace  && !this.workspacePath) {
       this.workspacePath = this.config.lastWorkspace;
 
       setTimeout(async () => {
@@ -2007,7 +2000,7 @@ class App {
     await this.loadFileTree(path);
 
     try {
-      await window.electronAPI.buildIndex();
+      //await window.electronAPI.buildIndex();
       const metadata = await window.electronAPI.getProjectMetadata();
 
       if (metadata) {
