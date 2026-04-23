@@ -1868,25 +1868,26 @@ ipcMain.handle('get-project-metadata', () => {
     };
 });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   initDatabase();
-  createMainWindow();
 
-  // Initialize workspace from saved config on app startup
-  //const settings = await readJson(SETTINGS_FILE);
+  const settings = await readJson(SETTINGS_FILE);
+  
+    if (settings.workspacePath) {
+       workspaceIndex.setWorkspace(settings.workspacePath);
+    }
 
-  readJson(SETTINGS_FILE)
-    .then(settings => {
-      if (settings.workspacePath) {
-        workspaceIndex.setWorkspace(settings.workspacePath);
-        //startFileWatcher(settings.workspacePath);
-      }
-    });
+    createMainWindow();
 });
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin')
+app.on('window-all-closed', async () => {
+  if (process.platform !== 'darwin') {
+    // Wait for any pending writes to complete
+    if (settingsManager.writePromise) {
+      await settingsManager.writePromise;
+    }
     app.quit();
+  }
 });
 
 app.on('activate', () => {

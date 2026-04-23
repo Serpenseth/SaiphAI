@@ -80,6 +80,25 @@ class App {
   debouncedSaveEditorState = this.debounce(() => this.saveEditorState(), 500);
 
   async init() {
+    // Load config
+    this.config = await window.electronAPI.getConfig();
+    this.activeFilePath = this.config.activeFile || null; // Restore from settings
+
+    if (this.config.lastWorkspace  && !this.workspacePath) {
+      this.workspacePath = this.config.lastWorkspace;
+
+      await this.loadWorkspace(this.config.lastWorkspace);
+      await this.restoreEditorState();
+
+      // Re-apply active file class in tree if needed
+      if (this.activeFilePath) {
+        const el = document.querySelector(`[data-path="${CSS.escape(this.activeFilePath)}"]`);
+
+        if (el)
+          el.classList.add('active-file');
+      }
+    }
+
     // Try preload first, then fall back to CDN global
     if (window.electronAPI?.loadTransformers) {
         this.transformers = await window.electronAPI.loadTransformers();
@@ -93,8 +112,6 @@ class App {
       this.updateDownloadProgress(data);
     });
 
-    // Load config
-    this.config = await window.electronAPI.getConfig();
     this.showWelcomeHub = !this.config.hideWelcomeHub;
 
     this.setupEventListeners();
@@ -126,29 +143,9 @@ class App {
     });
 
     this.renderWelcomeHub();
-    this.activeFilePath = this.config.activeFile || null; // Restore from settings
 
-    if (this.config.lastWorkspace  && !this.workspacePath) {
-      this.workspacePath = this.config.lastWorkspace;
-
-      setTimeout(async () => {
-        await this.loadWorkspace(this.config.lastWorkspace);
-
-        // Restore all open tabs and scroll positions
-        await this.restoreEditorState();
-
-        // Re-apply active file class in tree if needed
-        if (this.activeFilePath) {
-          const el = document.querySelector(`[data-path="${CSS.escape(this.activeFilePath)}"]`);
-
-          if (el)
-            el.classList.add('active-file');
-        }
-      }, 1000);
-    }
-
-    window.addEventListener('beforeunload', () => {
-      this.saveEditorState();
+    window.addEventListener('beforeunload', async () => {
+      await this.saveEditorState();
       this.cleanupEventListeners();
     });
   }
@@ -2000,7 +1997,6 @@ class App {
     await this.loadFileTree(path);
 
     try {
-      //await window.electronAPI.buildIndex();
       const metadata = await window.electronAPI.getProjectMetadata();
 
       if (metadata) {
