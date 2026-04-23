@@ -3222,10 +3222,17 @@ class App {
         const selectedModel = document.querySelector('input[name="settings-model"]:checked')?.value;
 
         if (selectedModel && selectedModel !== this.currentModel) {
-            // Confirm if user wants to switch (may require download)
-            if (confirm(`Switch to ${selectedModel === 'tinyllama' ? 'TinyLlama' : 'Ollama'}? This may require downloading files.`)) {
-                await this.selectModel(selectedModel);
-            }
+          // Confirm if user wants to switch (may require download)
+          let message = `Switch to ${selectedModel === 'tinyllama' ? 'TinyLlama' : 'Ollama'}? `;
+
+          if (selectedModel === 'tinyllama')
+            message += "This may require downloading files if Tinyllama is not installed";
+
+          if (confirm(message))
+              await this.selectModel(selectedModel);
+
+          else
+            return;
         }
 
         // Handle theme change
