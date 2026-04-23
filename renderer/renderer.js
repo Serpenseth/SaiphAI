@@ -3175,6 +3175,11 @@ class App {
     if (this.currentModel !== 'tinyllama')
       this.populateOllamaModels();
 
+    const modelRadio = document.querySelector(`input[name="settings-model"][value="${this.currentModel}"]`);
+    if (modelRadio) {
+      modelRadio.checked = true;
+    }
+
     // Grab user's theme so we can restore it on cancel
     this._originalTheme = document.documentElement.getAttribute('data-theme') || 'system';
 
