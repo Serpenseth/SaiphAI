@@ -1666,6 +1666,18 @@ class App {
           // Get semantically relevant files
           relevantFiles = await window.electronAPI.searchIndex?.(message, true) || [];
 
+          if (relevantFiles.length === 0 && this.workspaceIndex?.index?.size > 0) {
+            console.log('No semantic matches, using workspace file fallback');
+            // Get files from the workspace index
+            const filesArray = Array.from(this.workspaceIndex.index.values());
+            relevantFiles = filesArray.slice(0, 10).map(f => ({
+              ...f,
+              relevance: 1,
+              name: f.relativePath?.split(/[/\\]/).pop() || f.name,
+              relativePath: f.relativePath
+            }));
+          }
+
           // Extract explicit file mentions from query
           const explicitRefs = this.extractFileReferences(message);
 
