@@ -1296,16 +1296,6 @@ class App {
       this.currentModel = 'tinyllama';
     }
 
-    const statusEl = document.getElementById('download-status');
-    const fillEl = document.getElementById('progress-fill');
-    const textEl = document.getElementById('progress-text');
-
-    if (fillEl)
-      fillEl.style.width = '0%';
-
-    if (textEl)
-      textEl.textContent = '0%';
-
     try {
       if (modelType === 'tinyllama') {
         document.getElementById('first-run-modal')?.classList.add('hidden');
@@ -1356,7 +1346,6 @@ class App {
         });
 
         this.currentModel = 'ollama';
-        this.updateStatus('Ready: Ollama (select model below)');
 
         // Delay slightly to ensure DOM is ready, then populate
         setTimeout(async () => {
@@ -3257,7 +3246,8 @@ class App {
                 toggleBtn.classList.toggle('active', showHub);
             }
         }
-    } catch (e) {
+    }
+    catch (e) {
         console.error('Failed to save settings:', e);
         alert('Error saving settings: ' + e.message);
     }
