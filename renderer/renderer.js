@@ -607,13 +607,17 @@ class App {
 
     addListener(
       document.querySelector('[data-tab="chat"]'),
-      'click',
-      () => this.switchToTab('chat')
+      'click', () => this.switchToTab('chat')
     );
 
     addListener(
       document.getElementById('build-toggle-btn'),
       'click', () => this.toggleBuildPanel()
+    );
+
+    addListener(
+      document.getElementById('btn-clear-chat'),
+      'click', () => this.clearMainChat()
     );
 
     addListener(
@@ -784,6 +788,30 @@ class App {
     // Also clear any lingering timeouts
     clearTimeout(this.fsChangeTimeout);
     clearTimeout(this.hubUpdateTimeout);
+  }
+
+  clearMainChat() {
+    // Clear the messages container
+    const container = document.getElementById('chat-messages');
+    if (container) {
+      container.innerHTML = '';
+    }
+
+    // Reset current chat state
+    this.currentChat = {
+      id: null,
+      title: 'New Chat',
+      messages: [],
+      date: new Date().toISOString()
+    };
+
+    // Optionally save/clear the persisted chat
+    this.saveCurrentChatToJson();
+
+    // Show the welcome hub again
+    this.renderWelcomeHub();
+
+    this.updateStatus('Chat cleared');
   }
 
   showFirstRunModal() {
