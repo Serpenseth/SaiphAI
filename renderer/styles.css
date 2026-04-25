@@ -957,7 +957,8 @@ body {
   color: var(--accent-color);
 }
 
-.message-bubble ul {
+.message-bubble ul
+.message-bubble ol {
   margin-left: 2em;
 }
 
@@ -1477,3 +1478,5 @@ body {
 .tab-new-btn:hover {
   filter: brightness(2);
 }
+
+
