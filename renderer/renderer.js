@@ -59,6 +59,7 @@ class App {
     this.activeBuilds = new Map();
     this.buildHistory = [];
     this.currentBuildConfig = null;
+    this._pendingErrorAnalysis = null;
     // Workspace index cache
     this.workspaceIndex = {
       index: new Map(),
@@ -488,8 +489,15 @@ class App {
       outputContainer.innerHTML = `<div class="build-starting">Starting ${buildType}...</div>`;
     }
 
+    let errorData = null;
+
     try {
-      this.activeBuilds.set(buildId, { type: buildType, startTime: Date.now() });
+      this.activeBuilds.set(buildId, {
+        id: buildId,  // Store ID in the data object for easier retrieval
+        type: buildType,
+        startTime: Date.now(),
+        output: ''
+      });
 
       const result = await window.electronAPI.executeBuild(buildId, command, args, {
         cwd: this.workspacePath
@@ -500,19 +508,40 @@ class App {
         this.updateBuildStatus(`${buildType} completed`);
       }
       else {
+        const errorOutput = result.stderr || result.error || '';
         this.appendBuildOutput(`\n✗ Build failed (Exit code: ${result.exitCode})\n${result.stderr || result.error}\n`, 'error');
         this.updateBuildStatus(`${buildType} failed`);
 
+        // Store output in build data for retrieval
+        const buildData = this.activeBuilds.get(buildId);
+        if (buildData) {
+            buildData.output = errorOutput;
+            buildData.exitCode = result.exitCode;
+            buildData.language = this.currentBuildConfig?.language;
+        }
+
         // Offer AI analysis
-        this.showErrorAnalysis(result, buildType);
+        errorData = {
+          id: buildId,
+          output: errorOutput,
+          exitCode: result.exitCode,
+          language: this.currentBuildConfig?.language || 'unknown',
+          type: buildType
+        };
+
+        // Offer AI analysis - pass error data directly
+        this.showErrorAnalysis(errorData, buildType);
       }
     }
     catch (e) {
       this.appendBuildOutput(`\n✗ Error: ${e.message}\n`, 'error');
     }
     finally {
-      this.activeBuilds.delete(buildId);
-      this.loadBuildHistory();
+      // Delay cleanup slightly to give UI time to render
+      setTimeout(() => {
+          this.activeBuilds.delete(buildId);
+          this.loadBuildHistory();
+      }, 100);
     }
   }
 
@@ -585,33 +614,128 @@ class App {
   }
 
   showErrorAnalysis(result, buildType) {
-    const panel = document.getElementById('build-output-container');
+    this._pendingErrorAnalysis = result;
 
-    if (!panel)
+    const container = document.getElementById('build-output-content');
+
+    if (!container)
       return;
 
+    const buildId = Array.from(this.activeBuilds.entries()).find(
+      ([id, b]) => b.type === buildType
+    )?.[0];
+
     const analysisDiv = document.createElement('div');
+
     analysisDiv.className = 'build-error-analysis';
     analysisDiv.innerHTML = `
       <div class="build-analysis-header">
-        <span>Build failed. Analyze with AI?</span>
-        <button class="btn-primary" onclick="app.analyzeBuildError('${buildType}')">Analyze Error</button>
+          <span>Build failed. Analyze with AI?</span>
+          <button id="analysis-btn" class="btn-primary" onclick="app.analyzeBuildError('${buildType}', '${buildId}')">
+            Analyze Error
+          </button>
       </div>
     `;
 
-    panel.appendChild(analysisDiv);
+    container.appendChild(analysisDiv);
+    container.scrollTop = container.scrollHeight;
   }
 
-  async analyzeBuildError(buildType) {
-    // Integrate with chat system
-    const buildData = Array.from(this.activeBuilds.values()).find(b => b.type === buildType);
+  async analyzeBuildError() {
+    // Retrieve the error data that was stored
+    const errorData = this._pendingErrorAnalysis;
 
-    if (!buildData)
-      return;
+    if (!errorData || !errorData.output) {
+      console.warn('No build output available for analysis');
 
-    // Add message to chat requesting analysis
-    const message = `Please analyze the build error for ${this.currentBuildConfig?.language} project. Check the build output above.`;
-    await this.sendMessage(message);
+      // Fallback: Try to find from activeBuilds if cleanup hasn't happened yet
+      let buildEntry = Array.from(this.activeBuilds.entries()).find(
+        ([id, b]) => b.type === errorData?.type
+      );
+
+      if (buildEntry) {
+        errorData = {
+          id: buildEntry[0],
+          output: buildEntry[1].output,
+          exitCode: buildEntry[1].exitCode,
+          language: buildEntry[1].language,
+          type: buildEntry[1].type
+        };
+      }
+      else {
+        this.updateBuildStatus('Error data no longer available - rebuild required');
+        return;
+      }
+    }
+
+    // Clear the stored error data
+    this._pendingErrorAnalysis = null;
+
+    const { output, exitCode, language, type } = errorData;
+
+    // Remove the analysis button UI
+    const analysisDiv = document.querySelector('.build-error-analysis');
+    if (analysisDiv) {
+        analysisDiv.remove();
+    }
+
+    // Show loading state in build panel
+    const container = document.getElementById('build-output-content');
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'build-analysis-loading';
+    loadingDiv.innerHTML = `
+      <div class="build-analysis-header">
+          <span>Analyzing build error...</span>
+      </div>
+      <div class="loading"></div>
+    `;
+    container.appendChild(loadingDiv);
+    container.scrollTop = container.scrollHeight;
+
+    // Construct detailed prompt with error output
+    const analysisPrompt = `Please analyze this ${language || 'build'} error:
+
+## Build Error Output:
+\`\`\`
+${output}
+\`\`\`
+
+Exit Code: ${exitCode || 'unknown'}
+
+Please provide:
+1. **Root Cause**: What's causing the build to fail
+2. **Specific Fix**: What changes need to be made (show code if applicable)
+3. **Prevention**: How to avoid this issue in the future
+
+Be specific and include file paths if the error mentions them.`;
+
+    try {
+      // Send to chat and get response
+      await this.sendMessage(analysisPrompt);
+
+      // Remove loading indicator after message is sent
+      loadingDiv.remove();
+
+      // Update build status
+      this.updateBuildStatus('Error analysis sent to chat');
+
+      // Switch to chat tab so user sees the response
+      this.switchToTab('chat');
+    }
+    catch (e) {
+      loadingDiv.remove();
+
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'build-analysis-error';
+      errorDiv.innerHTML = `
+        <div class="build-analysis-header">
+            <span>Failed to analyze: ${e.message}</span>
+        </div>
+      `;
+      container.appendChild(errorDiv);
+
+      this.updateBuildStatus('Error analysis failed');
+    }
   }
 
   truncate(str, len) {
