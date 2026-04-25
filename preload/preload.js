@@ -29,6 +29,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   selectFiles: () => ipcRenderer.invoke('select-files'),
   getProjectMetadata: () => ipcRenderer.invoke('get-project-metadata'),
 
+  // Secure chat handlers
+  registerChatRequest: (requestId, tabId) => ipcRenderer.invoke('register-chat-request', requestId, tabId),
+  chatWithOllamaSecure: (message, model, requestId, tabId) =>  ipcRenderer.invoke('chat-ollama-secure', message, model, requestId, tabId),
+  getSystemPrompt: () => ipcRenderer.invoke('get-system-prompt'),
+
   // History
   saveCurrentChatJson: (chatData) => ipcRenderer.invoke('save-current-chat-json', chatData),
   loadCurrentChatJson: () => ipcRenderer.invoke('load-current-chat-json'),
@@ -40,7 +45,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Indexing
   buildIndex: () => ipcRenderer.invoke('build-index'),
   searchIndex: (query) => ipcRenderer.invoke('search-index', query),
-  // In preload.js or main process IPC handlers:
   getIndexStats: async () => {
     // Return { count: numberOfIndexedFiles } or null if index empty
     if (!global.workspaceIndex)

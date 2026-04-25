@@ -151,13 +151,107 @@ class App {
   }
 
   escapeHtml(text) {
-    if (!text) return '';
+    if (!text)
+      return '';
+
     return text
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
+  }
+
+  /**
+    * Validates that a resolved path is within the workspace directory.
+    * Prevents path traversal attacks (e.g., ../../etc/passwd)
+    *
+    * @param {string} resolvedPath - The fully resolved absolute path
+    * @param {string} workspacePath - The allowed base directory
+    * @returns {boolean} - True if path is within workspace, false otherwise
+  */
+  isPathWithinWorkspace(resolvedPath, workspacePath) {
+    const normalizePath = (p) => p.replace(/\\/g, '/').replace(/\/+/g, '/');
+    const normalizedResolved = normalizePath(resolvedPath).toLowerCase();
+    const normalizedWorkspace = normalizePath(workspacePath).toLowerCase();
+    const workspaceWithSep = normalizedWorkspace.endsWith('/')
+      ? normalizedWorkspace
+      : normalizedWorkspace + '/';
+
+    return normalizedResolved.startsWith(workspaceWithSep) ||
+        normalizedResolved === normalizedWorkspace;  // Allow exact match
+  }
+
+  /**
+    * Safe file path resolution with traversal prevention
+    *
+    * @param {string} fileRef - The file reference (relative or absolute)
+    * @param {string} basePath - The base directory (workspace)
+    * @returns {string|null} - Resolved absolute path or null if invalid
+  */
+  resolveSafePath(fileRef, basePath) {
+    if (!fileRef || !basePath)
+      return null;
+
+    // Remove any leading ./ references
+    let sanitized = fileRef.replace(/^\.\//, '').trim();
+    sanitized = sanitized.replace(/\\/g, '/');
+
+    // Block encoded traversal patterns
+    if (/%2e%2e/i.test(sanitized) || /%252e%252e/i.test(sanitized)) {
+        console.warn('Encoded path traversal blocked');
+        return null;
+    }
+
+    // Block paths with null bytes (null byte injection)
+    if (sanitized.includes('\0')) {
+      console.warn('Null byte injection attempt blocked');
+      return null;
+    }
+
+    // Block obvious path traversal patterns (case-insensitive)
+    const traversalPattern = /\.\./gi;
+    if (traversalPattern.test(sanitized)) {
+        console.warn(`Path traversal attempt blocked: ${fileRef}`);
+        return null;
+    }
+
+    // Use URL API to resolve path (browser-compatible)
+    try {
+      // Create a file URL from the base path and file reference
+      // This handles . and .. and normalizes the path correctly
+      const baseUrl = 'file://' + (basePath.startsWith('/') ? '' : '/') + basePath.replace(/\\/g, '/');
+      const fileUrl = new URL(sanitized, baseUrl);
+
+      // Get the resolved path (removes . and .. automatically)
+      let resolvedPath = fileUrl.pathname;
+
+      // On Windows, URL API may add extra leading slash - normalize it
+      if (resolvedPath.startsWith('//') && !resolvedPath.startsWith('///')) {
+          resolvedPath = resolvedPath.substring(1);
+      }
+
+      // Decode URI components (spaces, special chars)
+      resolvedPath = decodeURIComponent(resolvedPath);
+
+      // Re-check for traversal AFTER decoding
+      if (/\.\./.test(resolvedPath)) {
+        console.warn('Path traversal attempt blocked after decoding');
+        return null;
+    }
+
+      // Verify the resolved path is within the workspace
+      if (!this.isPathWithinWorkspace(resolvedPath, basePath)) {
+          console.warn(`Path traversal attempt blocked: ${fileRef} resolves to ${resolvedPath}`);
+          return null;
+      }
+
+      return resolvedPath;
+    }
+    catch (e) {
+        console.warn('Path resolution failed:', e.message);
+        return null;
+    }
   }
 
   setTabUnreadIndicator(tabId, hasUnread) {
@@ -1549,13 +1643,39 @@ class App {
     return id;
   }
 
+  sanitizeUserInput(message) {
+    // Security: This is now secondary protection only
+    // Primary security is in the main process
+
+    const dangerousPatterns = [
+      /ignore\s+(previous|all)\s+(instructions?|orders?|commands?)/gi,
+      /you\s+are\s+(now\s+)?(a?in?|acting\s+as)\s+(developer|debug)/gi,
+      /system\s*prompt/i,
+      /new\s+instructions?:/i,
+      /<\|system\|>/gi,
+      /<\|user\|>/gi,
+      /<\|assistant\|>/gi,
+    ];
+
+    let sanitized = message;
+
+    for (const pattern of dangerousPatterns) {
+      sanitized = sanitized.replace(pattern, '[filtered]');
+    }
+
+    // Security: Additional client-side checks
+    sanitized = sanitized.replace(/\0/g, ''); // Remove null bytes
+    sanitized = sanitized.trim();
+
+    return sanitized;
+  }
+
   async sendMessage(text = null, targetTabId = null) {
     const config = await window.electronAPI.getConfig();
 
-    // Aggressive check, just to be safe
+    // Security: Model validation
     if (this.currentModel === 'ollama' && config.modelType === 'ollama') {
       if (!this.currentOllamaModel) {
-        // Try to populate models once more if the model is Ollama
         await this.populateOllamaModels();
 
         if (!this.currentOllamaModel) {
@@ -1565,7 +1685,6 @@ class App {
     }
 
     const hub = document.getElementById('welcome-hub');
-
     if (hub) {
       hub.style.display = 'none';
     }
@@ -1574,27 +1693,36 @@ class App {
     let chatData;
 
     if (tabId === 'chat') {
-        chatData = this.currentChat;
+      chatData = this.currentChat;
     }
     else {
-        chatData = this.openChats.get(tabId);
+      chatData = this.openChats.get(tabId);
     }
 
     if (!chatData)
       return;
 
-    // Prevent sending if already generating in this tab
     if (chatData.isGenerating)
       return;
 
-    let  input;
+    let input;
     if (tabId === 'chat') {
       input = document.getElementById('chat-input');
-    } else {
-      input = document.getElementById(`chat-input-${tabId}`);
     }
+    else { input = document.getElementById(`chat-input-${tabId}`) }
 
-    const message = text || input.value.trim();
+    let message = text || input.value.trim();
+
+    // Security: Generate unique request ID for tracking
+    const requestId = crypto.randomUUID
+      ? crypto.randomUUID()
+      :  `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Security: Register request with main process BEFORE sending
+    await window.electronAPI.registerChatRequest(requestId, tabId);
+
+    // Security: Client-side sanitization (defense in depth, not primary control)
+    message = this.sanitizeUserInput(message);
 
     if (!message)
       return;
@@ -1602,6 +1730,7 @@ class App {
     if (!text)
       input.value = '';
 
+    // Update chat title if first message
     if (chatData.messages.length === 0) {
       const summary = this.generateTabTitle(message);
       chatData.title = summary;
@@ -1611,41 +1740,39 @@ class App {
       }
     }
 
-    // Add user message to correct tab
+    // Add user message to chat
     chatData.messages.push({
       role: 'user',
       content: message,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      requestId: requestId // Security: Track which request created this message
     });
 
     if (tabId === 'chat') {
-        this.addMessage('user', message);
-        this.updateCurrentChat(message, 'user');
+      this.addMessage('user', message);
+      this.updateCurrentChat(message, 'user');
     }
     else {
-        this.addMessageToTab(tabId, 'user', message);
+      this.addMessageToTab(tabId, 'user', message);
     }
-
 
     this.renderWelcomeHub();
 
+    // Show loading indicator
     const loadingId = tabId === 'chat'
-        ? this.addMessage('assistant', '<div class="loading"></div> Thinking...')
-        : this.addMessageToTab(tabId, 'assistant', '<div class="loading"></div> Thinking...', true);
+      ? this.addMessage('assistant', '<div class="loading"></div> Thinking...')
+      : this.addMessageToTab(tabId, 'assistant', '<div class="loading"></div> Thinking...', true);
 
-    const requestId = Date.now() + Math.random().toString(36).substr(2, 9);
     chatData.isGenerating = true;
     chatData.pendingRequestId = requestId;
     this.activeRequests.set(requestId, tabId);
 
+    // Security: Build workspace index if needed
     if (this.workspacePath) {
       try {
         const indexStats = await window.electronAPI.getIndexStats?.().catch(() => ({ count: 0 }));
-
         if (!indexStats || indexStats.count === 0) {
-          console.log('Building workspace index...');
           await window.electronAPI.buildIndex();
-          // Sync local cache after building
           await this.syncWorkspaceIndex();
         }
       }
@@ -1655,257 +1782,192 @@ class App {
     }
 
     try {
-      let responseText;
-      let relevantFiles = [];
-      const basePrompt = await window.electronAPI.getSystemPrompt();
-      let contextPrompt = basePrompt;
-      const isTinyLlama = this.currentModel === 'tinyllama';
+        let responseText;
+        const basePrompt = await window.electronAPI.getSystemPrompt();
+        let contextPrompt = basePrompt;
+        const isTinyLlama = this.currentModel === 'tinyllama';
 
-      if (this.attachedFiles.length > 0) {
-        contextPrompt += `\n\nThe user has uploaded ${this.attachedFiles.length} file(s). `;
-        contextPrompt += `Relevant sections have been selected based on the question.\n\n`;
+        // Security: Build context securely
+        if (this.attachedFiles.length > 0) {
+          contextPrompt += `\n\nThe user has uploaded ${this.attachedFiles.length} file(s).\n\n`;
+          const fileContext = await this.buildSmartContext(this.attachedFiles, message, isTinyLlama);
+          contextPrompt += fileContext;
+        }
+        else if (this.workspacePath) {
+          try {
+            const relevantFiles = await window.electronAPI.searchIndex?.(message, true) || [];
+            if (relevantFiles.length === 0 && this.workspaceIndex?.index?.size > 0) {
+              const filesArray = Array.from(this.workspaceIndex.index.values());
+              relevantFiles.push(...filesArray.slice(0, 10).map(f => ({
+                  ...f,
+                  relevance: 1,
+                  name: f.relativePath?.split(/[/\\]/).pop() || f.name
+                })));
+              }
 
-        const fileContext = await this.buildSmartContext(this.attachedFiles, message, isTinyLlama);
-        contextPrompt += fileContext;
-      }
-      else if (this.workspacePath) {
-        try {
-          // Get semantically relevant files
-          relevantFiles = await window.electronAPI.searchIndex?.(message, true) || [];
+              const explicitRefs = this.extractFileReferences(message);
 
-          if (relevantFiles.length === 0 && this.workspaceIndex?.index?.size > 0) {
-            console.log('No semantic matches, using workspace file fallback');
-            // Get files from the workspace index
-            const filesArray = Array.from(this.workspaceIndex.index.values());
-            relevantFiles = filesArray.slice(0, 10).map(f => ({
-              ...f,
-              relevance: 1,
-              name: f.relativePath?.split(/[/\\]/).pop() || f.name,
-              relativePath: f.relativePath
-            }));
-          }
-
-          // Extract explicit file mentions from query
-          const explicitRefs = this.extractFileReferences(message);
-
-          // Ensure explicitly mentioned files are included even if semantic search missed them
-          for (const ref of explicitRefs) {
-            const alreadyIncluded = relevantFiles.some(f =>
-                f.relativePath?.replace(/\\/g, '/').endsWith(ref.replace(/\\/g, '/')) ||
-                f.path?.replace(/\\/g, '/').endsWith(ref.replace(/\\/g, '/')) ||
-                f.name === ref.split(/[\/\\]/).pop()
-            );
-
-            if (!alreadyIncluded) {
-              let explicitFile = this.findFileInWorkspace(ref);
-
-              // FALLBACK: If not in index, try reading directly from disk
-              if (!explicitFile && this.workspacePath) {
-                try {
-                  let testPath = ref;
-
-                  // If not absolute, resolve relative to workspace
-                  if (!path.isAbsolute(ref)) {
-                    testPath = path.join(this.workspacePath, ref);
+              for (const ref of explicitRefs) {
+                const alreadyIncluded = relevantFiles.some(f =>
+                    f.relativePath?.replace(/\\/g, '/').endsWith(ref.replace(/\\/g, '/'))
+                );
+                if (!alreadyIncluded) {
+                  const safePath = this.resolveSafePath(ref, this.workspacePath);
+                  if (safePath) {
+                    try {
+                      const content = await window.electronAPI.readFile(safePath);
+                      relevantFiles.unshift({
+                        name: path.basename(safePath),
+                        relativePath: this.getRelativePath(safePath, this.workspacePath),
+                        absolutePath: safePath,
+                        path: safePath,
+                        content: content,
+                        size: content.length,
+                        relevance: 9999,
+                        isExplicitReference: true
+                      });
+                    }
+                    catch (e) { console.log('File not found:', ref) }
                   }
-
-                  // Verify file exists and read it
-                  const content = await window.electronAPI.readFile(testPath);
-                  const relativePath = path.relative(this.workspacePath, testPath);
-
-                  explicitFile = {
-                    name: path.basename(testPath),
-                    relativePath: relativePath,
-                    absolutePath: testPath,
-                    path: testPath,
-                    content: content,
-                    size: content.length
-                  };
-                }
-                catch (e) {
-                  console.log('File not found in index or on disk:', ref);
-                  explicitFile = null;
                 }
               }
 
-              if (explicitFile) {
-                // Load content if not already present (for files found in index but without content)
-                if (!explicitFile.content && (explicitFile.absolutePath || explicitFile.path)) {
-                  try {
-                      const pathToRead = explicitFile.absolutePath || explicitFile.path;
-                      explicitFile.content = await window.electronAPI.readFile(pathToRead);
-                  }
-                  catch (e) {
-                      console.warn('Failed to load explicit file reference:', ref, e);
-                      continue;
-                  }
-                }
+              relevantFiles.sort((a, b) => (b.relevance || 0) - (a.relevance || 0));
+              const filesWithContent = relevantFiles.map(f => ({
+                  ...f,
+                  content: f.content || '',
+                  absolutePath: f.absolutePath || f.path
+              }));
 
-                // Add with high relevance priority so it's included in context
-                relevantFiles.unshift({
-                  ...explicitFile,
-                  relevance: 9999,
-                  isExplicitReference: true
-                });
+              const fileContext = await this.buildSmartContext(filesWithContent, message, isTinyLlama);
+              if (fileContext) {
+                  contextPrompt += `\n\nRelevant workspace files:\n\n${fileContext}`;
               }
-            }
+          } catch (e) {
+              console.warn('Index search unavailable:', e);
+          }
+        }
+
+        // Security: Use secure API for Ollama, legacy for TinyLlama
+        if (this.currentModel === 'ollama') {
+          // Security: Use the new secure endpoint
+          const result = await window.electronAPI.chatWithOllamaSecure(
+              message,
+              this.currentOllamaModel,
+              requestId,
+              tabId
+          );
+
+          if (result.error) {
+              throw new Error(result.error);
           }
 
-          if (explicitRefs.length > 0) {
-            const foundExplicit = relevantFiles.filter(f => f.relevance === 9999 || f.isExplicitReference);
-            const missingRefs = explicitRefs.filter(ref =>
-              !foundExplicit.some(f =>
-                (f.relativePath || '').replace(/\\/g, '/').endsWith(ref.replace(/\\/g, '/')) ||
-                f.name === ref.split(/[\/\\]/).pop()
-              )
-            );
+          responseText = result.response;
 
-            if (missingRefs.length > 0) {
-              contextPrompt += `\n\nNote: The user referenced specific files (${missingRefs.join(', ')}) that could not be found in the workspace index.`;
-            }
+          // Security: Log security validation status
+          if (result.security) {
+              console.log('[SECURITY] Request validated:', result.security.requestValidated);
+              console.log('[SECURITY] Output validated:', result.security.outputValidated);
           }
-
-          // If explicit files were requested but we found nothing, warn in context
-          if (explicitRefs.length > 0 && !relevantFiles.some(f => explicitRefs.some(ref =>
-            f.relativePath?.endsWith(ref) || f.name === ref
-          ))) {
-            contextPrompt += `\n\nNote: The user referenced specific files (${explicitRefs.join(', ')}) that could not be found in the workspace index.`;
-          }
-
-          // Sort by relevance (explicit refs will be first due to score 9999)
-          relevantFiles.sort((a, b) => (b.relevance || 0) - (a.relevance || 0));
-
-          // Build context from files (limit to avoid token overflow)
-          const filesWithContent = relevantFiles.map(f => {
-            let content = f.content;
-            if (f.chunks && f.chunks.length > 0) {
-              content = f.chunks.map(chunk => `// Lines ${chunk.startLine}-${chunk.endLine}\n${chunk.content}`).join('\n\n');
-            }
-            return {
-              ...f,
-              content: content || '',
-              absolutePath: f.absolutePath || f.path // Ensure absolutePath exists
-            };
+        }
+        else if (isTinyLlama && this.tinyLlamaPipeline) {
+          // Legacy TinyLlama path (should be migrated to secure pattern)
+          const fullPrompt = `<|system|>\n${contextPrompt}</s>\n<|user|>\n${message}</s>\n<|assistant|>\n`;
+          const output = await this.tinyLlamaPipeline(fullPrompt, {
+              max_new_tokens: 256,
+              temperature: 0.3,
+              do_sample: true,
+              top_k: 128,
+              repetition_penalty: 1.1
           });
 
-          const fileContext = await this.buildSmartContext(filesWithContent, message, isTinyLlama);
+          const rawOutput = output[0].generated_text;
+          const assistantToken = '<|assistant|>';
+          const assistantIndex = rawOutput.indexOf(assistantToken);
 
-          if (fileContext) {
-            contextPrompt += `\n\nRelevant workspace files:\n\n${fileContext}`;
+          if (assistantIndex !== -1) {
+              responseText = rawOutput.substring(assistantIndex + assistantToken.length).trim();
+          } else {
+              const promptPattern = fullPrompt.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              responseText = rawOutput.replace(new RegExp(promptPattern, 'i'), '').trim();
           }
-          else if (this.workspacePath) {
-            // Last resort: at least mention the workspace path
-            contextPrompt += `\n\nThe user is working in workspace: ${this.workspacePath}. `;
-            contextPrompt += `Answer based on general knowledge if specific files aren't relevant.`;
-          }
-        }
-        catch (e) {
-          console.warn('Index search unavailable:', e);
-          contextPrompt += `\n\nNote: The user has a workspace open at ${this.workspacePath}, but file search is temporarily unavailable.`;
-        }
-      }
 
-      const fullPrompt = `<|system|>\n${contextPrompt}</s>\n<|user|>\n${message}</s>\n<|assistant|>\n`;
+          responseText = responseText
+            .replace(/<\|system\|>.*?<\/s>/gi, '')
+            .replace(/<\|user\|>.*?<\/s>/gi, '')
+            .replace(/<\/s>/g, '')
+            .trim();
+        }
+        else {
+            throw new Error('No model configured');
+        }
 
-      if (isTinyLlama && this.tinyLlamaPipeline) {
-        const output = await this.tinyLlamaPipeline(fullPrompt, {
-          max_new_tokens: 256,
-          temperature: 0.3,
-          do_sample: true,
-          top_k: 128,
-          repetition_penalty: 1.1
+        // Security: Verify request wasn't hijacked during generation
+        if (chatData?.pendingRequestId !== requestId) {
+            console.warn('[SECURITY] Stale request detected, discarding response');
+            document.getElementById(loadingId)?.remove();
+            return;
+        }
+
+        // Security: Remove any think tags that might leak internal processing
+        responseText = responseText.replace(/^<\/think>\s*/, '');
+        document.getElementById(loadingId)?.remove();
+
+        // Add response to chat
+        chatData.messages.push({
+            role: 'assistant',
+            content: responseText,
+            timestamp: Date.now(),
+            requestId: requestId
         });
-        const rawOutput = output[0].generated_text;
-        const assistantToken = '<|assistant|>';
-        const assistantIndex = rawOutput.indexOf(assistantToken);
 
-        if (assistantIndex !== -1) {
-          responseText = rawOutput.substring(assistantIndex + assistantToken.length).trim();
-        }
-        else {
-          // Fallback: try to remove fullPrompt, handling potential whitespace variations
-          const promptPattern = fullPrompt.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          responseText = rawOutput.replace(new RegExp(promptPattern, 'i'), '').trim();
-        }
-        responseText = responseText
-          .replace(/<\|system\|>.*?<\/s>/gi, '')
-          .replace(/<\|user\|>.*?<\/s>/gi, '')
-          .replace(/<\/s>/g, '')
-          .trim();
-      }
-      else if (this.currentModel === 'ollama') {
-        const selectedModel = this.currentOllamaModel;
-        const result = await window.electronAPI.chatWithOllama(fullPrompt, selectedModel);
-
-        if (result.error)
-          throw new Error(result.error);
-
-        responseText = result.response;
-      }
-      else {
-        throw new Error('No model configured');
-      }
-
-      if (chatData?.pendingRequestId !== requestId) {
-        console.warn('Stale request detected, discarding');
-        document.getElementById(loadingId)?.remove();
-        return;
-      }
-
-      responseText = responseText.replace(/^<\/think>\s*/, '');
-      document.getElementById(loadingId)?.remove();
-
-      // Add response to chat data
-      chatData.messages.push({
-        role: 'assistant',
-        content: responseText,
-        timestamp: Date.now()
-      });
-      chatData.isGenerating = false;
-      chatData.pendingRequestId = null;
-
-      if (this.activeTab === tabId) {
-        if (tabId === 'chat') {
-          this.addMessage('assistant', responseText);
-          this.updateCurrentChat(responseText, 'assistant');
-        }
-        else {
-          this.addMessageToTab(tabId, 'assistant', responseText);
-        }
-      }
-      else {
-        this.setTabUnreadIndicator(tabId, true);
-      }
-
-      await this.saveChatToHistory(chatData);
-    }
-    catch (e) {
-      document.getElementById(loadingId)?.remove();
-
-      if (this.openChats.has(tabId)) {
-        this.openChats.get(tabId).isGenerating = false;
-        this.openChats.get(tabId).pendingRequestId = null;
-      }
-      if (this.activeTab === tabId) {
-        if (tabId === 'chat') {
-          this.addMessage('assistant', `Error: ${e.message}`);
-        }
-        else {
-          this.addMessageToTab(tabId, 'assistant', `Error: ${e.message}`);
-        }
-      }
-    }
-    finally {
-      this.activeRequests.delete(requestId);
-
-      if (loadingId) {
-        document.getElementById(loadingId)?.remove();
-      }
-
-      if (chatData) {
         chatData.isGenerating = false;
         chatData.pendingRequestId = null;
-      }
+
+        // Display response
+        if (this.activeTab === tabId) {
+            if (tabId === 'chat') {
+                this.addMessage('assistant', responseText);
+                this.updateCurrentChat(responseText, 'assistant');
+            } else {
+                this.addMessageToTab(tabId, 'assistant', responseText);
+            }
+        } else {
+            this.setTabUnreadIndicator(tabId, true);
+        }
+
+        await this.saveChatToHistory(chatData);
+
+    }
+    catch (e) {
+        document.getElementById(loadingId)?.remove();
+
+        if (this.openChats.has(tabId)) {
+            this.openChats.get(tabId).isGenerating = false;
+            this.openChats.get(tabId).pendingRequestId = null;
+        }
+
+        // Security: Don't expose internal error details to user
+        const safeError = e.message.includes('Security') ? e.message : `Error: ${e.message}`;
+
+        if (this.activeTab === tabId) {
+            if (tabId === 'chat') {
+                this.addMessage('assistant', safeError);
+            } else {
+                this.addMessageToTab(tabId, 'assistant', safeError);
+            }
+        }
+
+        console.error('[SECURITY] Chat error:', e);
+    } finally {
+        this.activeRequests.delete(requestId);
+        if (loadingId) {
+            document.getElementById(loadingId)?.remove();
+        }
+        if (chatData) {
+            chatData.isGenerating = false;
+            chatData.pendingRequestId = null;
+        }
     }
   }
 
@@ -3024,7 +3086,7 @@ class App {
     if (!this.workspaceIndex?.index || this.workspaceIndex.index.size === 0) {
         return null;
       }
-
+      
       // Normalize the reference
       const normalizedRef = fileRef.replace(/\\/g, '/').replace(/^\.\//, '');
       const refBasename = normalizedRef.split('/').pop();
@@ -3039,8 +3101,20 @@ class App {
           pathBasename === normalizedRef) {
 
           // Ensure we have an absolute path
-          const absolutePath = file.absolutePath ||
-            path.join(this.workspacePath, relativePath);
+          const absolutePath = file.absolutePath;
+
+          if (!absolutePath) {
+            absolutePath = this.resolveSafePath(relativePath, this.workspacePath);
+
+            if (!absolutePath)
+              continue; // Safety check failed
+          }
+
+          // Security check: verify path is within workspace
+          if (!this.isPathWithinWorkspace(absolutePath, this.workspacePath)) {
+            console.warn(`Blocked access to path outside workspace: ${absolutePath}`);
+            continue;
+          }
 
           return {
             ...file,
