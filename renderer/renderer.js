@@ -2234,7 +2234,11 @@ Be specific and include file paths if the error mentions them.`;
       for (const item of items) {
         const div = document.createElement('div');
         div.className = `file-item ${item.isDirectory ? 'directory' : ''}`;
-        div.style.paddingLeft = parentElement ? '2rem' : '0.5rem';
+        div.style.paddingLeft = parentElement ? '1rem' : '0.5rem';
+        div.style.borderLeft = parentElement ? '1px solid #242B34' : 'none';
+        div.style.padding = parentElement ? '0.375rem' : '0.375rem 0.5rem';
+        div.style.marginLeft = parentElement ? '1rem' : '0';
+        div.style.borderRadius = parentElement ? '0 4px 4px 0px' : '4px';
 
         div.dataset.path = item.path;
 
