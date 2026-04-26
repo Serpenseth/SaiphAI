@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog,  Menu } = require('electron');
 const path = require('path');
 const fs = require('fs').promises;
 const fsSync = require('fs');
@@ -9,13 +9,96 @@ const initSqlJs = require('sql.js');
 const { spawn, execFile } = require('child_process');
 const crypto = require('crypto');
 
-//const store = new Store();
-
 const MODEL_CACHE_DIR = path.join(app.getPath('userData'), 'model-cache');
 const TEMP_DOWNLOAD_DIR = path.join(MODEL_CACHE_DIR, 'temp');
 const STATE_FILE = path.join(MODEL_CACHE_DIR, 'download-state.json');
 const SETTINGS_FILE = path.join(app.getPath('userData'), 'settings.json');
 const WORKSPACE_INDEX_FILE = path.join(app.getPath('userData'), 'workspace-index.json');
+
+const isMac = process.platform === 'darwin'
+const template = [
+  ...(isMac
+    ? [{
+        label: app.name,
+        submenu: [
+          { role: 'about' },
+          { type: 'separator' },
+          { role: 'services' },
+          { type: 'separator' },
+          { role: 'hide' },
+          { role: 'hideOthers' },
+          { role: 'unhide' },
+          { type: 'separator' },
+          { role: 'quit' }
+        ]
+      }]
+    : []),
+  {
+    label: 'File',
+    submenu: [
+      isMac ? { role: 'close' } : { role: 'quit' }
+    ]
+  },
+  {
+    label: 'Edit',
+    submenu: [
+      { role: 'undo' },
+      { role: 'redo' },
+      { type: 'separator' },
+      { role: 'cut' },
+      { role: 'copy' },
+      { role: 'paste' },
+      ...(isMac
+        ? [
+            { role: 'pasteAndMatchStyle' },
+            { role: 'delete' },
+            { role: 'selectAll' },
+            { type: 'separator' },
+            {
+              label: 'Speech',
+              submenu: [
+                { role: 'startSpeaking' },
+                { role: 'stopSpeaking' }
+              ]
+            }
+          ]
+        : [
+            { role: 'delete' },
+            { type: 'separator' },
+            { role: 'selectAll' }
+          ])
+    ]
+  },
+  {
+    label: 'View',
+    submenu: [
+      { type: 'separator' },
+      { role: 'resetZoom' },
+      { role: 'zoomIn' },
+      { role: 'zoomOut' },
+      { type: 'separator' },
+      { role: 'togglefullscreen' }
+    ]
+  },
+  {
+    label: 'Window',
+    submenu: [
+      { role: 'minimize' },
+      ...(isMac
+        ? [
+            { type: 'separator' },
+            { role: 'front' },
+            { type: 'separator' },
+            { role: 'window' }
+          ]
+        : [
+            { role: 'close' }
+          ])
+    ]
+  },
+]
+
+Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 
 class SettingsManager {
   constructor(filePath) {
@@ -1439,7 +1522,8 @@ function createMainWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, '..', 'preload', 'preload.js'),
-      sandbox: false
+      sandbox: false,
+      devTools: false
     },
     titleBarStyle: 'hiddenInset',
     show: false
@@ -2115,7 +2199,7 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', async () => {
-  if (process.platform !== 'darwin') {
+  if (!isMac) {
     // Wait for any pending writes to complete
     if (settingsManager.writePromise) {
       await settingsManager.writePromise;
