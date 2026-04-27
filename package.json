@@ -2,7 +2,7 @@
   "name": "saiphai",
   "productName": "SaiphAI",
   "author": "Serpenseth",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "description": "AI coding assistant with TinyLlama and Ollama support",
   "main": "./main/index.js",
   "scripts": {
@@ -30,7 +30,9 @@
       "target": "nsis"
     },
     "linux": {
-      "target": ["Appimage"],
+      "target": [
+        "Appimage"
+      ],
       "icon": "assets/logo.png"
     },
     "mac": {
