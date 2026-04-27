@@ -42,7 +42,8 @@
       "main/**/*.js",
       "preload/**/*.js",
       "renderer/**/*",
-      "package.json"
+      "package.json",
+      "assets/**"
     ]
   }
 }
