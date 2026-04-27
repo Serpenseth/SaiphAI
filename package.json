@@ -25,13 +25,10 @@
     "appId": "com.serpenseth.saiphai",
     "productName": "SaiphAI",
     "artifactName": "${productName}-${version}.${ext}",
+    "icon": "assets/logo.png",
     "win": {
       "icon": "assets/logo.ico",
       "target": "nsis"
-    },
-    "linux": {
-      "target": ["Appimage"],
-      "icon": "assets/logo.png"
     },
     "mac": {
       "icon": "assets/logo.icns"
