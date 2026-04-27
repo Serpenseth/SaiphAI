@@ -1526,10 +1526,11 @@ function createMainWindow() {
       devTools: false
     },
     titleBarStyle: 'hiddenInset',
-    show: false
+    show: false,
+    icon: path.join(path.dirname(__dirname), 'assets', 'logo.ico')
   });
 
-  mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
+  mainWindow.loadFile(path.join(path.dirname(__dirname), 'renderer', 'index.html'));
 
   mainWindow.webContents.once('did-finish-load', () => {
     mainWindow.show();
@@ -2204,6 +2205,7 @@ app.on('window-all-closed', async () => {
     if (settingsManager.writePromise) {
       await settingsManager.writePromise;
     }
+
     app.quit();
   }
 });
