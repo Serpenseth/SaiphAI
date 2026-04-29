@@ -2367,7 +2367,7 @@ async function checkForUpdates() {
     return;
   }
 
-  if (currentVersion !== "666") {
+  if (currentVersion !== githubVersion) {
     const githubData = await getGithubPackageData();
 
     mainWindow.webContents.send('update-available', {
