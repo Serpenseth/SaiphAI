@@ -169,15 +169,19 @@ body {
 
 .progress-fill {
   height: 100%;
+  border-radius: 4px;
   background: var(--accent-color);
   width: 0%;
   transition: width 0.3s;
 }
 
 .progress-text {
+  display: block;
   text-align: center;
   font-weight: bold;
-  color: var(--accent-color);
+  color: var(--primary-color);
+  width: 100%;
+  padding: 4px;
 }
 
 /* Main App Layout */
@@ -1505,3 +1509,100 @@ body {
   padding: 4px;
   border-radius: 8px;
 }
+
+/* Update Modal Styles */
+.update-info {
+  padding: 1rem 0;
+  margin-bottom: 1rem;
+}
+
+.update-version {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+#update-remote-version {
+  font-weight: 666;
+}
+
+.update-release-notes {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  max-height: 300px;
+  overflow-y: auto;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.update-release-notes h3 {
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin: 1rem 0 0.5rem 0;
+}
+
+.update-release-notes ul,
+.update-release-notes ol {
+  margin-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.update-release-notes li {
+  margin-bottom: 0.5rem;
+}
+
+.update-progress {
+  padding: 2rem 0;
+  text-align: center;
+}
+
+.update-status {
+  margin-top: 1rem;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.update-notice {
+  color: var(--warning-color);
+  font-size: 0.875rem;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: rgba(245, 158, 11, 0.1);
+  border-radius: 6px;
+}
+
+.update-error {
+  padding: 1.5rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--error-color);
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+
+.update-error p {
+  color: var(--error-color);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+/* Update button in settings */
+#btn-check-updates {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.progress-container {
+  display: block;
+  margin-top: 16px;
+  width: 100%;
+  height: auto;
+  margin-bottom: -24px;
+  background: #060A0F;
+  border-radius: 4px;
+}
+
+

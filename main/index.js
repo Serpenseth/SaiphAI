@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog,  Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog,  Menu, shell } = require('electron');
 const path = require('path');
 const fs = require('fs').promises;
 const fsSync = require('fs');
@@ -7,6 +7,7 @@ const ignore = require('ignore');
 const chokidar = require('chokidar');
 const initSqlJs = require('sql.js');
 const { spawn, execFile } = require('child_process');
+const { https } = require('follow-redirects');
 const crypto = require('crypto');
 
 const MODEL_CACHE_DIR = path.join(app.getPath('userData'), 'model-cache');
@@ -72,6 +73,7 @@ const template = [
   {
     label: 'View',
     submenu: [
+      { role: "toggleDevTools" },
       { type: 'separator' },
       { role: 'resetZoom' },
       { role: 'zoomIn' },
@@ -441,7 +443,6 @@ class PromptSecurityManager {
     return securePrompt;
   }
 }
-
 
 const promptSecurity = new PromptSecurityManager();
 
@@ -1523,7 +1524,7 @@ function createMainWindow() {
       contextIsolation: true,
       preload: path.join(__dirname, '..', 'preload', 'preload.js'),
       sandbox: false,
-      devTools: false
+      //devTools: false
     },
     titleBarStyle: 'hiddenInset',
     show: false,
@@ -1538,7 +1539,6 @@ function createMainWindow() {
 }
 
 // IPC Handlers
-
 ipcMain.handle('get-file-tree', async (event, dirPath) => {
   const entries = await fs.readdir(dirPath, { withFileTypes: true });
   const items = [];
@@ -2187,6 +2187,115 @@ ipcMain.handle('get-project-metadata', () => {
     };
 });
 
+ipcMain.handle('check-for-updates', async () => {
+  await checkForUpdates();
+  return { success: true };
+});
+
+ipcMain.handle('download-update', async (event, downloadUrl, expectedDigest) => {
+    const userDataPath = app.getPath('userData');
+    const updateDir = path.join(userDataPath, 'updates');
+    const fileName = path.basename(downloadUrl);
+    const filePath = path.join(updateDir, fileName);
+
+    // Ensure update directory exists
+    await fs.mkdir(updateDir, { recursive: true });
+
+    return new Promise((resolve) => {
+        const file = fsSync.createWriteStream(filePath);
+        let downloadedBytes = 0;
+        let totalBytes = 0;
+        const hash = crypto.createHash('sha256');
+
+        https.get(downloadUrl, (response) => {
+            totalBytes = parseInt(response.headers['content-length'] || '0', 10);
+
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.webContents.send('update-download-progress', {
+                downloaded: 0,
+                total: totalBytes,
+                percent: 0
+              });
+            }
+
+            response.on('data', (chunk) => {
+                downloadedBytes += chunk.length;
+                hash.update(chunk);
+
+                const percent = Math.round((downloadedBytes / totalBytes) * 100);
+                console.log('Progress:', downloadedBytes, '/', totalBytes, '=', percent + '%');
+
+                // Send progress to renderer
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send('update-download-progress', {
+                        downloaded: downloadedBytes,
+                        total: totalBytes,
+                        percent: Math.round((downloadedBytes / totalBytes) * 100)
+                    });
+                }
+            });
+
+            response.pipe(file);
+
+            file.on('close', () => {
+                // Verify digest if provided
+                if (expectedDigest) {
+                    const normalizedExpected = expectedDigest.replace(/^sha256:/, '').toLowerCase();
+                    const fileBuffer = fsSync.readFileSync(filePath);
+                    const actualDigest = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+
+                    if (actualDigest !== normalizedExpected) {
+                        fs.unlink(filePath, () => {});
+                        resolve({
+                            success: false,
+                            error: 'Digest verification failed',
+                            expected: expectedDigest,
+                            actual: actualDigest
+                        });
+                        return;
+                    }
+                }
+
+                // Auto-execute based on OS
+                const platform = process.platform;
+                if (platform === 'win32' && fileName.endsWith('.exe')) {
+                    execFile(filePath, [], { detached: true }, (err) => {
+                        if (err)
+                          console.error('Execution error:', err);
+                    });
+                    resolve({ success: true, filePath, action: 'executing' });
+                }
+                else if (platform === 'darwin' && fileName.endsWith('.dmg')) {
+                    shell.openPath(filePath);
+                    resolve({ success: true, filePath, action: 'opened' });
+                }
+                else if (platform === 'linux' && fileName.endsWith('.AppImage')) {
+                    fs.chmod(filePath, 0o755, () => {
+                        execFile(filePath, [], { detached: true }, (err) => {
+                            if (err)
+                              console.error('Execution error:', err);
+                        });
+                    });
+                    resolve({ success: true, filePath, action: 'executing' });
+                }
+                else {
+                    shell.showItemInFolder(filePath);
+                    resolve({ success: true, filePath, action: 'downloaded' });
+                }
+            })
+
+            file.on('error', (e) => {
+              fs.unlink(filePath, () => {});
+              resolve({ success: false, error: e.message });
+            });
+        })
+        .on('error', (err) => {
+            fs.unlink(filePath, () => {});
+            resolve({ success: false, error: err.message });
+        });
+    });
+});
+
 app.whenReady().then(async () => {
   initDatabase();
 
@@ -2197,6 +2306,82 @@ app.whenReady().then(async () => {
     }
 
     createMainWindow();
+});
+
+async function getGithubVersion() {
+  const request = await fetch("https://raw.githubusercontent.com/Serpenseth/SaiphAI/refs/heads/main/package.json");
+
+  if (!request.ok) {
+    mainWindow.webContents.send("update-error", "Failed to fetch remote version");
+    return '0.0.0';
+  }
+
+  const data = await request.json();
+
+  return data.version;
+}
+
+async function getGithubPackageData() {
+  try {
+    const request = await fetch("https://api.github.com/repos/serpenseth/saiphai/releases/latest");
+
+    if (!request.ok) {
+      mainWindow.webContents.send(
+        "date-error",
+        "Seems like either you have internet problems, "
+        + "or you've been downloading/canceling a little too often.\n"
+        + "Try again later"
+      );
+      return;
+    }
+
+    const data = await request.json();
+
+    // Data obtained from Github
+    const os = process.platform;
+    const isWindows = process.platform === "win32";
+    const extension = isMac ? ".dmg" : isWindows ? ".exe" : ".AppImage";
+    const tag = data.tag_name;
+    const version = tag.replace("v", "");
+    const baseDownloadUrl = "https://github.com/Serpenseth/SaiphAI/releases/download";
+    const digest = data.assets.find(x => x.name.includes(extension)).digest;
+
+    return {
+      releaseNotes: data.body,
+      tag: tag,
+      downloadUrl: `${baseDownloadUrl}/${tag}/SaiphAI-${version}${extension}`,
+      digest: digest
+    }
+  }
+  catch(e) {
+    console.error(e);
+    throw e;
+  }
+}
+
+async function checkForUpdates() {
+  const currentVersion = app.getVersion();
+  const githubVersion = await getGithubVersion();
+
+  if (githubVersion === '0.0.0') {
+    mainWindow.webContents.send("date-error", "Failed to fetch remote version");
+    return;
+  }
+
+  if (currentVersion !== "666") {
+    const githubData = await getGithubPackageData();
+
+    mainWindow.webContents.send('update-available', {
+      localVersion: currentVersion,
+      remoteVersion: githubVersion,
+      githubData: githubData
+      });
+    }
+    else { mainWindow.webContents.send('update-not-available') }
+}
+
+app.on("ready", async () => {
+  setTimeout(async () => await checkForUpdates(), 1000);
 });
 
 app.on('window-all-closed', async () => {
