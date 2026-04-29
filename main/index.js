@@ -2258,9 +2258,13 @@ ipcMain.handle('download-update', async (event, downloadUrl, expectedDigest) => 
                 // Auto-execute based on OS
                 const platform = process.platform;
                 if (platform === 'win32' && fileName.endsWith('.exe')) {
-                    execFile(filePath, [], { detached: true }, (err) => {
-                        if (err)
-                          console.error('Execution error:', err);
+                    const child = spawn(filePath, [], { detached: true }, (err) => {
+                        if (err) {
+                          fs.unlink(filePath, () => {});
+                          resolve({ success: false, error: err.message });
+                          return;
+                        }
+                        child.unref();
                     });
                     resolve({ success: true, filePath, action: 'executing' });
                 }
@@ -2270,10 +2274,14 @@ ipcMain.handle('download-update', async (event, downloadUrl, expectedDigest) => 
                 }
                 else if (platform === 'linux' && fileName.endsWith('.AppImage')) {
                     fs.chmod(filePath, 0o755, () => {
-                        execFile(filePath, [], { detached: true }, (err) => {
-                            if (err)
-                              console.error('Execution error:', err);
-                        });
+                      const child = spawn(filePath, [], { detached: true }, (err) => {
+                      if (err) {
+                          fs.unlink(filePath, () => {});
+                          resolve({ success: false, error: err.message });
+                          return;
+                        }
+                      });
+                      child.unref();
                     });
                     resolve({ success: true, filePath, action: 'executing' });
                 }
@@ -2281,6 +2289,8 @@ ipcMain.handle('download-update', async (event, downloadUrl, expectedDigest) => 
                     shell.showItemInFolder(filePath);
                     resolve({ success: true, filePath, action: 'downloaded' });
                 }
+
+                app.quit()
             })
 
             file.on('error', (e) => {
