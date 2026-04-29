@@ -866,7 +866,10 @@ Be specific and include file paths if the error mentions them.`;
 
     addListener(
       document.getElementById('btn-clear-chat'),
-      'click', () => this.clearMainChat()
+      'click', () => {
+        this.clearMainChat();
+        window.electronAPI.saveCurrentChatJson('');
+      }
     );
 
     addListener(
@@ -3727,9 +3730,9 @@ Be specific and include file paths if the error mentions them.`;
   }
 
   async saveCurrentChatToJson() {
-    if (this.currentChat.messages.length > 0) {
+    //if (this.currentChat.messages.length > 0) {
       await window.electronAPI.saveCurrentChatJson(this.currentChat);
-    }
+    //}
   }
 
   updateCurrentChat(message, role) {
