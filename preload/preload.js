@@ -18,6 +18,28 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Model
   loadTransformers: () => loadTransformers(),
 
+  // Updates related
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  getLocalVersion: () => ipcRenderer.invoke('get-local-version'),
+  onUpdateAvailable: (callback) => {
+    ipcRenderer.on('update-available', (_, data) => callback(data));
+  },
+  onUpdateNotAvailable: (callback) => {
+    ipcRenderer.on('update-not-available', (_, data) => callback(data));
+  },
+  onUpdateError: (callback) => {
+    ipcRenderer.on('update-error', (_, error) => callback(error));
+  },
+  onUpdateDownloadProgress: (callback) => {
+      ipcRenderer.on('update-download-progress', (event, data) => callback(data));
+  },
+  downloadUpdate: (downloadUrl, digest) => ipcRenderer.invoke('download-update', downloadUrl, digest),
+  removeUpdateListeners: () => {
+    ipcRenderer.removeAllListeners('update-available');
+    ipcRenderer.removeAllListeners('update-not-available');
+    ipcRenderer.removeAllListeners('update-error');
+  },
+
   // Workspace & Files
   selectWorkspace: () => ipcRenderer.invoke('select-workspace'),
   getFileTree: (path) => ipcRenderer.invoke('get-file-tree', path),

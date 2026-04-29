@@ -73,6 +73,13 @@ class App {
     this.activeRequests = new Map(); // requestId -> tabId
     // Event listeners
     this.eventListeners = [];
+    // Updates
+    this.updateState = {
+      available: false,
+      localVersion: null,
+      remoteVersion: null,
+      githubData: {}
+    };
 
     this.init();
   }
@@ -148,6 +155,30 @@ class App {
     window.addEventListener('beforeunload', async () => {
       await this.saveEditorState();
       this.cleanupEventListeners();
+    });
+
+    document.getElementById('update-progress-text').style.display = 'none';
+
+     window.electronAPI.onUpdateAvailable((data) => {
+        this.updateState.available = true;
+        this.updateState.localVersion = data.localVersion;
+        this.updateState.remoteVersion = data.remoteVersion;
+        this.updateState.githubData = data.githubData;
+        this.showUpdateAvailableModal(data);
+    });
+
+    window.electronAPI.onUpdateNotAvailable(() => {
+      this.updateState.available = false;
+      console.log('No updates available');
+    });
+
+    window.electronAPI.onUpdateError((error) => {
+      this.updateState.available = false;
+      this.showUpdateError(error);
+    });
+
+    window.electronAPI.onUpdateDownloadProgress((data) => {
+      this.updateDownloadProgress(data);
     });
   }
 
@@ -987,6 +1018,31 @@ Be specific and include file paths if the error mentions them.`;
       document.getElementById('btn-new-chat-tab'),
       'click', () => this.createChatTab()
     );
+
+    addListener(
+      document.getElementById('btn-download-update'),
+      'click', () => this.downloadUpdate()
+    );
+
+    addListener(
+      document.getElementById('btn-later-update'),
+      'click', () => {
+        document.getElementById('update-available-modal')?.classList.add('hidden');
+      }
+    );
+
+    addListener(
+      document.getElementById('btn-close-update-error'),
+      'click', () => {
+        document.getElementById('update-error-modal')?.classList.add('hidden');
+      }
+    );
+
+    // Manual check button (in settings)
+    addListener(
+      document.getElementById('btn-check-updates'),
+      'click', () => this.checkForUpdatesManual()
+    );
   }
 
   cleanupEventListeners() {
@@ -1006,6 +1062,101 @@ Be specific and include file paths if the error mentions them.`;
     // Also clear any lingering timeouts
     clearTimeout(this.fsChangeTimeout);
     clearTimeout(this.hubUpdateTimeout);
+  }
+
+  showUpdateAvailableModal(data) {
+    const modal = document.getElementById('update-available-modal');
+    const localVersionEl = document.getElementById('update-version');
+    const remoteVersionEl = document.getElementById('update-remote-version');
+    const releaseNotesEl = document.getElementById('update-release-notes');
+
+    if (localVersionEl) {
+      localVersionEl.textContent = `Current: v${data.localVersion}`;
+    }
+
+    if (remoteVersionEl) {
+      remoteVersionEl.textContent = `Available: v${data.remoteVersion}`;
+    }
+
+    if (releaseNotesEl) {
+      releaseNotesEl.innerHTML = this.parseMarkdown(data.githubData.releaseNotes || 'No release notes available');
+    }
+
+    if (modal) {
+      modal.classList.remove('hidden');
+    }
+  }
+
+  showUpdateError(error) {
+    const modal = document.getElementById('update-error-modal');
+    const errorEl = document.getElementById('update-error-message');
+
+    if (errorEl) {
+      errorEl.textContent = error;
+    }
+
+    if (modal) {
+      modal.classList.remove('hidden');
+    }
+  }
+
+  async downloadUpdate() {
+    const downloadBtn = document.getElementById('btn-download-update');
+    const progressFill = document.getElementById('update-progress-fill');
+    const progressText = document.getElementById('update-progress-text');
+    const originalText = downloadBtn?.textContent;
+
+    try {
+      console.log("starting update");
+
+        // Show downloading state
+        if (downloadBtn) {
+            downloadBtn.textContent = 'Downloading...';
+            downloadBtn.disabled = true;
+        }
+
+        if (progressFill)
+          progressFill.style.width = '0%';
+
+        if (progressText) {
+          progressText.style.display = 'block';
+          progressText.textContent = '0%';
+        }
+
+        const result = await window.electronAPI.downloadUpdate(
+            this.updateState.githubData.downloadUrl,
+            this.updateState.githubData.digest
+        );
+
+        if (result.success)
+            document.getElementById('update-available-modal')?.classList.add('hidden');
+
+        else {
+            downloadBtn.textContent = originalText;
+            downloadBtn.disabled = false;
+            alert(`Download failed: ${result.error}`);
+        }
+    }
+    catch (e) {
+        console.error('Download error:', e);
+        this.updateStatus('Download failed');
+        if (downloadBtn) {
+            downloadBtn.textContent = originalText;
+            downloadBtn.disabled = false;
+        }
+    }
+  }
+
+  updateDownloadProgress(data) {
+      const progressFill = document.getElementById('update-progress-fill');
+      const progressText = document.getElementById('update-progress-text');
+
+      if (progressFill) {
+          progressFill.style.width = `${data.percent}%`;
+      }
+      if (progressText) {
+          progressText.textContent = `${data.percent}%`;
+      }
   }
 
   clearMainChat() {
