@@ -73,7 +73,6 @@ const template = [
   {
     label: 'View',
     submenu: [
-      { role: "toggleDevTools" },
       { type: 'separator' },
       { role: 'resetZoom' },
       { role: 'zoomIn' },
@@ -1524,7 +1523,7 @@ function createMainWindow() {
       contextIsolation: true,
       preload: path.join(__dirname, '..', 'preload', 'preload.js'),
       sandbox: false,
-      //devTools: false
+      devTools: false
     },
     titleBarStyle: 'hiddenInset',
     show: false,
