@@ -247,47 +247,6 @@
   </div>
 </div>
 
-<!-- Update Downloading Modal -->
-<div id="update-downloading-modal" class="modal hidden">
-  <div class="modal-content small">
-    <div class="modal-header">
-      <h2>📥 Downloading Update</h2>
-    </div>
-    <div class="update-progress">
-      <div class="progress-bar">
-        <div id="update-progress-fill" class="progress-fill"></div>
-      </div>
-      <p id="update-progress-text" class="progress-text">0%</p>
-      <p id="update-status" class="update-status">Preparing download...</p>
-    </div>
-  </div>
-</div>
-
-<!-- Update Ready Modal -->
-<div id="update-ready-modal" class="modal hidden">
-  <div class="modal-content small">
-    <div class="modal-header">
-      <h2>✅ Update Ready</h2>
-      <button class="btn-icon" onclick="document.getElementById('update-ready-modal').classList.add('hidden')">✕</button>
-    </div>
-    <div class="update-info">
-      <p id="update-ready-version">The update is ready to install</p>
-      <p class="update-notice">The application will restart to complete the installation.</p>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-secondary" onclick="document.getElementById('update-ready-modal').classList.add('hidden')">Later</button>
-      <button id="btn-install-update" class="btn btn-primary">Install & Restart</button>
-    </div>
-  </div>
-</div>
-
-<!-- Update Error Modal -->
-<div id="update-error-modal" class="modal hidden">
-  <div class="modal-content small">
-    <div class="modal-header">
-      <h2>⚠️ Update Error</h2>
-</div>
-
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <!-- Monaco Editor -->
