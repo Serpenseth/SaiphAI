@@ -2539,20 +2539,33 @@ Be specific and include file paths if the error mentions them.`;
   async restoreEditorState() {
     const config = await window.electronAPI.getConfig();
 
-    if (!config.openFiles || config.openFiles.length === 0)
-      return;
+    //if (!config.openFiles || config.openFiles.length === 0)
+      //return;
+
+    if (this.currentChat.messages.length > 0) {
+        document.getElementById('chat-messages').innerHTML = '';
+        this.currentChat.messages.forEach(msg => {
+            this.addMessage(msg.role, msg.content);
+        });
+        // Hide welcome hub if chat has content
+        const hub = document.getElementById('welcome-hub');
+        if (hub)
+          hub.style.display = 'none';
+    }
 
     // Restore chat tabs
     if (config.openChats && config.openChats.length > 0) {
-      for (const chatConfig of config.openChats) {
-        if (chatConfig.type === 'chat') {
-          this.createChatTab({
-            id: chatConfig.chatId,
-            title: chatConfig.title,
-            messages: chatConfig.messages || []
-          });
+        for (const chatConfig of config.openChats) {
+            // Skip if this is the main chat (already restored above)
+            if (chatConfig.tabId === 'chat') continue;
+
+            this.createChatTab({
+                tabId: chatConfig.tabId,
+                id: chatConfig.chatId,
+                title: chatConfig.title,
+                messages: chatConfig.messages || []
+            });
         }
-      }
     }
     else {
       // Create default chat if none restored
@@ -2562,8 +2575,7 @@ Be specific and include file paths if the error mentions them.`;
     // Restore active tab
     if (config.activeTab && (
       this.openChats.has(config.activeTab) ||
-      this.openFiles.has(config.activeTab) ||
-      config.activeTab === 'chat'
+      this.openFiles.has(config.activeTab)
     )) {
       this.switchToTab(config.activeTab);
     }
@@ -2583,7 +2595,8 @@ Be specific and include file paths if the error mentions them.`;
           fileData.viewState,
           isActiveFile // Only switch to tab for the active file
         );
-      } catch (e) {
+      }
+      catch (e) {
         console.error('Failed to restore file:', fileData.path, e);
       }
     }
@@ -2668,7 +2681,7 @@ Be specific and include file paths if the error mentions them.`;
   }
 
   createChatTab(existingChat = null) {
-    const tabId = `chat-${Date.now()}-${this.chatTabCounter++}`;
+    const tabId = existingChat?.tabId || `chat-${Date.now()}-${this.chatTabCounter++}`;
     const chatId = existingChat?.id || null;
 
     // Create tab data
@@ -2718,13 +2731,10 @@ Be specific and include file paths if the error mentions them.`;
       }
     });
 
-    // Drag handlers
-    this.setupTabDragHandlers(tab, tabId, 'chat');
-
-    // Create panel (hidden initially)
-    this.createChatPanel(tabId);
-
+    this.setupTabDragHandlers(tab, tabId, 'chat'); // Drag handlers
+    this.createChatPanel(tabId); // Create panel (hidden initially)
     this.switchToTab(tabId);
+
     return tabId;
   }
 
@@ -3030,9 +3040,12 @@ Be specific and include file paths if the error mentions them.`;
     // Restore messages for this tab if they exist
     const chatData = this.openChats.get(tabId);
     if (chatData?.messages?.length > 0) {
-      chatData.messages.forEach(msg => {
-        this.addMessageToTab(tabId, msg.role, msg.content);
-      });
+        chatData.messages.forEach(msg => {
+            this.addMessageToTab(tabId, msg.role, msg.content);
+        });
+        // Hide welcome hub for tabs with existing messages
+        if (welcomeHub)
+          welcomeHub.style.display = 'none';
     }
   }
 
@@ -3757,6 +3770,7 @@ Be specific and include file paths if the error mentions them.`;
 
     const payload = {
       id: chatData.id,
+      tabId: chatData.tabId,
       title: chatData.title,
       messages: chatData.messages,
       date: chatData.messages[0]?.timestamp || new Date().toISOString()
@@ -3819,6 +3833,7 @@ Be specific and include file paths if the error mentions them.`;
     if (result.success) {
       this.currentChat = {
         id: result.chat.id,
+        tabId: result.chat.tabId,
         title: result.chat.title,
         messages: result.chat.messages,
         date: result.chat.date
