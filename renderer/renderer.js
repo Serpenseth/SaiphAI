@@ -2566,11 +2566,11 @@ Be specific and include file paths if the error mentions them.`;
                 messages: chatConfig.messages || []
             });
         }
-    }
+    }/*
     else {
       // Create default chat if none restored
       this.createChatTab();
-    }
+    }*/
 
     // Restore active tab
     if (config.activeTab && (
