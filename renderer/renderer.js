@@ -937,7 +937,7 @@ Be specific and include file paths if the error mentions them.`;
 
     addListener(
       document.getElementById('btn-send'),
-      'click', () => this.sendMessage()
+      'click', () => this.sendMessage(null, 'chat')
     );
 
     addListener(
@@ -945,7 +945,7 @@ Be specific and include file paths if the error mentions them.`;
       'keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
-          this.sendMessage();
+          this.sendMessage(null, 'chat');
         }
       }
     );
@@ -1437,17 +1437,28 @@ Be specific and include file paths if the error mentions them.`;
     window.electronAPI.setConfig({ modelType: null, modelName: null });
   }
 
-  renderWelcomeHub() {
+  renderWelcomeHub(tabId = 'chat') {
     const hub = document.getElementById('welcome-hub');
     const container = document.getElementById('chat-messages');
 
-    if (!this.showWelcomeHub ||
-        this.currentChat.messages.length > 0 ||
-        this.currentChat.id)
-    {
+    if (!this.showWelcomeHub) {
         hub?.classList.add('hidden');
         return;
     }
+
+    let hasMessages = false;
+    if (tabId === 'chat') {
+        hasMessages = this.currentChat.messages.length > 0 || this.currentChat.id;
+    } else {
+        const chatData = this.openChats.get(tabId);
+        hasMessages = chatData && (chatData.messages.length > 0 || chatData.id);
+    }
+
+    if (hasMessages) {
+        hub?.classList.add('hidden');
+        return;
+    }
+
 
     hub?.classList.remove('hidden');
 
@@ -1516,7 +1527,7 @@ Be specific and include file paths if the error mentions them.`;
         newSubtitle.textContent = 'What shall we work on?';
 
         newSuggestions.innerHTML = `
-          <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Explain what this project does')">
+          <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Explain what this project does'), app.activeTab)">
             <div class="suggestion-icon">🔍</div>
             <div class="suggestion-content">
                 <div class="suggestion-title">Explain the codebase</div>
@@ -1582,7 +1593,7 @@ Be specific and include file paths if the error mentions them.`;
     });
   }
 
-  async sendSuggestion(text) {
+  async sendSuggestion(text, targetTabId = null) {
     // Hide welcome hub immediately for better UX
     const hub = document.getElementById('welcome-hub');
     if (hub) {
@@ -1590,7 +1601,10 @@ Be specific and include file paths if the error mentions them.`;
     }
 
     // Send directly to LLM without waiting for user to press Enter
-    await this.sendMessage(text);
+    const tabId = targetTabId || this.activeTab;
+
+    // Send directly to LLM without waiting for user to press Enter
+    await this.sendMessage(text, tabId);
   }
 
   suggestQuery(text) {
@@ -1977,17 +1991,19 @@ Be specific and include file paths if the error mentions them.`;
       chatData = this.openChats.get(tabId);
     }
 
-    if (!chatData)
+    if (!chatData || chatData.isGenerating)
       return;
-
+/*
     if (chatData.isGenerating)
-      return;
+      return;*/
 
     let input;
     if (tabId === 'chat') {
       input = document.getElementById('chat-input');
     }
-    else { input = document.getElementById(`chat-input-${tabId}`) }
+    else {
+      input = document.getElementById(`chat-input-${tabId}`)
+    }
 
     let message = text || input.value.trim();
 
@@ -2027,11 +2043,17 @@ Be specific and include file paths if the error mentions them.`;
     });
 
     if (tabId === 'chat') {
-      this.addMessage('user', message);
-      this.updateCurrentChat(message, 'user');
+      if (this.activeTab === 'chat') {
+        this.addMessage('user', message);
+        this.updateCurrentChat(message, 'user');
+      }
     }
     else {
       this.addMessageToTab(tabId, 'user', message);
+
+      if (this.activeTab !== tabId) {
+        this.setTabUnreadIndicator(tabId, true);
+      }
     }
 
     this.renderWelcomeHub();
@@ -2189,7 +2211,15 @@ Be specific and include file paths if the error mentions them.`;
 
         // Security: Remove any think tags that might leak internal processing
         responseText = responseText.replace(/^<\/think>\s*/, '');
-        document.getElementById(loadingId)?.remove();
+
+
+        if (loadingId) {
+          const loadingElement = document.getElementById(loadingId);
+
+          if (loadingElement) {
+              loadingElement.remove();
+          }
+        }
 
         // Add response to chat
         chatData.messages.push({
@@ -2203,19 +2233,20 @@ Be specific and include file paths if the error mentions them.`;
         chatData.pendingRequestId = null;
 
         // Display response
-        if (this.activeTab === tabId) {
-            if (tabId === 'chat') {
-                this.addMessage('assistant', responseText);
-                this.updateCurrentChat(responseText, 'assistant');
-            } else {
-                this.addMessageToTab(tabId, 'assistant', responseText);
-            }
-        } else {
-            this.setTabUnreadIndicator(tabId, true);
+        if (tabId === 'chat') {
+          if (this.activeTab === 'chat') {
+              this.addMessage('assistant', responseText);
+              this.updateCurrentChat(responseText, 'assistant');
+          }
         }
+        else {
+          this.addMessageToTab(tabId, 'assistant', responseText);
 
-        await this.saveChatToHistory(chatData);
-
+          if (this.activeTab !== tabId) {
+            this.setTabUnreadIndicator(tabId, true);
+          }
+          await this.saveChatToHistory(chatData);
+        }
     }
     catch (e) {
         document.getElementById(loadingId)?.remove();
@@ -2228,16 +2259,16 @@ Be specific and include file paths if the error mentions them.`;
         // Security: Don't expose internal error details to user
         const safeError = e.message.includes('Security') ? e.message : `Error: ${e.message}`;
 
-        if (this.activeTab === tabId) {
-            if (tabId === 'chat') {
-                this.addMessage('assistant', safeError);
-            } else {
-                this.addMessageToTab(tabId, 'assistant', safeError);
-            }
+        if (tabId === 'chat') {
+            this.addMessage('assistant', safeError);
+        }
+        else {
+            this.addMessageToTab(tabId, 'assistant', safeError);
         }
 
         console.error('[SECURITY] Chat error:', e);
-    } finally {
+    }
+    finally {
         this.activeRequests.delete(requestId);
         if (loadingId) {
             document.getElementById(loadingId)?.remove();

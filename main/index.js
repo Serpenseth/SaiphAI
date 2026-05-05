@@ -43,6 +43,7 @@ const template = [
   {
     label: 'Edit',
     submenu: [
+      //{ role: 'toggleDevTools' },
       { role: 'undo' },
       { role: 'redo' },
       { type: 'separator' },
@@ -100,6 +101,34 @@ const template = [
 ]
 
 Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+
+let mainWindow;
+
+function createMainWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1400,
+    height: 900,
+    minWidth: 1000,
+    minHeight: 700,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, '..', 'preload', 'preload.js'),
+      sandbox: false,
+      //devTools: true,
+      devTools: false
+    },
+    titleBarStyle: 'hiddenInset',
+    show: false,
+    icon: path.join(path.dirname(__dirname), 'assets', 'logo.ico')
+  });
+
+  mainWindow.loadFile(path.join(path.dirname(__dirname), 'renderer', 'index.html'));
+
+  mainWindow.webContents.once('did-finish-load', () => {
+    mainWindow.show();
+  });
+}
 
 class SettingsManager {
   constructor(filePath) {
@@ -1510,32 +1539,6 @@ class OllamaClient {
 }
 
 const ollama = new OllamaClient();
-let mainWindow;
-
-function createMainWindow() {
-  mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 900,
-    minWidth: 1000,
-    minHeight: 700,
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      preload: path.join(__dirname, '..', 'preload', 'preload.js'),
-      sandbox: false,
-      devTools: false
-    },
-    titleBarStyle: 'hiddenInset',
-    show: false,
-    icon: path.join(path.dirname(__dirname), 'assets', 'logo.ico')
-  });
-
-  mainWindow.loadFile(path.join(path.dirname(__dirname), 'renderer', 'index.html'));
-
-  mainWindow.webContents.once('did-finish-load', () => {
-    mainWindow.show();
-});
-}
 
 // IPC Handlers
 ipcMain.handle('get-file-tree', async (event, dirPath) => {
