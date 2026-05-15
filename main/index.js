@@ -1428,10 +1428,11 @@ class WorkspaceIndex {
 
 const workspaceIndex = new WorkspaceIndex();
 
-// Ollama Client (for advanced option only)
+// Ollama Client
 class OllamaClient {
   constructor() {
     this.baseUrl = 'http://localhost:11434';
+    this.controller = null;
   }
 
   async checkConnection() {
@@ -1440,7 +1441,7 @@ class OllamaClient {
         resolve(res.statusCode === 200);
       });
       req.on('error', () => resolve(false));
-      req.setTimeout(3000, () => {
+      req.setTimeout(1000, () => {
         req.destroy();
         resolve(false);
       });
@@ -1456,57 +1457,103 @@ class OllamaClient {
           try {
             const parsed = JSON.parse(data);
             resolve(parsed.models || []);
-          } catch (e) {
+          }
+          catch (e) {
             reject(e);
           }
         });
       });
       req.on('error', () => reject(new Error('Failed to connect')));
-      req.setTimeout(3000, () => {
+      req.setTimeout(1000, () => {
         req.destroy();
         reject(new Error('Timeout'));
       });
     });
   }
 
+  abortDownload() {
+    this.controller.abort();
+  }
+
+  // Download model
   async pullModel(modelName, onProgress) {
-    return new Promise((resolve, reject) => {
-      const postData = JSON.stringify({ name: modelName });
-      const options = {
-        hostname: 'localhost',
-        port: 11434,
-        path: '/api/pull',
+    this.controller = new AbortController();
+    const signal = this.controller.signal;
+
+    try {
+      const response = await fetch(`${this.baseUrl}/api/pull`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(postData)
-        }
-      };
-
-      const req = http.request(options, (res) => {
-        let buffer = '';
-        res.on('data', (chunk) => {
-          buffer += chunk;
-          const lines = buffer.split('\n');
-          buffer = lines.pop();
-          lines.forEach(line => {
-            if (line.trim()) {
-              try {
-                const data = JSON.parse(line);
-
-                if (onProgress && mainWindow)
-                  mainWindow.webContents.send('download-progress', data);
-              } catch (e) {}
-            }
-          });
-        });
-        res.on('end', () => resolve());
-        res.on('error', reject);
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: modelName }),
+        signal: signal
       });
-      req.on('error', reject);
-      req.write(postData);
-      req.end();
-    });
+
+      if (response.status === 400)
+          throw new Error("Failed to download model. It seems like you've entered something weird")
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done)
+          break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          if (line.trim()) {
+            try {
+              const data = JSON.parse(line);
+
+              if (data?.error)
+                throw new Error("Model doesn't exist. Ensure that you're pasting a model from the Ollama website");
+
+              let percent = 0;
+              let progressData = {};
+
+              if (!data?.total || !data?.completed)
+                progressData = {
+                  ...data,
+                  percent: percent,
+                  modelName: modelName
+                };
+
+              else {
+                percent = (data.completed / data.total * 100).toFixed(2);
+
+                if (percent !== 100)
+                  progressData = {
+                    ...data,
+                    percent: percent,
+                    modelName: modelName
+                  };
+                }
+
+              if (onProgress && mainWindow) {
+                mainWindow.webContents.send('download-ollama-model-progress', progressData);
+              }
+            }
+            catch (e) {
+              throw e?.message || e?.error || e;
+            }
+          }
+        }
+      }
+    }
+    catch (err) {
+      if (err.name === 'AbortError')
+        throw new Error('Download cancelled');
+
+      else
+        throw err;
+    }
   }
 
   async chat(messages, model) {
@@ -1623,24 +1670,33 @@ ipcMain.handle('set-config', async (event, config) => {
 
 // Ollama-specific handlers (for advanced option)
 ipcMain.handle('check-ollama', async () => ollama.checkConnection());
+
 ipcMain.handle('download-ollama-model', async (event, modelName) => {
   try {
     await ollama.pullModel(modelName, (progress) => {
       if (mainWindow)
-        mainWindow.webContents.send('download-progress', progress);
+        mainWindow.webContents.send('download-ollama-model-progress', progress);
     });
     return { success: true };
   }
   catch (e) {
-    return { success: false, error: e.message };
+    return { success: false, error: e };
   }
+});
+
+ipcMain.handle('abort-model-download', () => {
+  try {
+    ollama.abortDownload();
+  }
+  catch(e) { throw new Error(e.message) }
 });
 
 ipcMain.handle('get-ollama-models', async () => {
   try {
     const models = await ollama.getInstalledModels();
     return { success: true, models };
-  } catch (e) {
+  }
+  catch (e) {
     return { success: false, error: e.message, models: [] };
   }
 });
@@ -2264,7 +2320,6 @@ ipcMain.handle('download-update', async (event, downloadUrl, expectedDigest) => 
                 hash.update(chunk);
 
                 const percent = Math.round((downloadedBytes / totalBytes) * 100);
-                console.log('Progress:', downloadedBytes, '/', totalBytes, '=', percent + '%');
 
                 // Send progress to renderer
                 if (mainWindow && !mainWindow.isDestroyed()) {
