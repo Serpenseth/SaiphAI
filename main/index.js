@@ -9,12 +9,15 @@ const initSqlJs = require('sql.js');
 const { spawn, execFile } = require('child_process');
 const { https } = require('follow-redirects');
 const crypto = require('crypto');
+const dotenv = require('dotenv');
 
 const MODEL_CACHE_DIR = path.join(app.getPath('userData'), 'model-cache');
 const TEMP_DOWNLOAD_DIR = path.join(MODEL_CACHE_DIR, 'temp');
 const STATE_FILE = path.join(MODEL_CACHE_DIR, 'download-state.json');
 const SETTINGS_FILE = path.join(app.getPath('userData'), 'settings.json');
 const WORKSPACE_INDEX_FILE = path.join(app.getPath('userData'), 'workspace-index.json');
+
+const ENV_PATH = path.join(app.getPath('userData'), '.env');
 
 const isMac = process.platform === 'darwin'
 const template = [
@@ -2343,6 +2346,39 @@ ipcMain.handle('download-update', async (event, downloadUrl, expectedDigest) => 
         });
     });
 });
+
+ipcMain.handle('create-env-file', async () => {
+  await fs.writeFile(ENV_PATH, "OPENAI_KEY=", 'utf8');
+});
+
+ipcMain.handle('read-env-key', async (key) => {
+  if (!fsSync.existsSync(ENV_PATH))
+    return { success: false }
+
+  dotenv.config({ path: ENV_PATH });
+
+  try {
+    return { success: true, data: process.env.OPENAI_KEY }
+  }
+  catch(e) { return {success: false, error: e} };
+});
+
+ipcMain.handle('write-to-env-file', async (event, key, content) => {
+  const envContent = await fs.readFile(ENV_PATH, 'utf8');
+  const lines = envContent.split('\n');
+  const keyIndex = lines.findIndex(line => line.startsWith(`${key}=`));
+
+  if (keyIndex >= 0) {
+    lines[keyIndex] = `${key}=${content}`;
+  }
+  else {
+    lines.push(`${key}=${content}`);
+  }
+
+  await fs.writeFile(ENV_PATH, lines.join('\n'), 'utf8');
+  dotenv.config({ path: ENV_PATH });
+});
+
 
 app.whenReady().then(async () => {
   initDatabase();
