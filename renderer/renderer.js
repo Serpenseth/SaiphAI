@@ -12,6 +12,7 @@ class App {
     this.editor = null;
     // Configurations
     this.config = {};
+    /*
     // Pipeline for downloads
     this.tinyLlamaPipeline = null;
     // Transformers
@@ -33,7 +34,10 @@ class App {
       ]
     };
     this.downloadAbortController = null;
+    */
     // Ollama-related
+    this.modelToDownload = null;
+
     this.availableOllamaModels = [];
     this.currentOllamaModel = null;
     this.ollamaModelSelect = document.getElementById('ollama-model-selector');
@@ -107,6 +111,7 @@ class App {
       }
     }
 
+    /*
     // Try preload first, then fall back to CDN global
     if (window.electronAPI?.loadTransformers) {
         this.transformers = await window.electronAPI.loadTransformers();
@@ -119,6 +124,7 @@ class App {
     window.electronAPI.onDownloadProgress((data) => {
       this.updateDownloadProgress(data);
     });
+    */
 
     this.showWelcomeHub = !this.config.hideWelcomeHub;
 
@@ -131,19 +137,22 @@ class App {
     }
     else {
       this.currentModel = this.config.modelType;
+      await this.populateOllamaModels();
 
+      /*
       if (this.currentModel === 'tinyllama' && this.transformers) {
         await this.initTinyLlama();
       }
+      */
 
-      else {
-        await this.populateOllamaModels();
-      }
+      //else {
+        //await this.populateOllamaModels();
+      //}
     }
 
     await this.loadCurrentChatFromJson();
 
-    document.getElementById('app').classList.remove('hidden');
+    //document.getElementById('app').classList.remove('hidden');
     this.initMonaco();
 
     window.electronAPI.onFileSystemEvent((data) => {
@@ -158,6 +167,14 @@ class App {
     });
 
     document.getElementById('update-progress-text').style.display = 'none';
+
+    document.getElementById("ollama-detected").style.display = 'none';
+    document.getElementById("dl-ollama-instructions").style.display = 'none';
+    document.getElementById("model-selection").style.display = 'none';
+    document.getElementById("login-openai").style.display = 'none';
+    document.getElementById("no-models").style.display = 'none';
+    document.getElementById("dl-ollama-model").style.display = 'none';
+    document.getElementById("ollama-success").style.display = 'none';
 
      window.electronAPI.onUpdateAvailable((data) => {
         this.updateState.available = true;
@@ -180,6 +197,617 @@ class App {
     window.electronAPI.onUpdateDownloadProgress((data) => {
       this.updateDownloadProgress(data);
     });
+
+    window.electronAPI.onDownloadOllamaModelProgress((data) => {
+      const progressFill = document.getElementById('ollama-dl-progress-fill');
+      const progressText = document.getElementById('ollama-dl-progress-text');
+
+      if (progressFill) {
+          progressFill.style.width = `${data.percent}%`;
+      }
+      if (progressText) {
+          progressText.textContent = `${data.percent}%`;
+      }
+    });
+
+    const doesEnvFileExist = await window.electronAPI.readEnvKey('OPENAI_KEY');
+    const result = await doesEnvFileExist;
+
+    if (!result.success)
+      await window.electronAPI.createEnvFile();
+  }
+
+  // Events that perform actions on HTML elements
+  setupEventListeners() {
+    window.electronAPI.onBuildProgress((data) => {
+      this.handleBuildProgress(data);
+    });
+
+    /**
+     *  Helper function to attach listeners to DOM elements
+     *
+     *  @param {object} element - The DOM element to attach the listener to
+     *  @param {string} event - The event that we connect with the element
+     *  @param {function} handler - The function that triggers on event
+     *  @returns {null}
+     */
+    const addListener = (element, event, handler) => {
+      if (!element)
+        return;
+
+      element.addEventListener(event, handler);
+      this.eventListeners.push({ element, event, handler });
+    };
+
+    const addIpcListener = (channel, handler) => {
+      const unsubscribe = window.electronAPI[channel](handler);
+
+      this.eventListeners.push({ type: 'ipc', unsubscribe });
+    };
+
+    addIpcListener('onDownloadProgress', (data) => {
+      this.updateDownloadProgress(data);
+    });
+
+    addListener(
+      document.getElementById('btn-get-started'),
+      'click', async () => {
+        document.getElementById('first-run-modal')?.classList.add('hidden');
+        await this.introInstructions();
+
+        /*
+        // Set Ollama as default model
+        await window.electronAPI.setConfig({
+          modelType: 'ollama',
+          modelName: null
+        });
+
+        this.currentModel = 'ollama';
+        await this.populateOllamaModels();
+        */
+      }
+    );
+
+    addListener(
+      document.getElementById("back-to-framework-selection"),
+      'click', () => {
+        document.getElementById("ollama-detected").style.display = 'none';
+        document.getElementById("model-selection").style.display = 'block';
+      }
+    );
+
+    addListener(
+      document.getElementById("use-ollama"),
+      'click', async () => {
+        document.getElementById("ollama-detected").style.display = 'none';
+        await this.verifyOllama()
+      }
+    );
+
+    // Ollama
+    addListener(
+      document.getElementById('option-ollama'),
+      'click', async () => await this.showOllamaModelDownload()
+    );
+
+    /*
+    // Ollama
+    addListener(
+      document.getElementById('option-ollama'),
+      'click', () => {
+        console.log('Ollama selected');
+        this.selectModel('ollama');
+      }
+    );*/
+
+    /**
+     *  Helper function to reset os card styles
+     *
+     *  @param {string} osCard - The card to reset styles
+     *  @returns {null}
+     */
+    const resetCardStyle = (osCard) => {
+      osCard.removeAttribute("style");
+    }
+
+    /**
+     *  Helper function to set os card styles
+     *
+     *  @param {string} osCard - The card to set styles to
+     *  @returns {null}
+     */
+    const setCardStyle = (osCard) => {
+      osCard.style.border = "3px solid var(--accent-color)";
+      osCard.style.transform = "translateY(-3px)";
+      osCard.style.filter = "brightness(1.4)";
+      osCard.style.background = "linear-gradient(135deg, var(--bg-primary) 0%, rgba(59, 130, 246, 0.1) 100%)";
+    }
+
+    /**
+     *  Helper function to set os card styles
+     *
+     *  @param {string} osCard - The OS card to add "Requires x" message to
+     *  @param {string} msg - The "Requires x" message
+     *  @returns {null}
+     */
+    const setRequiredMsg = (msg) => {
+      document.getElementById("requires-msg").innerHTML = msg;
+    }
+
+    // MacOS Ollama card
+    addListener(
+      document.getElementById("option-macOS"),
+      'click', () => {
+        document.getElementById("os-specific-download").style.display = 'block';
+
+        const pasteText = document.getElementById("paste-into");
+        pasteText.innerHTML =  "Paste the code below into Terminal";
+
+        const pasteCmd = document.getElementById("install-cmd");
+        pasteCmd.value = "curl -fsSL https://ollama.com/install.sh | sh";
+
+        const button = document.getElementById("option-macOS");
+        setCardStyle(button);
+
+        resetCardStyle(document.getElementById("option-windows"));
+        resetCardStyle(document.getElementById("option-linux"));
+
+        setRequiredMsg("Requires macOS 14 Sonoma or later");
+      }
+    );
+
+    // Windows Ollama card
+    addListener(
+      document.getElementById("option-windows"),
+      'click', () => {
+        document.getElementById("os-specific-download").style.display = 'block';
+
+        const pasteText = document.getElementById("paste-into");
+        pasteText.innerHTML =  "Paste the code below into PowerShell";
+
+        const pasteCmd = document.getElementById("install-cmd");
+        pasteCmd.value = "irm https://ollama.com/install.ps1 | iex";
+
+        const button = document.getElementById("option-windows");
+        setCardStyle(button);
+
+        resetCardStyle(document.getElementById("option-macOS"));
+        resetCardStyle(document.getElementById("option-linux"));
+
+        setRequiredMsg("Requires Windows 10 or later");
+      }
+    );
+
+    // Linux Ollama card
+    addListener(
+      document.getElementById("option-linux"),
+      'click', () => {
+        document.getElementById("os-specific-download").style.display = 'block';
+
+        const pasteText = document.getElementById("paste-into");
+        pasteText.innerHTML =  "Paste the code below into Terminal";
+
+        const pasteCmd = document.getElementById("install-cmd");
+        pasteCmd.value = "curl -fsSL https://ollama.com/install.sh | sh";
+
+        const button = document.getElementById("option-linux");
+        setCardStyle(button);
+
+        resetCardStyle(document.getElementById("option-macOS"));
+        resetCardStyle(document.getElementById("option-windows"));
+
+        setRequiredMsg("");
+      }
+    );
+
+    addListener(
+      document.getElementById('copy-cmd'),
+      'click', () => {
+        const pasteCmd = document.getElementById("install-cmd");
+        navigator.clipboard.writeText(pasteCmd.value);
+      }
+    );
+
+    addListener(
+      document.getElementById("download-ollama-button"),
+      'click', () => {
+        const windowsBtn = document.getElementById("option-windows");
+        const linuxBtn = document.getElementById("option-linux");
+
+        if (linuxBtn.style.borderColor === "var(--accent-color)") {
+          window.open("https://docs.ollama.com/linux#manual-install");
+          return;
+        }
+
+        windowsBtn.style.borderColor === "var(--accent-color)"
+          ? window.open("https://ollama.com/download/OllamaSetup.exe")
+          : window.open("https://ollama.com/download/Ollama.dmg")
+      }
+    );
+
+    addListener(
+      document.getElementById("close-dl-ollama"),
+      'click', () => {
+        // Reset selection and selection style
+        resetCardStyle(document.getElementById("option-macOS"));
+        resetCardStyle(document.getElementById("option-windows"));
+        resetCardStyle(document.getElementById("option-linux"));
+
+        document.getElementById("model-selection").style.display = 'block';
+        document.getElementById("dl-ollama-instructions").style.display = 'none';
+      }
+    );
+
+    addListener(
+      document.getElementById("verify-ollama"),
+      'click', async () => await this.verifyOllama()
+    );
+
+    addListener(
+      document.getElementById("back-to-model-selection-btn"),
+      'click', () => {
+        // Reset error svg
+        document.getElementById("checkmark-container").innerHTML = '';
+
+        document.getElementById("ollama-success").style.display = 'none';
+        document.getElementById("model-selection").style.display = 'block';
+      }
+    );
+
+    addListener(
+      document.getElementById("try-again-btn"),
+      'click', async  () => {
+        document.getElementById("ollama-success").style.display = 'block';
+        document.getElementById("checkmark-container").innerHTML = '';
+
+        await this.verifyOllama();
+      }
+    );
+
+    addListener(
+      document.getElementById("ollama-model-to-pull"),
+      'input', () => {
+        const inputField = document.getElementById("ollama-model-to-pull");
+        const dlOllamaModel = document.getElementById("dl-ollama-model");
+        const pressDownloadMsg = document.getElementById("press-download-to-start");
+
+        const newMsg = "3. Press the Download Model button below to start the download";
+
+        if (inputField.value === "") {
+          dlOllamaModel.style.display = 'none';
+          pressDownloadMsg.style.display = 'none';
+          pressDownloadMsg.innerHTML = originalText;
+        }
+
+        else {
+          dlOllamaModel.style.display = 'block';
+          pressDownloadMsg.style.display = 'block';
+          pressDownloadMsg.innerHTML = newMsg;
+        }
+      }
+    );
+
+    addListener(
+      document.getElementById("dl-ollama-model"),
+      'click', async () => {
+        const inputField = document.getElementById("ollama-model-to-pull");
+        this.modelToDownload = inputField.value;
+
+        await this.downloadOllamaModel();
+      }
+    );
+
+    addListener(
+      document.getElementById("abort-ollama-model-dl"),
+      'click', () => window.electronAPI.abortModelDownload()
+    );
+
+    addListener(
+      document.getElementById("verify-ollama-after-model-dl"),
+      'click', async () => {
+        await this.verifyOllama();
+
+        document.getElementById('no-models').style.display = 'none';
+
+        const success = document.getElementById('ollama-success');
+        success.style.display = 'block';
+
+        new Promise(resolve => {
+          setTimeout(() => {
+            success.style.display = 'none';
+            document.getElementById("intro-model-instructions")?.classList.add('hidden');
+            resolve();
+          }, 3100)
+        });
+      }
+    );
+
+    addListener(
+      document.getElementById("option-openai"),
+      'click', () => {
+        document.getElementById("login-openai").style.display = 'block';
+        document.getElementById("model-selection").style.display = 'none';
+      }
+    );
+
+    addListener(
+      document.getElementById("close-openai-setup"),
+      'click', () => {
+        document.getElementById("login-openai").style.display = 'none';
+        document.getElementById("model-selection").style.display = 'block';
+      }
+    );
+
+    addListener(
+      document.getElementById("continue-openai-setup"),
+      'click', async () => {
+        // Verify key input
+        const userApiKey = document.getElementById("openai-acc");
+
+        try {
+          const result = await fetch("https://api.openai.com/v1/models", {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${userApiKey.value}` }
+          });
+
+          if (result.status === 401) {
+            alert("Error: Invalid API key. Try again");
+            return;
+          }
+
+          else {
+            const data = await result.json();
+            console.log(JSON.stringify(data));
+
+            // Procceed if key was valid
+            await window.electronAPI.writeToEnvFile('OPENAI_KEY', userApiKey.value);
+            // Delete input value for safety
+            userApiKey.value = '';
+
+            document.getElementById("login-openai").style.display = 'none';
+            document.getElementById("model-selection").style.display = 'none';
+            //document.getElementById("intro-model-instructions")?.classList.add('hidden');
+
+            window.electronAPI.setConfig({
+              modelType: 'o4',
+              modelName: 'o4'
+            })
+
+            this.currentModel = 'o4';
+          }
+
+          document.getElementById("ollama-success").style.display = 'block';
+          document.getElementById("try-again-msg").style.display = 'none';
+          document.getElementById("ollama-check-failed-btns").style.display = 'none';
+
+          this._createStatusSVG('success');
+          this._setSuccessTitle("OpenAI has been setup successfully. You are eady to go!");
+
+          setTimeout(() => {
+            document.getElementById('intro-model-instructions')?.classList.add('hidden');
+          }, 3100);
+        }
+        catch(e) {
+          alert("Failed to receive a response from OpenAI servers.\n Check your internet connection, and try again");
+          return;
+        }
+      }
+    );
+
+    addListener(
+      document.querySelector('[data-tab="chat"]'),
+      'click', () => this.switchToTab('chat')
+    );
+
+    addListener(
+      document.getElementById('build-toggle-btn'),
+      'click', () => this.toggleBuildPanel()
+    );
+
+    addListener(
+      document.getElementById('btn-clear-chat'),
+      'click', () => {
+        this.clearMainChat();
+        window.electronAPI.saveCurrentChatJson('');
+      }
+    );
+
+    addListener(
+      document,
+      'keydown', (e) => {
+        if (e.key === 'Escape') {
+          const panel = document.getElementById('build-panel');
+
+          if (panel?.classList.contains('visible')) {
+            this.toggleBuildPanel()
+          }
+        }
+      }
+    );
+
+    /*
+    addListener(
+      document.getElementById('btn-pause-download'),
+      'click', () => this.togglePauseDownload()
+    );
+
+    addListener(
+      document.getElementById('btn-stop-download'),
+      'click', () => {
+        this.stopDownload();
+        this.showFirstRunModal();
+      }
+    );
+
+    addListener(
+      document.getElementById('btn-cancel-download'),
+      'click', () => this.cancelDownload()
+    );
+    */
+
+    /*
+    addListener(
+      document.getElementById('option-tinyllama'),
+      'click', () => {
+        console.log('TinyLlama selected');
+        this.selectModel('tinyllama');
+      }
+    );
+    */
+
+    addListener(
+      document.getElementById('btn-settings'),
+      'click',  () => this.showSettingsModal()
+    );
+
+    addListener(
+      document.getElementById('btn-select-workspace'),
+      'click', () => this.selectWorkspace()
+    );
+
+    addListener(
+      document.getElementById('btn-refresh-index'),
+      'click', () => this.rebuildIndex()
+    );
+
+    addListener(
+      document.getElementById('btn-send'),
+      'click', () => this.sendMessage(null, 'chat')
+    );
+
+    addListener(
+      document.getElementById('chat-input'),
+      'keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          this.sendMessage(null, 'chat');
+        }
+      }
+    );
+
+    addListener(
+      document.getElementById('insert-file'),
+      'click', () => this.selectFiles()
+    );
+
+    addListener(
+      document.getElementById('chat-input'),
+      'input', (e) => {
+        const textarea = e.target;
+        const minHeight = 60;
+        const maxHeight = 320;
+        const lineHeight = parseInt(getComputedStyle(textarea).lineHeight);
+        const threshold = lineHeight * 2; // Don't expand until 1.5 lines needed
+
+        // Reset to auto to allow shrinking measurement
+        textarea.style.height = 'auto';
+
+        // Explicitly handle empty/whitespace-only to ensure shrinking
+        if (textarea.value.trim().length === 0) {
+            textarea.style.height = minHeight + 'px';
+            return;
+        }
+
+        const scrollHeight = textarea.scrollHeight;
+
+        // Only expand if content exceeds minHeight + threshold
+        // This prevents expansion for the first 1-2 characters
+        if (scrollHeight > minHeight + threshold) {
+            textarea.style.height = Math.min(scrollHeight, maxHeight) + 'px';
+        }
+        else {
+            // Stay at minimum height
+            textarea.style.height = minHeight + 'px';
+        }
+      }
+    );
+
+    addListener(
+      document.getElementById('ollama-model-selector'),
+      'change', (e) => {
+        this.currentOllamaModel = e.target.value;
+
+        window.electronAPI.setConfig({
+          modelType: 'ollama',
+          modelName: this.currentOllamaModel
+        });
+      }
+    );
+
+    addListener(
+      document.getElementById('history'),
+      'click',  () => this.showHistoryModal()
+    );
+
+    addListener(
+      document.getElementById('btn-close-history'),
+      'click', () => this.closeHistoryModal()
+    );
+
+    addListener(
+      document.getElementById('btn-new-chat'),
+      'click', () => {
+        this.createChatTab();
+        this.closeHistoryModal();
+      }
+    );
+
+    addListener(
+      document.getElementById('btn-new-chat-tab'),
+      'click', () => this.createChatTab()
+    );
+
+    addListener(
+      document.getElementById('btn-download-update'),
+      'click', () => this.downloadUpdate()
+    );
+
+    addListener(
+      document.getElementById('btn-later-update'),
+      'click', () => {
+        document.getElementById('update-available-modal')?.classList.add('hidden');
+      }
+    );
+
+    addListener(
+      document.getElementById('btn-close-update-error'),
+      'click', () => {
+        document.getElementById('update-error-modal')?.classList.add('hidden');
+      }
+    );
+
+    // Manual check button (in settings)
+    addListener(
+      document.getElementById('btn-check-updates'),
+      'click', () => this.checkForUpdatesManual()
+    );
+
+    addIpcListener('onFileSystemEvent', (data) => {
+      this.handleFileSystemChange(data);
+    });
+
+    addIpcListener('onBuildProgress', (data) => {
+      this.handleBuildProgress(data);
+    });
+  }
+
+  cleanupEventListeners() {
+    this.eventListeners.forEach(listener => {
+      if (listener.type === 'ipc') {
+        listener.unsubscribe();
+      }
+      else {
+        // Standard DOM listener
+        listener.element?.removeEventListener(listener.event, listener.handler);
+      }
+    });
+
+    // Clear the array
+    this.eventListeners = [];
+
+    // Also clear any lingering timeouts
+    clearTimeout(this.fsChangeTimeout);
+    clearTimeout(this.hubUpdateTimeout);
   }
 
   escapeHtml(text) {
@@ -312,7 +940,9 @@ class App {
     });
 
     document.addEventListener('mousemove', (e) => {
-      if (!isResizing) return;
+      if (!isResizing)
+        return;
+
       const delta = startY - e.clientY;
       const newHeight = Math.max(40, Math.min(startHeight + delta, 400));
       history.style.height = `${newHeight}px`;
@@ -325,7 +955,9 @@ class App {
         isResizing = false;
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
-        window.electronAPI.setConfig({ buildHistoryHeight: this.config.buildHistoryHeight });
+        window.electronAPI.setConfig({
+          buildHistoryHeight: this.config.buildHistoryHeight
+        });
       }
     });
 
@@ -815,258 +1447,6 @@ Be specific and include file paths if the error mentions them.`;
     }
   }
 
-  // Events that perform actions on HTML elements
-  setupEventListeners() {
-    window.electronAPI.onBuildProgress((data) => {
-      this.handleBuildProgress(data);
-    });
-
-    /**
-     *  Helper function to attach listeners to DOM elements
-     *
-     *  @param {object} element - The DOM element to attach the listener to
-     *  @param {string} event - The event that we connect with the element
-     *  @param {function} handler - The function that triggers on event
-     */
-    const addListener = (element, event, handler) => {
-      if (!element)
-        return;
-
-      element.addEventListener(event, handler);
-      this.eventListeners.push({ element, event, handler });
-    };
-
-    const addIpcListener = (channel, handler) => {
-      const unsubscribe = window.electronAPI[channel](handler);
-
-      this.eventListeners.push({ type: 'ipc', unsubscribe });
-    };
-
-    addIpcListener('onDownloadProgress', (data) => {
-      this.updateDownloadProgress(data);
-    });
-
-    addIpcListener('onFileSystemEvent', (data) => {
-      this.handleFileSystemChange(data);
-    });
-
-    addIpcListener('onBuildProgress', (data) => {
-      this.handleBuildProgress(data);
-    });
-
-    addListener(
-      document.querySelector('[data-tab="chat"]'),
-      'click', () => this.switchToTab('chat')
-    );
-
-    addListener(
-      document.getElementById('build-toggle-btn'),
-      'click', () => this.toggleBuildPanel()
-    );
-
-    addListener(
-      document.getElementById('btn-clear-chat'),
-      'click', () => {
-        this.clearMainChat();
-        window.electronAPI.saveCurrentChatJson('');
-      }
-    );
-
-    addListener(
-      document,
-      'keydown', (e) => {
-        if (e.key === 'Escape') {
-          const panel = document.getElementById('build-panel');
-
-          if (panel?.classList.contains('visible')) {
-            this.toggleBuildPanel()
-          }
-        }
-      }
-    );
-
-    addListener(
-      document.getElementById('btn-pause-download'),
-      'click', () => this.togglePauseDownload()
-    );
-
-    addListener(
-      document.getElementById('btn-stop-download'),
-      'click', () => {
-        this.stopDownload();
-        this.showFirstRunModal();
-      }
-    );
-
-    addListener(
-      document.getElementById('btn-cancel-download'),
-      'click', () => this.cancelDownload()
-    );
-
-    addListener(
-      document.getElementById('option-tinyllama'),
-      'click', () => {
-        console.log('TinyLlama selected');
-        this.selectModel('tinyllama');
-      }
-    );
-
-    // Ollama option - Requires external Ollama
-    addListener(
-      document.getElementById('option-ollama'),
-      'click', () => {
-        console.log('Ollama selected');
-        this.selectModel('ollama');
-      }
-    );
-
-    addListener(
-      document.getElementById('btn-settings'),
-      'click',  () => this.showSettingsModal()
-    );
-
-    addListener(
-      document.getElementById('btn-select-workspace'),
-      'click', () => this.selectWorkspace()
-    );
-
-    addListener(
-      document.getElementById('btn-refresh-index'),
-      'click', () => this.rebuildIndex()
-    );
-
-    addListener(
-      document.getElementById('btn-send'),
-      'click', () => this.sendMessage(null, 'chat')
-    );
-
-    addListener(
-      document.getElementById('chat-input'),
-      'keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          this.sendMessage(null, 'chat');
-        }
-      }
-    );
-
-    addListener(
-      document.getElementById('insert-file'),
-      'click', () => this.selectFiles()
-    );
-
-    addListener(
-      document.getElementById('chat-input'),
-      'input', (e) => {
-        const textarea = e.target;
-        const minHeight = 60;
-        const maxHeight = 320;
-        const lineHeight = parseInt(getComputedStyle(textarea).lineHeight);
-        const threshold = lineHeight * 2; // Don't expand until 1.5 lines needed
-
-        // Reset to auto to allow shrinking measurement
-        textarea.style.height = 'auto';
-
-        // Explicitly handle empty/whitespace-only to ensure shrinking
-        if (textarea.value.trim().length === 0) {
-            textarea.style.height = minHeight + 'px';
-            return;
-        }
-
-        const scrollHeight = textarea.scrollHeight;
-
-        // Only expand if content exceeds minHeight + threshold
-        // This prevents expansion for the first 1-2 characters
-        if (scrollHeight > minHeight + threshold) {
-            textarea.style.height = Math.min(scrollHeight, maxHeight) + 'px';
-        }
-        else {
-            // Stay at minimum height
-            textarea.style.height = minHeight + 'px';
-        }
-      }
-    );
-
-    addListener(
-      document.getElementById('ollama-model-selector'),
-      'change', (e) => {
-        this.currentOllamaModel = e.target.value;
-        // Optionally save to config
-        window.electronAPI.setConfig({
-          modelType: 'ollama',
-          modelName: this.currentOllamaModel
-        });
-      }
-    );
-
-    addListener(
-      document.getElementById('history'),
-      'click',  () => this.showHistoryModal()
-    );
-
-    addListener(
-      document.getElementById('btn-close-history'),
-      'click', () => this.closeHistoryModal()
-    );
-
-    addListener(
-      document.getElementById('btn-new-chat'),
-      'click', () => {
-        this.createChatTab();
-        this.closeHistoryModal();
-      }
-    );
-
-    addListener(
-      document.getElementById('btn-new-chat-tab'),
-      'click', () => this.createChatTab()
-    );
-
-    addListener(
-      document.getElementById('btn-download-update'),
-      'click', () => this.downloadUpdate()
-    );
-
-    addListener(
-      document.getElementById('btn-later-update'),
-      'click', () => {
-        document.getElementById('update-available-modal')?.classList.add('hidden');
-      }
-    );
-
-    addListener(
-      document.getElementById('btn-close-update-error'),
-      'click', () => {
-        document.getElementById('update-error-modal')?.classList.add('hidden');
-      }
-    );
-
-    // Manual check button (in settings)
-    addListener(
-      document.getElementById('btn-check-updates'),
-      'click', () => this.checkForUpdatesManual()
-    );
-  }
-
-  cleanupEventListeners() {
-    this.eventListeners.forEach(listener => {
-      if (listener.type === 'ipc') {
-        listener.unsubscribe();
-      }
-      else {
-        // Standard DOM listener
-        listener.element?.removeEventListener(listener.event, listener.handler);
-      }
-    });
-
-    // Clear the array
-    this.eventListeners = [];
-
-    // Also clear any lingering timeouts
-    clearTimeout(this.fsChangeTimeout);
-    clearTimeout(this.hubUpdateTimeout);
-  }
-
   showUpdateAvailableModal(data) {
     const modal = document.getElementById('update-available-modal');
     const localVersionEl = document.getElementById('update-version');
@@ -1110,9 +1490,7 @@ Be specific and include file paths if the error mentions them.`;
     const originalText = downloadBtn?.textContent;
 
     try {
-      console.log("starting update");
-
-        // Show downloading state
+      // Show downloading state
         if (downloadBtn) {
             downloadBtn.textContent = 'Downloading...';
             downloadBtn.disabled = true;
@@ -1191,6 +1569,7 @@ Be specific and include file paths if the error mentions them.`;
     document.getElementById('download-modal')?.classList.add('hidden');
   }
 
+  /*
   togglePauseDownload() {
     if (!this.isDownloading && !this.downloadPaused)
       return;
@@ -1436,6 +1815,7 @@ Be specific and include file paths if the error mentions them.`;
     this.config = {};
     window.electronAPI.setConfig({ modelType: null, modelName: null });
   }
+  */
 
   renderWelcomeHub(tabId = 'chat') {
     const hub = document.getElementById('welcome-hub');
@@ -1459,7 +1839,6 @@ Be specific and include file paths if the error mentions them.`;
         return;
     }
 
-
     hub?.classList.remove('hidden');
 
     const icon = document.getElementById('hub-icon');
@@ -1478,6 +1857,7 @@ Be specific and include file paths if the error mentions them.`;
     const newSuggestions = newHub.querySelector('#hub-suggestions');
 
     if (!this.workspacePath) {
+      /*
       // No workspace yet
       if (this.currentModel === 'tinyllama') {
         newTitle.textContent = 'Ready to collaborate';
@@ -1500,8 +1880,8 @@ Be specific and include file paths if the error mentions them.`;
         </button>
         `;
       }
-      else {
-        // Ollama - emphasize the setup requirement, not "advanced"
+      */
+      //else {
         newTitle.textContent = 'Ready to collaborate';
         newSubtitle.textContent = 'Ollama lets you use open-source models (such as Mistral, Kimi, Deepseek, etc) either locally or via cloud.';
         newSubtitle.textContent = newSubtitle.textContent + ' This requires Ollama installation';
@@ -1509,19 +1889,17 @@ Be specific and include file paths if the error mentions them.`;
           <button class="hub-suggestion-btn" onclick="app.selectWorkspace()">
             <span>📂</span> Open workspace folder
           </button>
-          <button class="hub-suggestion-btn" onclick="window.open('https://ollama.com', '_blank')">
-            <span>🔗</span> Get Ollama app
-          </button>
           <button class="hub-suggestion-btn" onclick="app.showSettingsModal()">
             <span>⚙️</span> Choose model
           </button>
         `;
-      }
+      //}
     }
     else {
       // Workspace is open - focus on workspace questions, not "selected files"
       const hasFiles = this.workspaceIndex && this.workspaceIndex.index.size > 0;
 
+      /*
       if (this.currentModel === 'tinyllama') {
         newTitle.textContent = 'Ready to collaborate';
         newSubtitle.textContent = 'What shall we work on?';
@@ -1550,7 +1928,9 @@ Be specific and include file paths if the error mentions them.`;
         </button>
         `;
       }
-      else {
+      */
+
+      //else {
         newTitle.textContent = 'Ready to collaborate';
         newSubtitle.textContent = 'What shall we work on?';
 
@@ -1584,7 +1964,7 @@ Be specific and include file paths if the error mentions them.`;
               </div>
           </button>
         `;
-      }
+      //}
     }
 
     // Add hide listener
@@ -1645,7 +2025,7 @@ Be specific and include file paths if the error mentions them.`;
     }
   }
 
-  //
+  /*
   async initTinyLlama(progressCallback = null) {
     if (!this.transformers) {
       throw new Error('Transformers.js library not loaded');
@@ -1682,7 +2062,7 @@ Be specific and include file paths if the error mentions them.`;
       'text-generation',
       'Xenova/TinyLlama-1.1B-Chat-v1.0',
       {
-        progress_callback: progressCallback || ((x) => console.log('Loading:', x.status, x)),
+        progress_callback: progressCallback,
         quantized: true,
         local_files_only: modelFilesExist // Use downloaded files
       }
@@ -1696,6 +2076,7 @@ Be specific and include file paths if the error mentions them.`;
       modelType: 'tinyllama'
     });
   }
+  */
 
   async selectModel(modelType) {
     if (this.isDownloading || this.downloadPaused)
@@ -1703,14 +2084,17 @@ Be specific and include file paths if the error mentions them.`;
 
     this.isDownloading = true;
 
+    /*
     // Only show download UI for TinyLlama
     if (modelType === 'tinyllama') {
       document.getElementById('first-run-modal')?.classList.add('hidden');
       document.getElementById('download-modal')?.classList.remove('hidden');
       this.currentModel = 'tinyllama';
     }
+    */
 
     try {
+      /*
       if (modelType === 'tinyllama') {
         document.getElementById('first-run-modal')?.classList.add('hidden');
         document.getElementById('download-modal')?.classList.remove('hidden');
@@ -1750,7 +2134,8 @@ Be specific and include file paths if the error mentions them.`;
           }
         }
       }
-      else {
+      */
+      //else {
         // Ollama path: Hide first-run modal immediately
         document.getElementById('first-run-modal')?.classList.add('hidden');
 
@@ -1788,7 +2173,7 @@ Be specific and include file paths if the error mentions them.`;
             this.updateStatus('Ollama selected (model list unavailable)');
           }
         }, 100);
-      }
+      //}
 
       this.config = await window.electronAPI.getConfig();
 
@@ -1818,8 +2203,10 @@ Be specific and include file paths if the error mentions them.`;
 
       setTimeout(() => this.renderWelcomeHub(), 300);
     }
+
   }
 
+  /*
   async checkModelFilesExist() {
     try {
       const modelCachePath = await window.electronAPI.getModelCachePath?.();
@@ -1842,8 +2229,15 @@ Be specific and include file paths if the error mentions them.`;
       return false;
     }
   }
+  */
 
   async populateOllamaModels() {
+    const isOllamaRunning = await window.electronAPI.checkOllama();
+
+    if (!isOllamaRunning) {
+      return -2;
+    }
+
     let selector = this.ollamaModelSelect;
 
     if (!selector || !document.contains(selector)) {
@@ -1854,58 +2248,259 @@ Be specific and include file paths if the error mentions them.`;
     if (!selector) {
       console.warn('Ollama model selector not found in DOM, updating state only');
     }
-/*
-    if (this.currentModel !== 'ollama') {
-        selector.classList.add('hidden');
-        return;
-    }*/
+
+    if (this.currentModel !== 'ollama')
+      selector.classList.add('hidden');
+
+    const result = await window.electronAPI.getOllamaModels();
+
+    // Safely handle cases where models might be null/undefined or not an array
+    const models = Array.isArray(result.models) ? result.models : [];
+
+    if (result.success && models.length > 0) {
+      this.availableOllamaModels = models;
+
+      if (selector) {
+        selector.innerHTML = models.map(m =>
+            `<option value="${m.name}" ${m.name === this.currentOllamaModel ? 'selected' : ''}>${m.name}</option>`
+        ).join('');
+        selector.classList.remove('hidden');
+      }
+
+      // Auto-select first model regardless of DOM state
+      if (!this.currentOllamaModel) {
+        this.currentOllamaModel = models[0].name;
+
+        if (selector) {
+            selector.value = this.currentOllamaModel;
+        }
+
+        // Persist selection immediately so it's available for chat
+        await window.electronAPI.setConfig({
+            modelType: 'ollama',
+            modelName: this.currentOllamaModel
+        });
+      }
+
+      return 0;
+    }
+
+    else if (result.success && models.length === 0)
+      return -1;
+
+    else {
+      throw new Error(result.error || 'Failed to fetch models');
+      return -2;
+    }
+  }
+
+  async introInstructions() {
+    const result = await this.populateOllamaModels()
+
+    switch (result) {
+      case 0:
+        document.getElementById('intro-model-instructions')?.classList.remove('hidden');
+        document.getElementById("ollama-detected").style.display = 'block';
+        break;
+
+      case -1:
+        document.getElementById('intro-model-instructions')?.classList.remove('hidden');
+        document.getElementById("no-models").style.display = 'block';
+        break;
+
+      case -2:
+        document.getElementById('intro-model-instructions')?.classList.remove('hidden');
+        document.getElementById("model-selection").style.display = 'block';
+        break;
+    }
+
+        /*
+        if (result === 0) {
+          document.getElementById('intro-model-instructions')?.classList.add('hidden');
+          return;
+        }
+
+        else if (result === 1) {
+          document.getElementById("no-models").classList.remove('hidden');
+          return;
+          // Ollama is running but has no models pulled
+          //const subtitle = document.getElementById("subtitle-intro");
+          //subtitle.innerHTML = "Ollama was found on your device, but there are no models installed";
+        }
+        */
+  }
+
+  async showOllamaModelDownload() {
+    const result = await this.populateOllamaModels();
+
+    document.getElementById('intro-model-instructions')?.classList.remove('hidden');
+    document.getElementById("model-selection").style.display = 'none';
+    document.getElementById("os-specific-download").style.display = 'none';
+
+    switch (result) {
+      case 0:
+        document.getElementById("dl-ollama-instructions").style.display = 'none';
+        document.getElementById("try-again-msg").style.display = 'none';
+        document.getElementById("ollama-check-failed-btns").style.display = 'none';
+
+        this._createStatusSVG('success');
+        this._setSuccessTitle("Ollama is set. You are eady to go!");
+
+        const success = document.getElementById('ollama-success');
+        success.style.display = 'block';
+
+        new Promise(resolve => {
+          setTimeout(() => {
+            success.style.display = 'none';
+            document.getElementById("intro-model-instructions")?.classList.add('hidden');
+            resolve();
+          }, 3000)
+        });
+
+        break;
+
+      case -1:
+        document.getElementById("no-models").style.display = 'block';
+        break;
+
+      case -2:
+        document.getElementById("dl-ollama-instructions").style.display = 'block';
+
+        break;
+    }
+  }
+
+  _createStatusSVG(status) {
+    const svgHTML = document.getElementById("checkmark-container");
+
+    if (status === "success") {
+      svgHTML.innerHTML += `<svg class="checkmark-svg" viewBox="0 0 52 52">
+      <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none" />
+      <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
+      </svg>`;
+    }
+
+    else {
+      svgHTML.innerHTML += `<svg class="x-svg" viewBox="0 0 52 52">
+      <circle class="x-circle" cx="26" cy="26" r="25" fill="none" />
+      <path class="x-line line-1" fill="none" d="M14 14 L38 38" />
+      <path class="x-line line-2" fill="none" d="M38 14 L14 38" />
+      </svg>`;
+    }
+  }
+
+  _setSuccessTitle(newTitle) {
+    const title = document.getElementById("success-title");
+    title.innerHTML = newTitle;
+  }
+
+  async verifyOllama() {
+    document.getElementById("dl-ollama-instructions").style.display = 'none';
+
+    // These will only become visible again if Ollama isn't running
+    document.getElementById("try-again-msg").style.display = 'none';
+    document.getElementById("ollama-check-failed-btns").style.display = 'none';
+
+    const result = await this.populateOllamaModels();
+
+    switch (result) {
+      case 0:
+        document.getElementById("ollama-success").style.display = 'block';
+
+        this._createStatusSVG('success');
+        this._setSuccessTitle("Ollama is set. You are eady to go!");
+
+        setTimeout(() => {
+          document.getElementById('intro-model-instructions')?.classList.add('hidden');
+        }, 3100);
+
+        break;
+
+      case -1:
+        document.getElementById("no-models").style.display = 'block';
+        break;
+
+      case -2:
+        document.getElementById("window-will-close").style.display = 'none';
+        document.getElementById("ollama-success").style.display = 'block';
+        document.getElementById("try-again-msg").style.display = 'block';
+
+        // Wait for error animation to complete
+        setTimeout(() => {
+          document.getElementById("ollama-check-failed-btns").style.display = 'block';
+        }, 2000);
+
+        this._createStatusSVG('error');
+        this._setSuccessTitle("Ollama failed to load");
+
+        break;
+    }
+  }
+
+  async downloadOllamaModel() {
+    const isOllamaRunning = await window.electronAPI.checkOllama();
+
+    if (!isOllamaRunning) {
+      alert("Error: Ollama isn't running. \n\nPlease make sure that Ollama is running before downloading a model");
+      return;
+    }
+
+    /*
+    const userModels = await window.electronAPI.getOllamaModels();
+    const doesUserAlreadyHaveModel = userModels.find(x => x.name === this.modelToDownload);
+
+    if (doesUserAlreadyHaveModel) {
+      alert('Model is already installed');
+      return;
+    }
+    */
+
+    const progressText = document.getElementById('ollama-dl-progress-text');
+    const dlText = document.getElementById("dl-text");
+    const downloadBtn = document.getElementById("dl-ollama-model");
+    const continueBtn = document.getElementById("verify-ollama-after-model-dl");
+    const abordDownload = document.getElementById("abort-ollama-model-dl");
+    const closeOllamaModelDl = document.getElementById("close-ollama-model-dl");
 
     try {
-        const result = await window.electronAPI.getOllamaModels();
+      if (progressText) {
+        progressText.textContent = '0%';
+        dlText.style.display = 'block';
+      }
 
-        // Safely handle cases where models might be null/undefined or not an array
-        const models = Array.isArray(result.models) ? result.models : [];
+      downloadBtn.style.display = 'none';
+      abordDownload.style.display = "block";
+      closeOllamaModelDl.style.display = 'none';
 
-        if (result.success && models.length > 0) {
-          this.availableOllamaModels = models;
+      const result = await window.electronAPI.downloadOllamaModel(this.modelToDownload);
 
-          if (selector) {
-            selector.innerHTML = models.map(m =>
-                `<option value="${m.name}" ${m.name === this.currentOllamaModel ? 'selected' : ''}>${m.name}</option>`
-            ).join('');
-            selector.classList.remove('hidden');
-          }
+      if (result.success) {
+        continueBtn.style = '';
+        dlText.style.display = 'none';
+        progressText.style.display = 'none';
+        abordDownload.style.display = 'none';
+      }
 
-          // Auto-select first model regardless of DOM state
-          if (!this.currentOllamaModel) {
-            this.currentOllamaModel = models[0].name;
+      else {
+        abordDownload.style.display = 'none';
+        downloadBtn.style.display = 'block';
+        progressText.style.display = 'none';
+        dlText.style.display = 'none';
+        closeOllamaModelDl.style = '';
 
-            if (selector) {
-                selector.value = this.currentOllamaModel;
-            }
-
-            // Persist selection immediately so it's available for chat
-            await window.electronAPI.setConfig({
-                modelType: 'ollama',
-                modelName: this.currentOllamaModel
-            });
-          }
-        }
-        else if (result.success) {
-            // Ollama is running but has no models pulled
-            selector.innerHTML = '<option value="">No models installed (run: ollama pull)</option>';
-            selector.classList.remove('hidden');
-            this.currentOllamaModel = null; // Explicitly null when empty
-        }
-        else {
-            throw new Error(result.error || 'Failed to fetch models');
-        }
+        alert(`Download failed: ${result.error}`);
+        return;
+      }
     }
     catch (e) {
-        console.error('Failed to get Ollama models:', e);
-        selector.innerHTML = '<option value="">Ollama not running</option>';
-        selector.classList.remove('hidden');
-        this.currentOllamaModel = null; // Explicitly null on error
+      abordDownload.style.display = 'none';
+      downloadBtn.style.display = 'block';
+      progressText.style.display = 'none';
+      dlText.style.display = 'none';
+      closeOllamaModelDl.style = '';
+
+      alert(`Download failed: ${e?.error || e?.message || e}`);
+      return;
     }
   }
 
@@ -1962,9 +2557,19 @@ Be specific and include file paths if the error mentions them.`;
     return sanitized;
   }
 
+  /**
+    * Sends user's message to a chat tab
+    *
+    * @param {string} text - User's prompt
+    * @param {string} targetTabId - Tab ID to send message to
+    * @returns {null}
+  */
   async sendMessage(text = null, targetTabId = null) {
     const config = await window.electronAPI.getConfig();
 
+    //await this.populateOllamaModels();
+
+    /*
     // Security: Model validation
     if (this.currentModel === 'ollama' && config.modelType === 'ollama') {
       if (!this.currentOllamaModel) {
@@ -1975,6 +2580,7 @@ Be specific and include file paths if the error mentions them.`;
         }
       }
     }
+    */
 
     const hub = document.getElementById('welcome-hub');
     if (hub) {
@@ -1993,9 +2599,6 @@ Be specific and include file paths if the error mentions them.`;
 
     if (!chatData || chatData.isGenerating)
       return;
-/*
-    if (chatData.isGenerating)
-      return;*/
 
     let input;
     if (tabId === 'chat') {
@@ -2082,171 +2685,231 @@ Be specific and include file paths if the error mentions them.`;
     }
 
     try {
-        let responseText;
-        const basePrompt = await window.electronAPI.getSystemPrompt();
-        let contextPrompt = basePrompt;
-        const isTinyLlama = this.currentModel === 'tinyllama';
+      console.log(this.currentModel);
 
-        // Security: Build context securely
-        if (this.attachedFiles.length > 0) {
-          contextPrompt += `\n\nThe user has uploaded ${this.attachedFiles.length} file(s).\n\n`;
-          const fileContext = await this.buildSmartContext(this.attachedFiles, message, isTinyLlama);
-          contextPrompt += fileContext;
-        }
-        else if (this.workspacePath) {
-          try {
-            const relevantFiles = await window.electronAPI.searchIndex?.(message, true) || [];
-            if (relevantFiles.length === 0 && this.workspaceIndex?.index?.size > 0) {
-              const filesArray = Array.from(this.workspaceIndex.index.values());
-              relevantFiles.push(...filesArray.slice(0, 10).map(f => ({
-                  ...f,
-                  relevance: 1,
-                  name: f.relativePath?.split(/[/\\]/).pop() || f.name
-                })));
-              }
+      let responseText;
+      //let basePrompt;
+      const basePrompt = await window.electronAPI.getSystemPrompt();
 
-              const explicitRefs = this.extractFileReferences(message);
+      //if (this.currentModal === 'ollama')
+      //basePrompt = await window.electronAPI.getSystemPrompt();
 
-              for (const ref of explicitRefs) {
-                const alreadyIncluded = relevantFiles.some(f =>
-                    f.relativePath?.replace(/\\/g, '/').endsWith(ref.replace(/\\/g, '/'))
-                );
-                if (!alreadyIncluded) {
-                  const safePath = this.resolveSafePath(ref, this.workspacePath);
-                  if (safePath) {
-                    try {
-                      const content = await window.electronAPI.readFile(safePath);
-                      relevantFiles.unshift({
-                        name: path.basename(safePath),
-                        relativePath: this.getRelativePath(safePath, this.workspacePath),
-                        absolutePath: safePath,
-                        path: safePath,
-                        content: content,
-                        size: content.length,
-                        relevance: 9999,
-                        isExplicitReference: true
-                      });
-                    }
-                    catch (e) { console.log('File not found:', ref) }
+      /*
+      else
+        basePrompt = await window.electronAPI.getLlamaPrompt();
+      */
+
+      let contextPrompt = basePrompt;
+      //const isTinyLlama = this.currentModel === 'tinyllama';
+
+
+      // Security: Build context securely
+      if (this.attachedFiles.length > 0) {
+        contextPrompt += `\n\nThe user has uploaded ${this.attachedFiles.length} file(s).\n\n`;
+        //const fileContext = await this.buildSmartContext(this.attachedFiles, message, isTinyLlama);
+        const fileContext = await this.buildSmartContext(this.attachedFiles, message);
+        contextPrompt += fileContext;
+      }
+      else if (this.workspacePath) {
+        try {
+          const relevantFiles = await window.electronAPI.searchIndex?.(message, true) || [];
+          if (relevantFiles.length === 0 && this.workspaceIndex?.index?.size > 0) {
+            const filesArray = Array.from(this.workspaceIndex.index.values());
+            relevantFiles.push(...filesArray.slice(0, 10).map(f => ({
+                ...f,
+                relevance: 1,
+                name: f.relativePath?.split(/[/\\]/).pop() || f.name
+              })));
+            }
+
+            const explicitRefs = this.extractFileReferences(message);
+
+            for (const ref of explicitRefs) {
+              const alreadyIncluded = relevantFiles.some(f =>
+                  f.relativePath?.replace(/\\/g, '/').endsWith(ref.replace(/\\/g, '/'))
+              );
+              if (!alreadyIncluded) {
+                const safePath = this.resolveSafePath(ref, this.workspacePath);
+                if (safePath) {
+                  try {
+                    const content = await window.electronAPI.readFile(safePath);
+                    relevantFiles.unshift({
+                      name: path.basename(safePath),
+                      relativePath: this.getRelativePath(safePath, this.workspacePath),
+                      absolutePath: safePath,
+                      path: safePath,
+                      content: content,
+                      size: content.length,
+                      relevance: 9999,
+                      isExplicitReference: true
+                    });
                   }
+                  catch (e) { console.log('File not found:', ref) }
                 }
               }
+            }
 
-              relevantFiles.sort((a, b) => (b.relevance || 0) - (a.relevance || 0));
-              const filesWithContent = relevantFiles.map(f => ({
-                  ...f,
-                  content: f.content || '',
-                  absolutePath: f.absolutePath || f.path
-              }));
+            relevantFiles.sort((a, b) => (b.relevance || 0) - (a.relevance || 0));
+            const filesWithContent = relevantFiles.map(f => ({
+                ...f,
+                content: f.content || '',
+                absolutePath: f.absolutePath || f.path
+            }));
 
-              const fileContext = await this.buildSmartContext(filesWithContent, message, isTinyLlama);
-              if (fileContext) {
-                  contextPrompt += `\n\nRelevant workspace files:\n\n${fileContext}`;
-              }
-          } catch (e) {
-              console.warn('Index search unavailable:', e);
-          }
+            //const fileContext = await this.buildSmartContext(filesWithContent, message, isTinyLlama);
+            const fileContext = await this.buildSmartContext(this.attachedFiles, message);
+
+            if (fileContext) {
+                contextPrompt += `\n\nRelevant workspace files:\n\n${fileContext}`;
+            }
+        }
+        catch (e) { console.warn('Index search unavailable:', e) }
+      //}
+
+      if (this.currentModel === 'ollama') {
+        // Security: Use the new secure endpoint
+        const result = await window.electronAPI.chatWithOllamaSecure(
+            message,
+            this.currentOllamaModel,
+            requestId,
+            tabId
+        );
+
+        if (result.error) {
+            throw new Error(result.error);
         }
 
-        // Security: Use secure API for Ollama, legacy for TinyLlama
-        if (this.currentModel === 'ollama') {
-          // Security: Use the new secure endpoint
-          const result = await window.electronAPI.chatWithOllamaSecure(
-              message,
-              this.currentOllamaModel,
-              requestId,
-              tabId
-          );
+        responseText = result.response;
 
-          if (result.error) {
-              throw new Error(result.error);
-          }
-
-          responseText = result.response;
-
-          // Security: Log security validation status
-          if (result.security) {
-              console.log('[SECURITY] Request validated:', result.security.requestValidated);
-              console.log('[SECURITY] Output validated:', result.security.outputValidated);
-          }
+        // Security: Log security validation status
+        if (result.security) {
+            console.log('[SECURITY] Request validated:', result.security.requestValidated);
+            console.log('[SECURITY] Output validated:', result.security.outputValidated);
         }
-        else if (isTinyLlama && this.tinyLlamaPipeline) {
-          // Legacy TinyLlama path (should be migrated to secure pattern)
-          const fullPrompt = `<|system|>\n${contextPrompt}</s>\n<|user|>\n${message}</s>\n<|assistant|>\n`;
-          const output = await this.tinyLlamaPipeline(fullPrompt, {
-              max_new_tokens: 256,
-              temperature: 0.3,
-              do_sample: true,
-              top_k: 128,
-              repetition_penalty: 1.1
+      }
+      else if (this.currentModel === 'o4') {
+        let openaiKey = await window.electronAPI.readEnvKey('OPENAI_KEY');
+        let  jsonResponse = null;
+
+        try {
+          const result = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${openaiKey.data}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              model: "gpt-4o",
+              messages: [{
+                role: "system",
+                content: basePrompt
+              },
+              {
+                role: "user",
+                content: message
+              }]
+            })
           });
 
-          const rawOutput = output[0].generated_text;
-          const assistantToken = '<|assistant|>';
-          const assistantIndex = rawOutput.indexOf(assistantToken);
+          openaiKey = null;
+          jsonResponse = await result.json();
 
-          if (assistantIndex !== -1) {
-              responseText = rawOutput.substring(assistantIndex + assistantToken.length).trim();
-          } else {
-              const promptPattern = fullPrompt.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-              responseText = rawOutput.replace(new RegExp(promptPattern, 'i'), '').trim();
-          }
-
-          responseText = responseText
-            .replace(/<\|system\|>.*?<\/s>/gi, '')
-            .replace(/<\|user\|>.*?<\/s>/gi, '')
-            .replace(/<\/s>/g, '')
-            .trim();
+          if (!result.ok)
+            throw new Error(`Failed to connect to OpenAI. \nReason: ${jsonResponse.error.message}`);
         }
-        else {
-            throw new Error('No model configured');
+        catch(e) {
+          throw(e);
+          return;
         }
 
-        // Security: Verify request wasn't hijacked during generation
-        if (chatData?.pendingRequestId !== requestId) {
-            console.warn('[SECURITY] Stale request detected, discarding response');
-            document.getElementById(loadingId)?.remove();
-            return;
-        }
-
-        // Security: Remove any think tags that might leak internal processing
-        responseText = responseText.replace(/^<\/think>\s*/, '');
-
-
-        if (loadingId) {
-          const loadingElement = document.getElementById(loadingId);
-
-          if (loadingElement) {
-              loadingElement.remove();
-          }
-        }
-
-        // Add response to chat
-        chatData.messages.push({
-            role: 'assistant',
-            content: responseText,
-            timestamp: Date.now(),
-            requestId: requestId
+      }
+      /* DEPRECATED Tinyllama
+      else if (isTinyLlama && this.tinyLlamaPipeline) {
+        // Legacy TinyLlama path (should be migrated to secure pattern)
+        const fullPrompt = `<|system|>\n${contextPrompt}</s>\n<|user|>\n${message}</s>\n<|assistant|>\n`;
+        const output = await this.tinyLlamaPipeline(fullPrompt, {
+            max_new_tokens: 512,
+            temperature: 0.7,
+            top_p: 0.95,
+            do_sample: true,
+            //top_k: 128,
+            repetition_penalty: 1.1
         });
 
-        chatData.isGenerating = false;
-        chatData.pendingRequestId = null;
+        const rawOutput = output[0].generated_text;
+        const assistantToken = '<|assistant|>';
+        const assistantIndex = rawOutput.indexOf(assistantToken);
 
-        // Display response
-        if (tabId === 'chat') {
-          if (this.activeTab === 'chat') {
-              this.addMessage('assistant', responseText);
-              this.updateCurrentChat(responseText, 'assistant');
-          }
+        if (assistantIndex !== -1) {
+            responseText = rawOutput.substring(assistantIndex + assistantToken.length).trim();
         }
         else {
-          this.addMessageToTab(tabId, 'assistant', responseText);
-
-          if (this.activeTab !== tabId) {
-            this.setTabUnreadIndicator(tabId, true);
-          }
-          await this.saveChatToHistory(chatData);
+            const promptPattern = fullPrompt.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            responseText = rawOutput.replace(new RegExp(promptPattern, 'i'), '').trim();
         }
+
+        responseText = responseText
+          .replace(/<\|system\|>.*?<\/s>/gi, '')
+          .replace(/<\|user\|>.*?<\/s>/gi, '')
+          .replace(/<\/s>/g, '')
+          .trim();
+
+
+      }
+      */
+      else {
+          throw new Error('No model configured');
+      }
+
+      // Security: Verify request wasn't hijacked during generation
+      if (chatData?.pendingRequestId !== requestId) {
+          console.warn('[SECURITY] Stale request detected, discarding response');
+          document.getElementById(loadingId)?.remove();
+          return;
+      }
+
+      // Security: Remove any think tags that might leak internal processing
+      responseText = responseText.replace(/^<\/think>\s*/, '');
+
+      if (loadingId) {
+        const loadingElement = document.getElementById(loadingId);
+
+        if (loadingElement) {
+            loadingElement.remove();
+        }
+      }
+
+      // Add response to chat
+      chatData.messages.push({
+          role: 'assistant',
+          content: responseText,
+          timestamp: Date.now(),
+          requestId: requestId
+      });
+
+      chatData.isGenerating = false;
+      chatData.pendingRequestId = null;
+
+      // Display response
+      if (tabId === 'chat') {
+        if (this.activeTab === 'chat') {
+            this.addMessage('assistant', responseText);
+            this.updateCurrentChat(responseText, 'assistant');
+        }
+      }
+      else {
+        this.addMessageToTab(tabId, 'assistant', responseText);
+
+        if (this.activeTab !== tabId) {
+          this.setTabUnreadIndicator(tabId, true);
+        }
+        await this.saveChatToHistory(chatData);
+      }
+      }
+      else {
+        throw new Error("Please select a workspace, and try again");
+        return;
+      }
     }
     catch (e) {
         document.getElementById(loadingId)?.remove();
@@ -2265,11 +2928,10 @@ Be specific and include file paths if the error mentions them.`;
         else {
             this.addMessageToTab(tabId, 'assistant', safeError);
         }
-
-        console.error('[SECURITY] Chat error:', e);
     }
     finally {
         this.activeRequests.delete(requestId);
+
         if (loadingId) {
             document.getElementById(loadingId)?.remove();
         }
@@ -2881,6 +3543,7 @@ Be specific and include file paths if the error mentions them.`;
       return;
 
     if (!this.workspacePath) {
+      /*
       if (this.currentModel === 'tinyllama') {
         title.textContent = 'Ready to collaborate';
         subtitle.textContent = 'TinyLlama runs entirely on your machine - no setup needed. Open a workspace folder to analyze your code, or ask to generate a new project';
@@ -2901,26 +3564,25 @@ Be specific and include file paths if the error mentions them.`;
           </button>
         `;
       }
-      else {
+      */
+      //else {
         title.textContent = 'Ready to collaborate';
         subtitle.textContent = 'Ollama lets you use open-source models (such as Mistral, Kimi, Deepseek, etc) either locally or via cloud. This requires Ollama installation';
         suggestions.innerHTML = `
           <button class="hub-suggestion-btn" onclick="app.selectWorkspace()">
             <span>📂</span> Open workspace folder
           </button>
-          <button class="hub-suggestion-btn" onclick="window.open('https://ollama.com', '_blank')">
-            <span>🔗</span> Get Ollama app
-          </button>
           <button class="hub-suggestion-btn" onclick="app.showSettingsModal()">
             <span>⚙️</span> Choose model
           </button>
         `;
-      }
+      //}
     }
     else {
       title.textContent = 'Ready to collaborate';
       subtitle.textContent = 'What shall we work on?';
 
+      /*
       if (this.currentModel === 'tinyllama') {
         suggestions.innerHTML = `
           <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Explain what this project does')">
@@ -2946,7 +3608,8 @@ Be specific and include file paths if the error mentions them.`;
           </button>
         `;
       }
-      else {
+      */
+      //else {
         suggestions.innerHTML = `
         <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Review the architecture')">
           <div class="suggestion-icon">🏗️</div>
@@ -2977,7 +3640,7 @@ Be specific and include file paths if the error mentions them.`;
           </div>
         </button>
       `;
-      }
+      //}
     }
   }
 
@@ -3132,6 +3795,7 @@ Be specific and include file paths if the error mentions them.`;
     const file = this.openFiles.get(tabId);
 
     let nextTabId = null;
+
     if (this.activeTab === tabId) {
       // Try previous sibling (skip the new-chat button if present)
       let prev = tabElement?.previousElementSibling;
@@ -3469,9 +4133,10 @@ Be specific and include file paths if the error mentions them.`;
     return patterns.some(p => p.test(query.toLowerCase()));
   }
 
-  async buildSmartContext(files, query, isTinyLlama = true) {
+  async buildSmartContext(files, query /*, isTinyLlama = true*/) {
     const isOverview = this.isProjectOverviewQuery(query);
-    const maxChars = isTinyLlama ? 1250 : 50000;
+    const maxChars = 50000;
+    //isTinyLlama ? 1250 : 50000;
     const processedPaths = new Set();
 
     let context = '';
@@ -3584,13 +4249,13 @@ Be specific and include file paths if the error mentions them.`;
 
   showSettingsModal() {
     const currentModelDiv = document.getElementById('current-model');
-
+/*
     if (this.currentModel === 'tinyllama')
       if (currentModelDiv)
         currentModelDiv.style.display = "none";
 
     if (this.currentModel !== 'tinyllama')
-      this.populateOllamaModels();
+      this.populateOllamaModels();*/
 
     const modelRadio = document.querySelector(`input[name="settings-model"][value="${this.currentModel}"]`);
     if (modelRadio) {
@@ -3635,6 +4300,7 @@ Be specific and include file paths if the error mentions them.`;
 
   async saveSettings() {
     try {
+      /*
         // Handle model change if selected
         const selectedModel = document.querySelector('input[name="settings-model"]:checked')?.value;
 
@@ -3651,6 +4317,7 @@ Be specific and include file paths if the error mentions them.`;
           else
             return;
         }
+        */
 
         // Handle theme change
         const selectedTheme = document.querySelector('input[name="theme-setting"]:checked')?.value;
@@ -3878,13 +4545,14 @@ Be specific and include file paths if the error mentions them.`;
 
       this.closeHistoryModal();
       this.saveCurrentChatToJson();
-    } else {
+    }
+    else {
       alert('Failed to load chat: ' + result.error);
     }
   }
 
   async deleteChatFromHistory(chatId) {
-    if (!confirm('Are you sure you want to delete this chat?')) return;
+    //if (!confirm('Are you sure you want to delete this chat?')) return;
 
     const result = await window.electronAPI.deleteChat(chatId);
     if (result.success) {
