@@ -42,6 +42,14 @@ body {
   height: 100vh;
 }
 
+ol {
+  list-style-position: inside;
+}
+
+ol li {
+  margin-bottom: 1rem;
+}
+
 /* Modals */
 .modal {
   position: fixed;
@@ -1555,4 +1563,270 @@ body {
   border-radius: 4px;
 }
 
+.intro-text {
+  display: flex;
+  justify-content: center;
+  text-align: center;
+  color: var(--text-secondary);
+  margin: 2rem 0;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
 
+.get-started-container{
+  justify-content: center;
+  text-align: center;
+}
+
+.subtitle-intro {
+  text-align: center;
+  color: var(--text-secondary);
+  margin-top: 1rem;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    border: 1px solid var(--border-color);
+  }
+
+  50% {
+    filter: brightness(1.15);
+    transform: scale(1.05);
+    border: 2px solid var(--border-color);
+  }
+}
+
+#btn-get-started {
+  width: 50%;
+  min-height: 32px;
+  border-radius: 8px;
+  animation: pulse 5s ease-in-out infinite;
+}
+
+#btn-get-started:hover {
+  filter: brightness(1.2);
+}
+
+.model-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.model-card {
+  background: var(--bg-primary);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  padding: 3rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.model-card:hover {
+  border-color: var(--accent-color);
+  transform: translateY(-3px);
+  background: linear-gradient(135deg, var(--bg-primary) 0%, rgba(59, 130, 246, 0.1) 100%);
+}
+
+.badge {
+  position: absolute;
+  top: -10px;
+  right: 10px;
+  background: var(--accent-color);
+  color: #eff1f3;
+  display: flex;
+  justify-content: center;
+  text-align: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.model-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.model-card h3 {
+  margin-bottom: 0.5rem;
+  font-size: 1.25rem;
+}
+
+.model-card p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.model-card .btn {
+  width: 100%;
+}
+
+.hint {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+#no-models {
+  flex-direction: column;
+}
+
+#ollama-model-to-pull {
+  height: 24px;
+  width: 40%;
+  margin-left: 4px;
+}
+
+#dl-ollama-model {
+  justify-content: center;
+  text-align: center;
+  width: 50%;
+  min-height: 32px;
+  border-radius: 8px;
+}
+
+#login-openai {
+  display: flex;
+  justify-content: center;
+  text-align: center;
+  align-items: center;
+}
+
+.model-login {
+  display: flex;
+  justify-content: center;
+  text-align: center;
+  align-items: center;
+  border: 1px solid var(--border-color);
+  min-height: 140px;
+  border-radius: 4px;
+  padding: 1rem;
+  gap: 0.55rem;
+}
+
+#openai-acc {
+  width: 50%;
+}
+
+.ollama-download-card {
+  display: flex;
+  justify-content: center;
+  text-align: center;
+  align-items: center;
+  flex-direction: column;
+  width: 32px;
+  height: 32px;
+  padding: 4em;
+}
+
+.sub-msg {
+  text-align: center;
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+}
+
+#install-cmd {
+  width: 40%;
+  height: 32px;
+}
+
+.download-ollama-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: #eff1f3;
+  width: 40%;
+  margin-top: 1em;
+}
+
+.download-ollama-btn:hover {
+  filter: brightness(1.2);
+}
+
+#copy-cmd {
+  background: transparent;
+  border: none;
+  margin-left: 2px;
+}
+
+#copy-cmd:hover {
+  filter: brightness(1.3);
+}
+
+.modal-nav-button {
+  width: 30%;
+}
+
+.checkmark-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2em;
+}
+
+.checkmark-svg {
+  width: 128px;
+  height: 128px;
+}
+
+.checkmark-circle {
+  stroke: #22c55e;
+  stroke-width: 2;
+  stroke-dasharray: 166; /* Circumference of circle (2 * pi * 26) */
+  stroke-dashoffset: 166;
+  animation: stroke 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.checkmark-check {
+  stroke: #22c55e;
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  /* Delay the checkmark until the circle is partially drawn */
+  animation: stroke 0.3s cubic-bezier(0.4, 0, 0.2, 1) 0.6s forwards;
+}
+
+@keyframes stroke {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.x-svg {
+  width: 128px;
+  height: 128px;
+}
+
+.x-circle {
+  stroke: #ef4444;
+  stroke-width: 2;
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  animation: stroke 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.x-line {
+  stroke: #ef4444;
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 42.4;
+  stroke-dashoffset: 42.4;
+}
+
+.line-1 {
+  animation: stroke 0.3s cubic-bezier(0.4, 0, 0.2, 1) 0.6s forwards;
+}
+
+.line-2 {
+  animation: stroke 0.3s cubic-bezier(0.4, 0, 0.2, 1) 0.9s forwards;
+}
