@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 const path = require('path');
 
+/* DEPRECATED
 async function loadTransformers() {
   const transformers = await import('@xenova/transformers');
   const { pipeline, env } = transformers;
@@ -11,12 +12,12 @@ async function loadTransformers() {
   env.remoteHost = 'https://huggingface.co';
 
   return { pipeline, env };
-}
+}*/
 
 // Load Transformers.js in the preload (Node context)
 contextBridge.exposeInMainWorld('electronAPI', {
   // Model
-  loadTransformers: () => loadTransformers(),
+  //loadTransformers: () => loadTransformers(),
 
   // Updates related
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
@@ -114,4 +115,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   writeDownloadChunk: (fileName, chunkBuffer, offset) => ipcRenderer.invoke('write-download-chunk', fileName, chunkBuffer, offset),
   getDownloadedFileSize: (fileName) => ipcRenderer.invoke('get-downloaded-file-size', fileName),
   clearDownloadChunks: () => ipcRenderer.invoke('clear-download-chunks'),
+
 });
