@@ -7,58 +7,180 @@
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <!-- First Run Modal -->
+
   <div id="first-run-modal" class="modal hidden">
     <div class="modal-content">
-      <h2>Welcome to SaiphAI</h2>
-      <p class="subtitle">Let's set up your AI model preference</p>
-
-      <div class="model-options">
-        <!-- TinyLlama -->
-        <div class="model-card  recommended" id="option-tinyllama">
-          <div class="model-icon">🚀</div>
-          <h3>TinyLlama</h3>
-          <p>Fast and lightweight model perfect for quick assistance and smaller projects. Runs efficiently on most hardware.</p>
-          <button class="btn btn-primary">Select TinyLlama</button>
-        </div>
-        <!-- Ollama -->
-        <div class="model-card" id="option-ollama">
-          <div class="badge">Advanced</div>
-          <div class="model-icon">🧠</div>
-          <h3>Ollama Integration</h3>
-          <p>Full-powered local AI with access to CodeLlama, Mistral, and other advanced models. Requires more resources.</p>
-          <button class="btn btn-primary">Select Ollama</button>
-        </div>
+      <h2>Welcome to SaiphA!</h2>
+      <p class="subtitle-intro">Your Coding Workspace... Smarter</p>
+      <div class="intro-text">
+        SaiphAI helps you work with your code. It can read your projects, find bugs, build applications, and more!
       </div>
-
-      <p class="hint">Don't worry, you can change this later</p>
+      <div class="get-started-container">
+        <button id="btn-get-started" class="btn-primary">
+          Get Started
+        </button>
+      </div>
     </div>
   </div>
 
-  <!-- Download Progress Modal -->
-  <div id="download-modal" class="modal hidden">
-    <div class="modal-content small">
-      <h3>Downloading Model</h3>
-      <p id="download-status">Initializing download...</p>
-      <div class="progress-bar">
-        <div class="progress-fill" id="progress-fill"></div>
+  <div id=intro-model-instructions class="modal hidden">
+    <div class="modal-content">
+
+      <div id="ollama-detected" class="intro-text">
+        <h2>Ollama detected</h2>
+        <p class='subtitle'>Ollama was found. Would you like to use Ollama?</p>
+        <button id='back-to-framework-selection' class="btn btn-secondary modal-nav-button">Select another AI framework</button>
+        <button id='use-ollama' class="btn btn-primary modal-nav-button">Use Ollama</button>
       </div>
-      <p class="progress-text" id="progress-text">0%</p>
-      <div class="download-controls" style="margin-top: 1rem; display: flex; gap: 0.5rem; justify-content: center;">
-        <button id="btn-pause-download" class="download-control-btn" title="Pause">
-          <!-- Pause icon (shown when downloading) -->
-          <svg id="icon-pause" class="icon" viewBox="0 0 24 24" width="24" height="24">
-            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
-          </svg>
-          <!-- Resume icon (shown when paused) - initially hidden -->
-          <svg id="icon-resume" class="icon hidden" viewBox="0 0 24 24" width="24" height="24">
-            <path d="M8 5v14l11-7z"/>
-          </svg>
-        </button>
-        <button id="btn-stop-download" class="btn-warning">Stop</button>
-        <button id="btn-cancel-download" class="btn-danger">Cancel</button>
+
+      <div id="model-selection" class="intro-text">
+        <p class="subtitle"><b>Let's set up your AI model preference</b></p>
+        <div class="model-options">
+          <!-- OpenAI  -->
+          <div class="model-card" id="option-openai" style='padding-top: 2.5rem'>
+            <img
+              src="../assets/OpenAI-white-monoblossom.png"
+              style="height: 65px; width: 65px; align-item: self;"
+            >
+            <h3 style="margin-top: 0.85rem; color: #eff1f3;">OpenAI</h3>
+            <p>OpenAI is an AI research and deployment company that builds advanced machine-learning models and tools (e.g., the GPT and DALL·E families)</p>
+          </div>
+          <!-- Ollama  -->
+          <div class="model-card" id="option-ollama">
+            <!-- <div class="badge">Advanced</div> -->
+            <img
+              src="https://ollama.com/public/assets/c889cc0d-cb83-4c46-a98e-0d0e273151b9/42f6b28d-9117-48cd-ac0d-44baaf5c178e.png"
+              style="height: 48px; width: 48px; align-item: self;"
+            >
+            <h3 style="padding-top: 1em; color: #eff1f3;">Ollama</h3>
+            <p>Full-powered local and cloud open-source AI models. Requires more resources.</p>
+          </div>
+        </div>
+        <p class="subtitle" style="margin-bottom: -1em;"> <b>Note</b>: If you have Ollama installed, make sure that it's running before selecting Ollama</p>
+        <br>
+         <p class="subtitle" style="margin-bottom: -1em; color: #f59e0b; font-size: 0.7em"> SaiphAI is not endorsed by, sponsored by, or partnered with OpenAI or Ollama in any way.</p>
       </div>
-    </div>
+
+      <div id="login-openai">
+        <h2>OpenAI setup</h2>
+        <p class="subtitle">Enter your OpenAI API key</p>
+        <p class="subtitle" style="margin-top: -1rem">This key will be used to send prompts to OpenAI models</p>
+        <div class="model-login">
+            <p style="margin-bottom: 1.25em;"> API key:</p>
+            <input id="openai-acc" class="input" placeholder="sk-proj-..."></input>
+        </div>
+
+        <div style="padding-top: 1em;">
+          <button id="close-openai-setup" class="btn btn-secondary">Cancel</button>
+          <button id="continue-openai-setup" class="btn btn-primary">Continue</button>
+        </div>
+
+        <div style="flex-direction: row; margin-top: 16px; font-size: 0.7rem;">
+          Can't find your OpenAI API key?
+          <a href="https://platform.openai.com/api-keys" target="_blank" style="margin-left: 2px;">Click here</a>
+        </div>
+      </div>
+
+      <div id="no-models" class="intro-text">
+        <h3 style="color: white;">Ollama is installed, but no models were found</h3>
+        <div style="margin-bottom: 16px; border: 1px solid var(--border-color); border-radius: 4px; padding: 1.25em; margin-top: 0.5rem;">
+          <p style="color: #eff1f3; padding-bottom: 1.5em;">To install an Ollama model, follow the steps below:</text>
+          <ol type="1">
+            <li>Select a model from the
+              <a href="https://ollama.com/library?sort=newest" target="_blank" style="margin-left: 2px;">Ollama models page</a>
+            </li>
+            <li>Paste the model's name:
+              <input id="ollama-model-to-pull" class="input" style="margin-bottom: 0" placeholder="example: mistral-medium-3.5:latest"></input>
+            </li>
+            <li id='press-download-to-start' style='display: none;'>Press the "Download Model" button below to start the download</li>
+          </ol>
+          <br>
+          <button id="dl-ollama-model" class="btn download-ollama-btn" style="margin-left: auto; margin-right: auto; width: 30%; margin-top: -0.5em;">Download Model</button>
+          <div style='padding-top: -4em;'>
+            <p id="dl-text" style="display: none; padding-top: 0; margin-top: -12px">Downloading...</p>
+            <p id="ollama-dl-progress-text"></p>
+          </div>
+            <button id='abort-ollama-model-dl' class="btn download-ollama-btn" style='display: none; margin-left: auto; margin-right: auto;'>Cancel download</button>
+        </div>
+
+        <div style='display: flex: flex-direction: row; padding-top: 1rem; margin-bottom: -1.25rem;'>
+          <button id="close-ollama-model-dl" class="btn btn-secondary modal-nav-button">Choose another AI framework</button>
+          <button id="verify-ollama-after-model-dl" class="btn btn-primary modal-nav-button" style="display: none">Continue</button>
+        </div>
+      </div>
+
+      <!-- Guided Install Ollama instructions -->
+      <div id="dl-ollama-instructions">
+        <h2 style="margin-bottom: -0.5em;">Install Ollama<h2>
+        <br>
+
+        <div style="border: 1px solid var(--border-color); border-radius: 4px;" padding="-1em">
+        <div class="intro-text">
+          Click on your operating system to see download/install instructions
+        </div>
+
+        <div id="model-selection" class="intro-text" style="gap: 3em;">
+          <div class="model-card ollama-download-card" id="option-macOS">
+            <img
+              src="https://logos-world.net/wp-content/uploads/2020/04/Apple-Logo.png"
+              style="height: 32px; width: 32px; align-item: self; margin-bottom: 4px;"
+            >
+            <p style="margin-bottom: 0;">MacOS</p>
+          </div>
+
+          <div class="model-card ollama-download-card" id="option-windows">
+            <img
+              src="https://logos-world.net/wp-content/uploads/2020/12/Windows-New-Logo.png"
+              style="height: 32px; width: 32px; align-item: self; margin-bottom: 4px;"
+            >
+            <p style="margin-bottom: 0;">Windows</p>
+          </div>
+
+          <div class="model-card ollama-download-card" id="option-linux">
+            <img
+              src="https://logos-world.net/wp-content/uploads/2020/09/Linux-Logo.png"
+              style="height: 32px; width: 32px; align-item: self; margin-bottom: 4px;"
+            >
+            <p style="margin-bottom: 0;">Linux</p>
+          </div>
+        </div>
+
+        <div id="os-specific-download" style="flex-direction: column;">
+          <!-- Complete sentence dynamically based on OS -->
+          <p class='sub-msg' style="margin-top: 0.25rem;" id="paste-into"></p>
+          <div style="flex-direction: row;">
+            <input class="input" readonly="true" id="install-cmd">
+            <button id="copy-cmd">
+              <img src="../assets/copy.png" style="display: flex; width: 16px; height: 16px;"></img>
+            </button>
+          </div>
+          <p class='sub-msg' style="margin-bottom: -4px;"> or press the button below to download Ollama</p>
+          <button id="download-ollama-button" class="btn download-ollama-btn">Download</button>
+          <p class="sub-msg" style="color: #eff1f3; font-size: 0.45em; padding-top: 5px;" id="requires-msg"></p>
+        </div>
+        <br>
+      </div>
+      <br>
+      <button id="close-dl-ollama" class="btn btn-secondary modal-nav-button">Return</button>
+      <button id="verify-ollama" class="btn btn-primary modal-nav-button">Continue</button>
+      </div>
+
+      <div id="ollama-success">
+        <h2 id="success-title"></h2>
+        <br>
+        <div class="checkmark-container" id="checkmark-container">
+        </div>
+        <p id="window-will-close" class="subtitle">This window will close automatically in 3 seconds</p>
+        <p id="try-again-msg" class="subtitle">
+          Ollama has not been installed successfully, or it's not running.<br>
+          Please make sure Ollama is running, and try again
+        </p>
+        <div id='ollama-check-failed-btns' style="display: flex; justify-content: center; align-item: center;">
+          <button id="back-to-model-selection-btn" class="btn btn-secondary modal-nav-button">Back to model selection</button>
+          <button id="try-again-btn" class="btn btn-primary modal-nav-button">Try again</button>
+        </div>
+      </div>
+
     </div>
   </div>
 
