@@ -51,6 +51,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   updateFileInIndex: (relativePath) => ipcRenderer.invoke('update-file-index', relativePath),
   selectFiles: () => ipcRenderer.invoke('select-files'),
   getProjectMetadata: () => ipcRenderer.invoke('get-project-metadata'),
+  // Env related
+  createEnvFile: () => ipcRenderer.invoke('create-env-file'),
+  //readEnvFile: () => ipcRenderer.invoke('read-env-file'),
+  readEnvKey: (key) => ipcRenderer.invoke('read-env-key', key),
+  writeToEnvFile: (key, content) => ipcRenderer.invoke('write-to-env-file', key, content),
 
   // Secure chat handlers
   registerChatRequest: (requestId, tabId) => ipcRenderer.invoke('register-chat-request', requestId, tabId),
