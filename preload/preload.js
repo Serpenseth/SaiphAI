@@ -94,12 +94,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getConfig: () => ipcRenderer.invoke('get-config'),
   setConfig: (config) => ipcRenderer.invoke('set-config', config),
 
-  // Ollama only (for advanced option)
+  // Ollama
   checkOllama: () => ipcRenderer.invoke('check-ollama'),
   downloadOllamaModel: (model) => ipcRenderer.invoke('download-ollama-model', model),
+  onDownloadOllamaModelProgress: (callback) => ipcRenderer.on('download-ollama-model-progress', (event, data) => callback(data)),
   chatWithOllama: (message, model) => ipcRenderer.invoke('chat-ollama', message, model),
   getOllamaModels: () => ipcRenderer.invoke('get-ollama-models'),
   getSystemPrompt: () => ipcRenderer.invoke('get-system-prompt'),
+  abortModelDownload: () => ipcRenderer.invoke('abort-model-download'),
 
   // Theme
   getTheme: () => ipcRenderer.invoke('get-theme'),
