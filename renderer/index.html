@@ -305,17 +305,16 @@
         <h2>Settings</h2>
         <div class="settings-section">
             <div class="model-selection">
-            <!-- DEPRECATED
-                   Model will always be Ollama
               <label>
-                  <input type="radio" name="settings-model" value="tinyllama" ${this.currentModel === 'tinyllama' ? 'checked' : ''}>
-                  TinyLlama - Fast, lightweight (1.1B parameters)
+                <input type="radio" name="settings-model" value="o4" ${this.currentModel === 'o4' ? 'checked' : ''}>
+                OpenAI
+                <p style="margin-top: 8px; color: #B0BCCD">OpenAI is an AI research and deployment company that builds advanced machine-learning models and tools (e.g., the GPT and DALL·E families)</p>
               </label>
               <label>
-                  <input type="radio" name="settings-model" value="ollama" ${this.currentModel === 'ollama' ? 'checked' : ''}>
-                  Ollama - Advanced code understanding (requires manual setup)
+                <input type="radio" name="settings-model" value="ollama" ${this.currentModel === 'ollama' ? 'checked' : ''}>
+                Ollama
+                <p style="margin-top: 8px; color: #B0BCCD">Full-powered local/cloud open-source AI models</p>
               </label>
-              -->
           </div>
         </div>
 
