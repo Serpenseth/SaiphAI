@@ -1725,9 +1725,8 @@ Be specific and include file paths if the error mentions them.`;
       }
     }
     catch (e) {
-        console.error('Ollama setup error:', e);
-        alert(`Error setting up Ollama: ${e.message}`);
-      }
+      console.error('Ollama setup error:', e);
+      alert(`Error setting up Ollama: ${e.message}`);
     }
     finally {
       setTimeout(() => this.renderWelcomeHub(), 300);
