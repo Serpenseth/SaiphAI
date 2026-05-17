@@ -76,8 +76,8 @@ ol li {
   background: var(--bg-primary);
   border-radius: 8px;
   padding: 2rem;
-  max-width: 800px;
-  width: 90%;
+  max-width: 880px;
+  width: 100%;
   max-height: 90vh;
   overflow-y: auto;
   border: 3px solid var(--border-color);
