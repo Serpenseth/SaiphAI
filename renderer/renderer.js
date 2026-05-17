@@ -166,6 +166,10 @@ class App {
       this.cleanupEventListeners();
     });
 
+
+    if (this.currentModel === 'ollama')
+      document.getElementById("input-openai-api-container").style.display = 'none';
+
     document.getElementById('update-progress-text').style.display = 'none';
 
     document.getElementById("ollama-detected").style.display = 'none';
@@ -215,6 +219,10 @@ class App {
 
     if (!result.success)
       await window.electronAPI.createEnvFile();
+
+    // User already switched to, or was already using OpenAI
+    if (result.data)
+      document.getElementById("input-openai-api-container").style.display = 'none';
   }
 
   // Events that perform actions on HTML elements
@@ -248,6 +256,18 @@ class App {
     addIpcListener('onDownloadProgress', (data) => {
       this.updateDownloadProgress(data);
     });
+
+    document.querySelectorAll('input[name="settings-model"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          if (this.currentModel === 'o4')
+            return;
+
+          const container = document.getElementById("input-openai-api-container");
+          container.style.display = e.target.value === 'o4' ? 'block' : 'none';
+        }
+      })
+    })
 
     addListener(
       document.getElementById('btn-get-started'),
@@ -2136,15 +2156,13 @@ Be specific and include file paths if the error mentions them.`;
       }
       */
       //else {
-        // Ollama path: Hide first-run modal immediately
-        document.getElementById('first-run-modal')?.classList.add('hidden');
+      if (this.currentModel === 'ollama') {
+        //document.getElementById('first-run-modal')?.classList.add('hidden');
 
         await window.electronAPI.setConfig({
           modelType: 'ollama',
           modelName: null
         });
-
-        this.currentModel = 'ollama';
 
         // Delay slightly to ensure DOM is ready, then populate
         setTimeout(async () => {
@@ -2157,7 +2175,7 @@ Be specific and include file paths if the error mentions them.`;
                 modelType: 'ollama',
                 modelName: this.currentOllamaModel
               });
-              this.updateStatus(`Ready: Ollama (${this.currentOllamaModel})`);
+              //this.updateStatus(`Ready: Ollama (${this.currentOllamaModel})`);
             }
             else {
               // No models found or Ollama not running
@@ -2165,7 +2183,7 @@ Be specific and include file paths if the error mentions them.`;
                 modelType: 'ollama',
                 modelName: null
               });
-              this.updateStatus('Ollama connected but no models found');
+              //this.updateStatus('Ollama connected but no models found');
             }
           }
           catch (ollamaErr) {
@@ -2173,13 +2191,24 @@ Be specific and include file paths if the error mentions them.`;
             this.updateStatus('Ollama selected (model list unavailable)');
           }
         }, 100);
-      //}
+      }
 
-      this.config = await window.electronAPI.getConfig();
+      else {
+        await window.electronAPI.setConfig({
+          modelType: 'o4',
+          modelName: 'o4'
+        });
 
-      // Only hide download modal if it was shown (TinyLlama case handled in finally)
-      if (modelType !== 'tinyllama') {
-        document.getElementById('download-modal')?.classList.add('hidden');
+        this.config = await window.electronAPI.getConfig();
+        document.getElementById("input-openai-api-container").style.display = 'none';
+
+
+        /*
+        // Only hide download modal if it was shown (TinyLlama case handled in finally)
+        if (modelType !== 'tinyllama') {
+          document.getElementById('download-modal')?.classList.add('hidden');
+        }
+        */
       }
     }
     catch (e) {
@@ -2194,12 +2223,12 @@ Be specific and include file paths if the error mentions them.`;
       }
       else {
         console.error('Ollama setup error:', e);
-        this.updateStatus('Error setting up Ollama: ' + e.message);
+        //this.updateStatus('Error setting up Ollama: ' + e.message);
       }
     }
     finally {
-      this.isDownloading = false;
-      document.getElementById('download-modal')?.classList.add('hidden');
+      //this.isDownloading = false;
+      //document.getElementById('download-modal')?.classList.add('hidden');
 
       setTimeout(() => this.renderWelcomeHub(), 300);
     }
@@ -2432,6 +2461,7 @@ Be specific and include file paths if the error mentions them.`;
 
         this._createStatusSVG('error');
         this._setSuccessTitle("Ollama failed to load");
+        this.currentModel = 'ollama';
 
         break;
     }
@@ -4249,18 +4279,10 @@ Be specific and include file paths if the error mentions them.`;
 
   showSettingsModal() {
     const currentModelDiv = document.getElementById('current-model');
-/*
-    if (this.currentModel === 'tinyllama')
-      if (currentModelDiv)
-        currentModelDiv.style.display = "none";
-
-    if (this.currentModel !== 'tinyllama')
-      this.populateOllamaModels();*/
 
     const modelRadio = document.querySelector(`input[name="settings-model"][value="${this.currentModel}"]`);
-    if (modelRadio) {
+    if (modelRadio)
       modelRadio.checked = true;
-    }
 
     // Grab user's theme so we can restore it on cancel
     this._originalTheme = document.documentElement.getAttribute('data-theme') || 'system';
@@ -4296,50 +4318,78 @@ Be specific and include file paths if the error mentions them.`;
       this.applyTheme(this._originalTheme);
       this._originalTheme = null;
     }
+
+    if (document.getElementById("input-openai-api").value !== '')
+      document.getElementById("input-openai-api").value = null;
   }
 
   async saveSettings() {
     try {
       /*
-        // Handle model change if selected
-        const selectedModel = document.querySelector('input[name="settings-model"]:checked')?.value;
+      // Handle model change if selected
+      const selectedModel = document.querySelector('input[name="settings-model"]:checked')?.value;
 
-        if (selectedModel && selectedModel !== this.currentModel) {
-          // Confirm if user wants to switch (may require download)
-          let message = `Switch to ${selectedModel === 'tinyllama' ? 'TinyLlama' : 'Ollama'}? `;
+      if (selectedModel && selectedModel !== this.currentModel) {
+        // Confirm if user wants to switch (may require download)
+        let message = `Switch to ${selectedModel === 'tinyllama' ? 'TinyLlama' : 'Ollama'}? `;
 
-          if (selectedModel === 'tinyllama')
-            message += "This may require downloading files if Tinyllama is not installed";
+        if (selectedModel === 'tinyllama')
+          message += "This may require downloading files if Tinyllama is not installed";
 
-          if (confirm(message))
-              await this.selectModel(selectedModel);
+        if (confirm(message))
+            await this.selectModel(selectedModel);
 
-          else
+        else
+          return;
+      }
+      */
+
+      const selectedModel = document.querySelector('input[name="settings-model"]:checked')?.value;
+
+      if (selectedModel === 'o4') {
+        const apiKey = document.getElementById("input-openai-api");
+
+        try {
+          const result = await fetch("https://api.openai.com/v1/models", {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${apiKey.value}` }
+          });
+
+          if (result.status === 401) {
+            alert("Error: Invalid API key. Try again");
             return;
+          }
         }
-        */
+        catch(e) {
+          alert(e);
+          return;
+        };
+      }
 
-        // Handle theme change
-        const selectedTheme = document.querySelector('input[name="theme-setting"]:checked')?.value;
-        if (selectedTheme) {
-            this.applyTheme(selectedTheme);
-            await window.electronAPI.setTheme(selectedTheme);
-            this.config.theme = selectedTheme;
-        }
+      this.currentModel = selectedModel;
+      await this.selectModel(selectedModel);
 
-        this.closeSettingsModal();
+      // Handle theme change
+      const selectedTheme = document.querySelector('input[name="theme-setting"]:checked')?.value;
+      if (selectedTheme) {
+          this.applyTheme(selectedTheme);
+          await window.electronAPI.setTheme(selectedTheme);
+          this.config.theme = selectedTheme;
+      }
 
-        const showHub = document.getElementById('setting-show-hub')?.checked;
+      this.closeSettingsModal();
 
-        if (showHub !== undefined && showHub !== this.showWelcomeHub) {
-            await this.toggleWelcomeHub(showHub);
-            // Update toggle button if exists
-            const toggleBtn = document.getElementById('hub-toggle');
+      const showHub = document.getElementById('setting-show-hub')?.checked;
 
-            if (toggleBtn) {
-                toggleBtn.textContent = showHub ? 'Tips: On' : 'Tips: Off';
-                toggleBtn.classList.toggle('active', showHub);
-            }
+      if (showHub !== undefined && showHub !== this.showWelcomeHub) {
+          await this.toggleWelcomeHub(showHub);
+          // Update toggle button if exists
+          const toggleBtn = document.getElementById('hub-toggle');
+
+          if (toggleBtn) {
+              toggleBtn.textContent = showHub ? 'Tips: On' : 'Tips: Off';
+              toggleBtn.classList.toggle('active', showHub);
+          }
         }
     }
     catch (e) {
