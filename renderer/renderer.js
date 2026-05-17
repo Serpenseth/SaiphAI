@@ -2,7 +2,7 @@ class App {
   constructor() {
     // User's workspace
     this.workspacePath = null;
-    // Selected model (Tinyllama or Ollama)
+    // Selected model (Ollama or OpenAI)
     this.currentModel = null;
     // Files from index
     this.openFiles = new Map();
@@ -115,16 +115,6 @@ class App {
     else {
       this.currentModel = this.config.modelType;
       await this.populateOllamaModels();
-
-      /*
-      if (this.currentModel === 'tinyllama' && this.transformers) {
-        await this.initTinyLlama();
-      }
-      */
-
-      //else {
-        //await this.populateOllamaModels();
-      //}
     }
 
     await this.loadCurrentChatFromJson();
@@ -621,36 +611,6 @@ class App {
         }
       }
     );
-
-    /*
-    addListener(
-      document.getElementById('btn-pause-download'),
-      'click', () => this.togglePauseDownload()
-    );
-
-    addListener(
-      document.getElementById('btn-stop-download'),
-      'click', () => {
-        this.stopDownload();
-        this.showFirstRunModal();
-      }
-    );
-
-    addListener(
-      document.getElementById('btn-cancel-download'),
-      'click', () => this.cancelDownload()
-    );
-    */
-
-    /*
-    addListener(
-      document.getElementById('option-tinyllama'),
-      'click', () => {
-        console.log('TinyLlama selected');
-        this.selectModel('tinyllama');
-      }
-    );
-    */
 
     addListener(
       document.getElementById('btn-settings'),
@@ -1606,80 +1566,21 @@ Be specific and include file paths if the error mentions them.`;
     const newSuggestions = newHub.querySelector('#hub-suggestions');
 
     if (!this.workspacePath) {
-      /*
-      // No workspace yet
-      if (this.currentModel === 'tinyllama') {
-        newTitle.textContent = 'Ready to collaborate';
-        newSubtitle.textContent = 'TinyLlama runs entirely on your machine - no setup needed. Open a workspace folder to analyze your code, ';
-        newSubtitle.textContent = newSubtitle.textContent + 'or ask to generate a new project';
-        newSuggestions.innerHTML = `
-          <button class="hub-suggestion-btn" onclick="app.selectWorkspace()">
-            <div class="suggestion-icon">📂</div>
-            <div class="suggestion-content">
-                <div class="suggestion-title">Open workspace folder</div>
-                <div class="suggestion-desc">Browse and analyze your local code repository</div>
-            </div>
+      newTitle.textContent = 'Ready to collaborate';
+      newSubtitle.textContent = 'Ollama lets you use open-source models (such as Mistral, Kimi, Deepseek, etc) either locally or via cloud.';
+      newSubtitle.textContent = newSubtitle.textContent + ' This requires Ollama installation';
+      newSuggestions.innerHTML = `
+        <button class="hub-suggestion-btn" onclick="app.selectWorkspace()">
+          <span>📂</span> Open workspace folder
         </button>
-        <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Help me understand how to use this app')">
-            <div class="suggestion-icon">💡</div>
-            <div class="suggestion-content">
-                <div class="suggestion-title">How does this work?</div>
-                <div class="suggestion-desc">Learn about features and keyboard shortcuts</div>
-            </div>
+        <button class="hub-suggestion-btn" onclick="app.showSettingsModal()">
+          <span>⚙️</span> Choose model
         </button>
-        `;
-      }
-      */
-      //else {
-        newTitle.textContent = 'Ready to collaborate';
-        newSubtitle.textContent = 'Ollama lets you use open-source models (such as Mistral, Kimi, Deepseek, etc) either locally or via cloud.';
-        newSubtitle.textContent = newSubtitle.textContent + ' This requires Ollama installation';
-        newSuggestions.innerHTML = `
-          <button class="hub-suggestion-btn" onclick="app.selectWorkspace()">
-            <span>📂</span> Open workspace folder
-          </button>
-          <button class="hub-suggestion-btn" onclick="app.showSettingsModal()">
-            <span>⚙️</span> Choose model
-          </button>
-        `;
-      //}
+      `;
     }
     else {
       // Workspace is open - focus on workspace questions, not "selected files"
       const hasFiles = this.workspaceIndex && this.workspaceIndex.index.size > 0;
-
-      /*
-      if (this.currentModel === 'tinyllama') {
-        newTitle.textContent = 'Ready to collaborate';
-        newSubtitle.textContent = 'What shall we work on?';
-
-        newSuggestions.innerHTML = `
-          <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Explain what this project does'), app.activeTab)">
-            <div class="suggestion-icon">🔍</div>
-            <div class="suggestion-content">
-                <div class="suggestion-title">Explain the codebase</div>
-                <div class="suggestion-desc">Get an overview of the project structure and purpose</div>
-            </div>
-        </button>
-        <button class="hub-suggestion-btn" onclick="app.sendSuggestion('How do I run this project?')">
-            <div class="suggestion-icon">🚀</div>
-            <div class="suggestion-content">
-                <div class="suggestion-title">Getting started</div>
-                <div class="suggestion-desc">Find setup instructions and dependencies</div>
-            </div>
-        </button>
-        <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Find potential bugs')">
-            <div class="suggestion-icon">🐛</div>
-            <div class="suggestion-content">
-                <div class="suggestion-title">Check for issues</div>
-                <div class="suggestion-desc">Scan for common bugs and code smells</div>
-            </div>
-        </button>
-        `;
-      }
-      */
-
-      //else {
         newTitle.textContent = 'Ready to collaborate';
         newSubtitle.textContent = 'What shall we work on?';
 
@@ -1713,7 +1614,6 @@ Be specific and include file paths if the error mentions them.`;
               </div>
           </button>
         `;
-      //}
     }
 
     // Add hide listener
@@ -1773,59 +1673,6 @@ Be specific and include file paths if the error mentions them.`;
       this.updateStatus('Welcome tips hidden. Re-enable in Settings.');
     }
   }
-
-  /*
-  async initTinyLlama(progressCallback = null) {
-    if (!this.transformers) {
-      throw new Error('Transformers.js library not loaded');
-    }
-
-    console.log('Initializing TinyLlama...');
-    const { pipeline, env } = this.transformers;
-
-    // Configure cache directory for resumable downloads
-    const modelCachePath = await window.electronAPI.getModelCachePath?.();
-
-    if (modelCachePath) {
-      env.cacheDir = modelCachePath;
-    }
-
-    // Check if we need to download or resume
-    const savedState = await window.electronAPI.getDownloadState?.('tinyllama');
-
-    if (savedState && !savedState.complete) {
-      this.downloadState.isResuming = true;
-      this.downloadState.currentFileIndex = savedState.currentFileIndex || 0;
-      this.downloadState.bytesDownloaded = savedState.bytesDownloaded || 0;
-    }
-
-    // Download files with resume support before loading pipeline
-    if (!savedState?.complete || this.downloadState.isResuming) {
-      await this.downloadModelFiles(progressCallback);
-    }
-
-    const modelFilesExist = await this.checkModelFilesExist();
-
-    // Load from local files once downloaded
-    this.tinyLlamaPipeline = await pipeline(
-      'text-generation',
-      'Xenova/TinyLlama-1.1B-Chat-v1.0',
-      {
-        progress_callback: progressCallback,
-        quantized: true,
-        local_files_only: modelFilesExist // Use downloaded files
-      }
-    );
-
-    // Clear download state on success
-    await window.electronAPI.clearDownloadState?.('tinyllama');
-
-    // Save config after successful initialization
-    await window.electronAPI.setConfig({
-      modelType: 'tinyllama'
-    });
-  }
-  */
 
   async selectModel(modelType) {
     try {
@@ -1887,31 +1734,6 @@ Be specific and include file paths if the error mentions them.`;
     }
 
   }
-
-  /*
-  async checkModelFilesExist() {
-    try {
-      const modelCachePath = await window.electronAPI.getModelCachePath?.();
-      if (!modelCachePath) return false;
-
-      // Check if at least one essential model file exists
-      const essentialFiles = ['config.json', 'tokenizer.json'];
-
-      for (const file of essentialFiles) {
-        const filePath = `${modelCachePath}/Xenova/TinyLlama-1.1B-Chat-v1.0/${file}`;
-        const exists = await window.electronAPI.checkFileExists?.(filePath);
-
-        if (!exists)
-          return false;
-
-        return true;
-      }
-    }
-    catch (e) {
-      return false;
-    }
-  }
-  */
 
   async populateOllamaModels() {
     const isOllamaRunning = await window.electronAPI.checkOllama();
@@ -2383,13 +2205,11 @@ Be specific and include file paths if the error mentions them.`;
       */
 
       let contextPrompt = basePrompt;
-      //const isTinyLlama = this.currentModel === 'tinyllama';
-
 
       // Security: Build context securely
       if (this.attachedFiles.length > 0) {
         contextPrompt += `\n\nThe user has uploaded ${this.attachedFiles.length} file(s).\n\n`;
-        //const fileContext = await this.buildSmartContext(this.attachedFiles, message, isTinyLlama);
+
         const fileContext = await this.buildSmartContext(this.attachedFiles, message);
         contextPrompt += fileContext;
       }
@@ -2439,7 +2259,6 @@ Be specific and include file paths if the error mentions them.`;
                 absolutePath: f.absolutePath || f.path
             }));
 
-            //const fileContext = await this.buildSmartContext(filesWithContent, message, isTinyLlama);
             const fileContext = await this.buildSmartContext(this.attachedFiles, message);
 
             if (fileContext) {
@@ -2506,40 +2325,6 @@ Be specific and include file paths if the error mentions them.`;
         }
 
       }
-      /* DEPRECATED Tinyllama
-      else if (isTinyLlama && this.tinyLlamaPipeline) {
-        // Legacy TinyLlama path (should be migrated to secure pattern)
-        const fullPrompt = `<|system|>\n${contextPrompt}</s>\n<|user|>\n${message}</s>\n<|assistant|>\n`;
-        const output = await this.tinyLlamaPipeline(fullPrompt, {
-            max_new_tokens: 512,
-            temperature: 0.7,
-            top_p: 0.95,
-            do_sample: true,
-            //top_k: 128,
-            repetition_penalty: 1.1
-        });
-
-        const rawOutput = output[0].generated_text;
-        const assistantToken = '<|assistant|>';
-        const assistantIndex = rawOutput.indexOf(assistantToken);
-
-        if (assistantIndex !== -1) {
-            responseText = rawOutput.substring(assistantIndex + assistantToken.length).trim();
-        }
-        else {
-            const promptPattern = fullPrompt.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            responseText = rawOutput.replace(new RegExp(promptPattern, 'i'), '').trim();
-        }
-
-        responseText = responseText
-          .replace(/<\|system\|>.*?<\/s>/gi, '')
-          .replace(/<\|user\|>.*?<\/s>/gi, '')
-          .replace(/<\/s>/g, '')
-          .trim();
-
-
-      }
-      */
       else {
           throw new Error('No model configured');
       }
@@ -3226,29 +3011,6 @@ Be specific and include file paths if the error mentions them.`;
       return;
 
     if (!this.workspacePath) {
-      /*
-      if (this.currentModel === 'tinyllama') {
-        title.textContent = 'Ready to collaborate';
-        subtitle.textContent = 'TinyLlama runs entirely on your machine - no setup needed. Open a workspace folder to analyze your code, or ask to generate a new project';
-        suggestions.innerHTML = `
-          <button class="hub-suggestion-btn" onclick="app.selectWorkspace()">
-            <div class="suggestion-icon">📂</div>
-            <div class="suggestion-content">
-              <div class="suggestion-title">Open workspace folder</div>
-              <div class="suggestion-desc">Browse and analyze your local code repository</div>
-            </div>
-          </button>
-          <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Help me understand how to use this app')">
-            <div class="suggestion-icon">💡</div>
-            <div class="suggestion-content">
-              <div class="suggestion-title">How does this work?</div>
-              <div class="suggestion-desc">Learn about features and keyboard shortcuts</div>
-            </div>
-          </button>
-        `;
-      }
-      */
-      //else {
         title.textContent = 'Ready to collaborate';
         subtitle.textContent = 'Ollama lets you use open-source models (such as Mistral, Kimi, Deepseek, etc) either locally or via cloud. This requires Ollama installation';
         suggestions.innerHTML = `
@@ -3264,66 +3026,36 @@ Be specific and include file paths if the error mentions them.`;
     else {
       title.textContent = 'Ready to collaborate';
       subtitle.textContent = 'What shall we work on?';
-
-      /*
-      if (this.currentModel === 'tinyllama') {
-        suggestions.innerHTML = `
-          <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Explain what this project does')">
-            <div class="suggestion-icon">🔍</div>
-            <div class="suggestion-content">
-              <div class="suggestion-title">Explain the codebase</div>
-              <div class="suggestion-desc">Get an overview of the project structure and purpose</div>
-            </div>
-          </button>
-          <button class="hub-suggestion-btn" onclick="app.sendSuggestion('How do I run this project?')">
-            <div class="suggestion-icon">🚀</div>
-            <div class="suggestion-content">
-              <div class="suggestion-title">Getting started</div>
-              <div class="suggestion-desc">Find setup instructions and dependencies</div>
-            </div>
-          </button>
-          <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Find potential bugs')">
-            <div class="suggestion-icon">🐛</div>
-            <div class="suggestion-content">
-              <div class="suggestion-title">Check for issues</div>
-              <div class="suggestion-desc">Scan for common bugs and code smells</div>
-            </div>
-          </button>
-        `;
-      }
-      */
-      //else {
-        suggestions.innerHTML = `
-        <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Review the architecture')">
-          <div class="suggestion-icon">🏗️</div>
-          <div class="suggestion-content">
-            <div class="suggestion-title">Architecture review</div>
-            <div class="suggestion-desc">Analyze design patterns and structure</div>
-          </div>
-        </button>
-        <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Optimize for performance')">
-          <div class="suggestion-icon">⚡</div>
-          <div class="suggestion-content">
-            <div class="suggestion-title">Optimize code</div>
-            <div class="suggestion-desc">Identify bottlenecks and improve efficiency</div>
-          </div>
-        </button>
-        <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Security audit')">
-          <div class="suggestion-icon">🔒</div>
-          <div class="suggestion-content">
-            <div class="suggestion-title">Security check</div>
-            <div class="suggestion-desc">Scan for vulnerabilities and best practices</div>
-          </div>
-        </button>
-        <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Generate documentation')">
-          <div class="suggestion-icon">📝</div>
-          <div class="suggestion-content">
-            <div class="suggestion-title">Document code</div>
-            <div class="suggestion-desc">Create README and inline documentation</div>
-          </div>
-        </button>
-      `;
-      //}
+      suggestions.innerHTML = `
+      <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Review the architecture')">
+        <div class="suggestion-icon">🏗️</div>
+        <div class="suggestion-content">
+          <div class="suggestion-title">Architecture review</div>
+          <div class="suggestion-desc">Analyze design patterns and structure</div>
+        </div>
+      </button>
+      <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Optimize for performance')">
+        <div class="suggestion-icon">⚡</div>
+        <div class="suggestion-content">
+          <div class="suggestion-title">Optimize code</div>
+          <div class="suggestion-desc">Identify bottlenecks and improve efficiency</div>
+        </div>
+      </button>
+      <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Security audit')">
+        <div class="suggestion-icon">🔒</div>
+        <div class="suggestion-content">
+          <div class="suggestion-title">Security check</div>
+          <div class="suggestion-desc">Scan for vulnerabilities and best practices</div>
+        </div>
+      </button>
+      <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Generate documentation')">
+        <div class="suggestion-icon">📝</div>
+        <div class="suggestion-content">
+          <div class="suggestion-title">Document code</div>
+          <div class="suggestion-desc">Create README and inline documentation</div>
+        </div>
+      </button>
+    `;
     }
   }
 
@@ -3816,10 +3548,9 @@ Be specific and include file paths if the error mentions them.`;
     return patterns.some(p => p.test(query.toLowerCase()));
   }
 
-  async buildSmartContext(files, query /*, isTinyLlama = true*/) {
+  async buildSmartContext(files, query) {
     const isOverview = this.isProjectOverviewQuery(query);
     const maxChars = 50000;
-    //isTinyLlama ? 1250 : 50000;
     const processedPaths = new Set();
 
     let context = '';
@@ -3978,25 +3709,6 @@ Be specific and include file paths if the error mentions them.`;
 
   async saveSettings() {
     try {
-      /*
-      // Handle model change if selected
-      const selectedModel = document.querySelector('input[name="settings-model"]:checked')?.value;
-
-      if (selectedModel && selectedModel !== this.currentModel) {
-        // Confirm if user wants to switch (may require download)
-        let message = `Switch to ${selectedModel === 'tinyllama' ? 'TinyLlama' : 'Ollama'}? `;
-
-        if (selectedModel === 'tinyllama')
-          message += "This may require downloading files if Tinyllama is not installed";
-
-        if (confirm(message))
-            await this.selectModel(selectedModel);
-
-        else
-          return;
-      }
-      */
-
       const selectedModel = document.querySelector('input[name="settings-model"]:checked')?.value;
 
       if (selectedModel === 'o4') {
