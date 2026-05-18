@@ -2421,14 +2421,29 @@ ipcMain.handle('read-env-key', async (event, key) => {
       // We are already throwing an instance of `Error` in renderer
       throw "Invalid env key";
       return { success: false }
-  }
-/*
-  try {
-    return { success: true, data: process.env.OPENAI_KEY }
-  }
-  catch(e) { return {success: false, error: e} };
-  */
 });
+
+
+ipcMain.handle('env-key-empty', async (event, key) => {
+  dotenv.config({ path: ENV_PATH });
+
+  switch (key) {
+    case 'OPENAI_KEY':
+      let k = process.env.OPENAI_KEY;
+
+      if (k)
+        return false;
+
+      return true;
+      break;
+
+    default:
+      // We are already throwing an instance of `Error` in renderer
+      throw "Invalid env key";
+      return { success: false }
+  }
+});
+
 
 ipcMain.handle('write-to-env-file', async (event, key, content) => {
   const envContent = await fs.readFile(ENV_PATH, 'utf8');

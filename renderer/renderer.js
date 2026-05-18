@@ -187,8 +187,10 @@ class App {
     if (!result.success)
       await window.electronAPI.createEnvFile();
 
+    const isOpenaiKeyEmpty = await window.electronAPI.envKeyEmpty('OPENAI_KEY');
+
     // User already switched to, or was already using OpenAI
-    if (result.data)
+    if (result.data && !isOpenaiKeyEmpty)
       document.getElementById("input-openai-api-container").style.display = 'none';
   }
 
@@ -225,9 +227,14 @@ class App {
     });
 
     document.querySelectorAll('input[name="settings-model"]').forEach(radio => {
-      radio.addEventListener('change', (e) => {
+      radio.addEventListener('change', async (e) => {
         if (e.target.checked) {
           if (this.currentModel === 'o4')
+            return;
+
+          const isOpenaiKeyEmpty = await window.electronAPI.envKeyEmpty('OPENAI_KEY');
+
+          if (!isOpenaiKeyEmpty)
             return;
 
           const container = document.getElementById("input-openai-api-container");
@@ -3734,6 +3741,9 @@ Be specific and include file paths if the error mentions them.`;
             alert("Error: Invalid API key. Try again");
             return;
           }
+
+          await window.electronAPI.writeToEnvFile('OPENAI_KEY', apiKey.value);
+          apiKey.value = null;
         }
         catch(e) {
           alert(e);
