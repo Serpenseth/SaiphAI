@@ -2421,6 +2421,7 @@ ipcMain.handle('read-env-key', async (event, key) => {
       // We are already throwing an instance of `Error` in renderer
       throw "Invalid env key";
       return { success: false }
+  }
 });
 
 
