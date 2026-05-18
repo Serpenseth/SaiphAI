@@ -1,24 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 const path = require('path');
 
-/* DEPRECATED
-async function loadTransformers() {
-  const transformers = await import('@xenova/transformers');
-  const { pipeline, env } = transformers;
-
-  // Configure for browser/Electron cache
-  env.useBrowserCache = true;
-  env.allowLocalModels = true;
-  env.remoteHost = 'https://huggingface.co';
-
-  return { pipeline, env };
-}*/
-
-// Load Transformers.js in the preload (Node context)
 contextBridge.exposeInMainWorld('electronAPI', {
-  // Model
-  //loadTransformers: () => loadTransformers(),
-
   // Updates related
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   getLocalVersion: () => ipcRenderer.invoke('get-local-version'),
@@ -115,12 +98,4 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveDownloadState: (modelId, state) => ipcRenderer.invoke('save-download-state', modelId, state),
   getDownloadState: (modelId) => ipcRenderer.invoke('get-download-state', modelId),
   clearDownloadState: (modelId) => ipcRenderer.invoke('clear-download-state', modelId),
-
-  // File chunk operations (for resumable downloads)
-  saveFileDownloadState: (fileName, state) => ipcRenderer.invoke('save-file-download-state', fileName, state),
-  getFileDownloadState: (fileName) => ipcRenderer.invoke('get-file-download-state', fileName),
-  writeDownloadChunk: (fileName, chunkBuffer, offset) => ipcRenderer.invoke('write-download-chunk', fileName, chunkBuffer, offset),
-  getDownloadedFileSize: (fileName) => ipcRenderer.invoke('get-downloaded-file-size', fileName),
-  clearDownloadChunks: () => ipcRenderer.invoke('clear-download-chunks'),
-
 });
