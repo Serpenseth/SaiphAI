@@ -3725,6 +3725,8 @@ Be specific and include file paths if the error mentions them.`;
   }
 
   async saveSettings() {
+    const isOpenaiKeyEmpty = await window.electronAPI.envKeyEmpty('OPENAI_KEY');
+
     try {
       const selectedModel = document.querySelector('input[name="settings-model"]:checked')?.value;
 
@@ -3742,7 +3744,10 @@ Be specific and include file paths if the error mentions them.`;
             return;
           }
 
-          await window.electronAPI.writeToEnvFile('OPENAI_KEY', apiKey.value);
+          // Only write key to .env if it's not empty
+          if (isOpenaiKeyEmpty)
+            await window.electronAPI.writeToEnvFile('OPENAI_KEY', apiKey.value);
+
           apiKey.value = null;
         }
         catch(e) {
