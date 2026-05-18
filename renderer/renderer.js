@@ -3725,37 +3725,35 @@ Be specific and include file paths if the error mentions them.`;
   }
 
   async saveSettings() {
-    const isOpenaiKeyEmpty = await window.electronAPI.envKeyEmpty('OPENAI_KEY');
+    const selectedModel = document.querySelector('input[name="settings-model"]:checked')?.value;
 
-    try {
-      const selectedModel = document.querySelector('input[name="settings-model"]:checked')?.value;
+    if (selectedModel === 'o4') {
+      const isOpenaiKeyEmpty = await window.electronAPI.envKeyEmpty('OPENAI_KEY');
 
-      if (selectedModel === 'o4') {
+      try {
         const apiKey = document.getElementById("input-openai-api");
 
-        try {
-          const result = await fetch("https://api.openai.com/v1/models", {
-            method: 'GET',
-            headers: { 'Authorization': `Bearer ${apiKey.value}` }
-          });
+        const result = await fetch("https://api.openai.com/v1/models", {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${apiKey.value}` }
+        });
 
-          if (result.status === 401) {
-            alert("Error: Invalid API key. Try again");
-            return;
-          }
-
-          // Only write key to .env if it's not empty
-          if (isOpenaiKeyEmpty)
-            await window.electronAPI.writeToEnvFile('OPENAI_KEY', apiKey.value);
-
-          apiKey.value = null;
-        }
-        catch(e) {
-          alert(e);
+        if (result.status === 401) {
+          alert("Error: Invalid API key. Try again");
           return;
-        };
-      }
+        }
 
+        await window.electronAPI.writeToEnvFile('OPENAI_KEY', apiKey.value);
+
+        apiKey.value = null;
+      }
+      catch(e) {
+        alert(e);
+        return;
+      };
+    }
+
+    try {
       this.currentModel = selectedModel;
       await this.selectModel(selectedModel);
 
@@ -3783,8 +3781,8 @@ Be specific and include file paths if the error mentions them.`;
         }
     }
     catch (e) {
-        console.error('Failed to save settings:', e);
-        alert('Error saving settings: ' + e.message);
+      console.error('Failed to save settings:', e);
+      alert('Error saving settings: ' + e.message);
     }
   }
 
