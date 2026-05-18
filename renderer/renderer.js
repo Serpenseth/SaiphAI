@@ -2159,8 +2159,9 @@ Be specific and include file paths if the error mentions them.`;
     if (tabId === 'chat') {
       if (this.activeTab === 'chat') {
         this.addMessage('user', message);
-        this.updateCurrentChat(message, 'user');
+        //this.updateCurrentChat(message, 'user');
       }
+      this.saveCurrentChatToJson();
     }
     else {
       this.addMessageToTab(tabId, 'user', message);
@@ -2368,8 +2369,9 @@ Be specific and include file paths if the error mentions them.`;
       if (tabId === 'chat') {
         if (this.activeTab === 'chat') {
             this.addMessage('assistant', responseText);
-            this.updateCurrentChat(responseText, 'assistant');
+            //this.updateCurrentChat(responseText, 'assistant');
         }
+        this.saveCurrentChatToJson();
       }
       else {
         this.addMessageToTab(tabId, 'assistant', responseText);
