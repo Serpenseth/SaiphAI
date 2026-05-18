@@ -2406,16 +2406,28 @@ ipcMain.handle('create-env-file', async () => {
   await fs.writeFile(ENV_PATH, "OPENAI_KEY=", 'utf8');
 });
 
-ipcMain.handle('read-env-key', async (key) => {
+ipcMain.handle('read-env-key', async (event, key) => {
   if (!fsSync.existsSync(ENV_PATH))
     return { success: false }
 
   dotenv.config({ path: ENV_PATH });
 
+  switch (key) {
+    case 'OPENAI_KEY':
+      return { success: true, data: process.env.OPENAI_KEY };
+      break;
+
+    default:
+      // We are already throwing an instance of `Error` in renderer
+      throw "Invalid env key";
+      return { success: false }
+  }
+/*
   try {
     return { success: true, data: process.env.OPENAI_KEY }
   }
   catch(e) { return {success: false, error: e} };
+  */
 });
 
 ipcMain.handle('write-to-env-file', async (event, key, content) => {
