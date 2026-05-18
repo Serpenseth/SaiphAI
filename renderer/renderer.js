@@ -1856,8 +1856,10 @@ Be specific and include file paths if the error mentions them.`;
         new Promise(resolve => {
           setTimeout(() => {
             success.style.display = 'none';
-            document.getElementById("intro-model-instructions")?.classList.add('hidden');
             this.currentModel = 'ollama';
+
+            document.getElementById("intro-model-instructions")?.classList.add('hidden');
+            document.getElementById("input-openai-api-container").style.display = 'none';
             resolve();
           }, 3000)
         });
@@ -1917,6 +1919,8 @@ Be specific and include file paths if the error mentions them.`;
 
         setTimeout(() => {
           document.getElementById('intro-model-instructions')?.classList.add('hidden');
+          document.getElementById("input-openai-api-container").style.display = 'none';
+
           this.currentModel = 'ollama';
         }, 3100);
 
