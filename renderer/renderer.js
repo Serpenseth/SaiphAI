@@ -1857,6 +1857,7 @@ Be specific and include file paths if the error mentions them.`;
           setTimeout(() => {
             success.style.display = 'none';
             document.getElementById("intro-model-instructions")?.classList.add('hidden');
+            this.currentModel = 'ollama';
             resolve();
           }, 3000)
         });
@@ -1916,6 +1917,7 @@ Be specific and include file paths if the error mentions them.`;
 
         setTimeout(() => {
           document.getElementById('intro-model-instructions')?.classList.add('hidden');
+          this.currentModel = 'ollama';
         }, 3100);
 
         break;
@@ -2700,8 +2702,9 @@ Be specific and include file paths if the error mentions them.`;
   async restoreEditorState() {
     const config = await window.electronAPI.getConfig();
 
-    //if (!config.openFiles || config.openFiles.length === 0)
-      //return;
+    if (!config.openFiles || config.openFiles.length === 0)
+      return;
+
 
     if (this.currentChat.messages.length > 0) {
         document.getElementById('chat-messages').innerHTML = '';
@@ -2727,7 +2730,9 @@ Be specific and include file paths if the error mentions them.`;
                 messages: chatConfig.messages || []
             });
         }
-    }/*
+    }
+
+    /*
     else {
       // Create default chat if none restored
       this.createChatTab();
