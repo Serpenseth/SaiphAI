@@ -2204,7 +2204,7 @@ class BuildToolManager {
 
   // AI-assisted error analysis
   async analyzeBuildError(buildOutput, language) {
-    // Integration with existing Ollama/TinyLlama
+    // Integration with existing Ollama/OpenAI
     const prompt = `Analyze this ${language} build error and suggest fixes:
 
 ${buildOutput.stderr || buildOutput.error}
