@@ -1564,11 +1564,12 @@ Be specific and include file paths if the error mentions them.`;
     const newTitle = newHub.querySelector('#hub-title');
     const newSubtitle = newHub.querySelector('#hub-subtitle');
     const newSuggestions = newHub.querySelector('#hub-suggestions');
+    const modelMsg = this.currentModel === 'ollama'
+      ? 'Ollama lets you use open-source models (such as Mistral, Kimi, Deepseek, etc) either locally or via cloud'
+      : null;
 
     if (!this.workspacePath) {
       newTitle.textContent = 'Ready to collaborate';
-      newSubtitle.textContent = 'Ollama lets you use open-source models (such as Mistral, Kimi, Deepseek, etc) either locally or via cloud.';
-      newSubtitle.textContent = newSubtitle.textContent + ' This requires Ollama installation';
       newSuggestions.innerHTML = `
         <button class="hub-suggestion-btn" onclick="app.selectWorkspace()">
           <span>📂</span> Open workspace folder
@@ -3011,7 +3012,6 @@ Be specific and include file paths if the error mentions them.`;
 
     if (!this.workspacePath) {
         title.textContent = 'Ready to collaborate';
-        subtitle.textContent = 'Ollama lets you use open-source models (such as Mistral, Kimi, Deepseek, etc) either locally or via cloud. This requires Ollama installation';
         suggestions.innerHTML = `
           <button class="hub-suggestion-btn" onclick="app.selectWorkspace()">
             <span>📂</span> Open workspace folder
