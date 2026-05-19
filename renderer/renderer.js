@@ -190,8 +190,13 @@ class App {
     const isOpenaiKeyEmpty = await window.electronAPI.envKeyEmpty('OPENAI_KEY');
 
     // User already switched to, or was already using OpenAI
-    if (result.data && !isOpenaiKeyEmpty)
+    if (result.data && !isOpenaiKeyEmpty) {
       document.getElementById("input-openai-api-container").style.display = 'none';
+      document.getElementById("delete-openai-key").style.display = 'block';
+    }
+
+    else
+      document.getElementById("delete-openai-key").style.display = 'none';
   }
 
   // Events that perform actions on HTML elements
@@ -241,7 +246,18 @@ class App {
           container.style.display = e.target.value === 'o4' ? 'block' : 'none';
         }
       })
-    })
+    });
+
+    addListener(
+      document.getElementById("delete-openai-key"),
+      'click', async () =>  {
+        if(confirm('Delete OpenAI API key from SaiphAI? You will need to enter your key again to keep using OpenAI models')) {
+          await window.electronAPI.deleteEnvKey('OPENAI_KEY');
+          document.getElementById("delete-openai-key").style.display = 'none';
+          document.getElementById("input-openai-api-container").style.display = 'block';
+        }
+      }
+    );
 
     addListener(
       document.getElementById('btn-get-started'),
@@ -551,7 +567,6 @@ class App {
 
           else {
             const data = await result.json();
-            console.log(JSON.stringify(data));
 
             // Procceed if key was valid
             await window.electronAPI.writeToEnvFile('OPENAI_KEY', userApiKey.value);
@@ -568,6 +583,7 @@ class App {
             })
 
             this.currentModel = 'o4';
+            document.getElementById("delete-openai-key").style.display = 'block';
           }
 
           document.getElementById("ollama-success").style.display = 'block';
@@ -1730,6 +1746,7 @@ Be specific and include file paths if the error mentions them.`;
 
         this.config = await window.electronAPI.getConfig();
         document.getElementById("input-openai-api-container").style.display = 'none';
+        document.getElementById("delete-openai-key").style.display = 'block';
       }
     }
     catch (e) {
@@ -3746,6 +3763,7 @@ Be specific and include file paths if the error mentions them.`;
         await window.electronAPI.writeToEnvFile('OPENAI_KEY', apiKey.value);
 
         apiKey.value = null;
+        document.getElementById("delete-openai-key").style.display = 'block';
       }
       catch(e) {
         alert(e);
