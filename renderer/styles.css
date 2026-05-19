@@ -219,7 +219,7 @@ ol li {
 
 /* Sidebar */
 .sidebar {
-  min-width: 160px;
+  width: var(--sidebar-width);
   background: var(--sidebar);
   display: flex;
   flex-direction: column;
@@ -779,11 +779,14 @@ ol li {
 
 ::-webkit-scrollbar-track {
   background: var(--bg-secondary);
+  margin-top: 2px;
+  margin-bottom: 4px;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb {
   background: #4F5053;
-  border-radius: 5px;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
