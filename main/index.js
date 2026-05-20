@@ -2424,6 +2424,23 @@ ipcMain.handle('read-env-key', async (event, key) => {
   }
 });
 
+ipcMain.handle('rm-env-key', async (event, key) => {
+  const envContent = await fs.readFile(ENV_PATH, 'utf8');
+  const lines = envContent.split('\n');
+  const keyIndex = lines.findIndex(line => line.startsWith(`${key}=`));
+
+  if (keyIndex >= 0) {
+    if (lines[keyIndex] === `${key}=`)
+      return { success: false, error: "key already empty" }
+
+    lines[keyIndex] = `${key}=`;
+    await fs.writeFile(ENV_PATH, lines.join('\n'), 'utf8');
+
+    return { success: true, error: null }
+  }
+
+  return { success: false, error: "key not found" }
+});
 
 ipcMain.handle('env-key-empty', async (event, key) => {
   dotenv.config({ path: ENV_PATH });

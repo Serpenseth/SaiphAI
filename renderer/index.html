@@ -306,14 +306,15 @@
         <div class="settings-section">
             <div class="model-selection">
               <label>
-                <input type="radio" name="settings-model" value="o4" ${this.currentModel === 'o4' ? 'checked' : ''}>
-                OpenAI
-                <p style="margin-top: 8px; color: #B0BCCD">OpenAI is an AI research and deployment company that builds advanced machine-learning models and tools (e.g., the GPT and DALL·E families)</p>
-                <div id="input-openai-api-container">
+              <input type="radio" name="settings-model" value="o4" ${this.currentModel === 'o4' ? 'checked' : ''}>
+              OpenAI
+              <p style="margin-top: 8px; color: #B0BCCD">OpenAI is an AI research and deployment company that builds advanced machine-learning models and tools (e.g., the GPT and DALL·E families)</p>
+              <div id="input-openai-api-container">
                 <br>
                 <h3>Enter your OpenAI API key<h3>
                 <input id="input-openai-api" class="input" style="margin-bottom: 0" placeholder="sk-proj-..."></input>
               </div>
+              <button id="delete-openai-key" class="btn download-ollama-btn" style="z-index: 25; width: 100%;">Delete API Key</button>
 
               </label>
               <label>

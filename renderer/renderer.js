@@ -550,58 +550,7 @@ class App {
 
     addListener(
       document.getElementById("continue-openai-setup"),
-      'click', async () => {
-        // Verify key input
-        const userApiKey = document.getElementById("openai-acc");
-
-        try {
-          const result = await fetch("https://api.openai.com/v1/models", {
-            method: 'GET',
-            headers: { 'Authorization': `Bearer ${userApiKey.value}` }
-          });
-
-          if (result.status === 401) {
-            alert("Error: Invalid API key. Try again");
-            return;
-          }
-
-          else {
-            const data = await result.json();
-
-            // Procceed if key was valid
-            await window.electronAPI.writeToEnvFile('OPENAI_KEY', userApiKey.value);
-            // Delete input value for safety
-            userApiKey.value = '';
-
-            document.getElementById("login-openai").style.display = 'none';
-            document.getElementById("model-selection").style.display = 'none';
-            //document.getElementById("intro-model-instructions")?.classList.add('hidden');
-
-            window.electronAPI.setConfig({
-              modelType: 'o4',
-              modelName: 'o4'
-            })
-
-            this.currentModel = 'o4';
-            document.getElementById("delete-openai-key").style.display = 'block';
-          }
-
-          document.getElementById("ollama-success").style.display = 'block';
-          document.getElementById("try-again-msg").style.display = 'none';
-          document.getElementById("ollama-check-failed-btns").style.display = 'none';
-
-          this._createStatusSVG('success');
-          this._setSuccessTitle("OpenAI has been setup successfully. You are eady to go!");
-
-          setTimeout(() => {
-            document.getElementById('intro-model-instructions')?.classList.add('hidden');
-          }, 3100);
-        }
-        catch(e) {
-          alert("Failed to receive a response from OpenAI servers.\n Check your internet connection, and try again");
-          return;
-        }
-      }
+      'click', async () => this.continueOpenaiSetup()
     );
 
     addListener(
@@ -788,6 +737,58 @@ class App {
     // Also clear any lingering timeouts
     clearTimeout(this.fsChangeTimeout);
     clearTimeout(this.hubUpdateTimeout);
+  }
+
+  async continueOpenaiSetup() {
+    const userApiKey = document.getElementById("openai-acc");
+
+    try {
+      const result = await fetch("https://api.openai.com/v1/models", {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${userApiKey.value}` }
+      });
+
+      if (result.status === 401) {
+        alert("Error: Invalid API key. Try again");
+        return;
+      }
+
+      else {
+        const data = await result.json();
+
+        // Procceed if key was valid
+        await window.electronAPI.writeToEnvFile('OPENAI_KEY', userApiKey.value);
+        // Delete input value for safety
+        userApiKey.value = '';
+
+        document.getElementById("login-openai").style.display = 'none';
+        document.getElementById("model-selection").style.display = 'none';
+        //document.getElementById("intro-model-instructions")?.classList.add('hidden');
+
+        window.electronAPI.setConfig({
+          modelType: 'o4',
+          modelName: 'o4'
+        })
+
+        this.currentModel = 'o4';
+        document.getElementById("delete-openai-key").style.display = 'block';
+      }
+
+      document.getElementById("ollama-success").style.display = 'block';
+      document.getElementById("try-again-msg").style.display = 'none';
+      document.getElementById("ollama-check-failed-btns").style.display = 'none';
+
+      this._createStatusSVG('success');
+      this._setSuccessTitle("OpenAI has been setup successfully. You are eady to go!");
+
+      setTimeout(() => {
+        document.getElementById('intro-model-instructions')?.classList.add('hidden');
+      }, 3100);
+    }
+    catch(e) {
+      alert("Failed to receive a response from OpenAI servers.\n Check your internet connection, and try again");
+      return;
+    }
   }
 
   escapeHtml(text) {
