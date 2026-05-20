@@ -341,7 +341,7 @@ class App {
      *  @returns {null}
      */
     const setRequiredMsg = (msg) => {
-      document.getElementById("requires-msg").innerHTML = msg;
+      document.getElementById("requires-msg").textContent = msg;
     }
 
     // MacOS Ollama card
@@ -351,7 +351,7 @@ class App {
         document.getElementById("os-specific-download").style.display = 'block';
 
         const pasteText = document.getElementById("paste-into");
-        pasteText.innerHTML =  "Paste the code below into Terminal";
+        pasteText.textContent =  "Paste the code below into Terminal";
 
         const pasteCmd = document.getElementById("install-cmd");
         pasteCmd.value = "curl -fsSL https://ollama.com/install.sh | sh";
@@ -373,7 +373,7 @@ class App {
         document.getElementById("os-specific-download").style.display = 'block';
 
         const pasteText = document.getElementById("paste-into");
-        pasteText.innerHTML =  "Paste the code below into PowerShell";
+        pasteText.textContent =  "Paste the code below into PowerShell";
 
         const pasteCmd = document.getElementById("install-cmd");
         pasteCmd.value = "irm https://ollama.com/install.ps1 | iex";
@@ -395,7 +395,7 @@ class App {
         document.getElementById("os-specific-download").style.display = 'block';
 
         const pasteText = document.getElementById("paste-into");
-        pasteText.innerHTML =  "Paste the code below into Terminal";
+        pasteText.textContent =  "Paste the code below into Terminal";
 
         const pasteCmd = document.getElementById("install-cmd");
         pasteCmd.value = "curl -fsSL https://ollama.com/install.sh | sh";
@@ -457,7 +457,7 @@ class App {
       document.getElementById("back-to-model-selection-btn"),
       'click', () => {
         // Reset error svg
-        document.getElementById("checkmark-container").innerHTML = '';
+        document.getElementById("checkmark-container").textContent = '';
 
         document.getElementById("ollama-success").style.display = 'none';
         document.getElementById("model-selection").style.display = 'block';
@@ -468,7 +468,7 @@ class App {
       document.getElementById("try-again-btn"),
       'click', async  () => {
         document.getElementById("ollama-success").style.display = 'block';
-        document.getElementById("checkmark-container").innerHTML = '';
+        document.getElementById("checkmark-container").textContent = '';
 
         await this.verifyOllama();
       }
@@ -486,13 +486,13 @@ class App {
         if (inputField.value === "") {
           dlOllamaModel.style.display = 'none';
           pressDownloadMsg.style.display = 'none';
-          pressDownloadMsg.innerHTML = originalText;
+          pressDownloadMsg.textContent = originalText;
         }
 
         else {
           dlOllamaModel.style.display = 'block';
           pressDownloadMsg.style.display = 'block';
-          pressDownloadMsg.innerHTML = newMsg;
+          pressDownloadMsg.textContent = newMsg;
         }
       }
     );
@@ -1218,7 +1218,7 @@ class App {
     const container = document.getElementById('build-output-content');
 
     if (container)
-      container.innerHTML = '';
+      container.textContent = '';
   }
 
   async loadBuildHistory() {
@@ -1525,7 +1525,7 @@ Be specific and include file paths if the error mentions them.`;
     // Clear the messages container
     const container = document.getElementById('chat-messages');
     if (container) {
-      container.innerHTML = '';
+      container.textContent = '';
     }
 
     // Reset current chat state
@@ -1923,7 +1923,7 @@ Be specific and include file paths if the error mentions them.`;
 
   _setSuccessTitle(newTitle) {
     const title = document.getElementById("success-title");
-    title.innerHTML = newTitle;
+    title.textContent = newTitle;
   }
 
   async verifyOllama() {
@@ -2574,7 +2574,7 @@ Be specific and include file paths if the error mentions them.`;
     const container = parentElement || document.getElementById('file-tree');
 
     if (!parentElement)
-      container.innerHTML = '';
+      container.textContent = '';
 
     try {
       const items = await window.electronAPI.getFileTree(dirPath);
@@ -2738,7 +2738,7 @@ Be specific and include file paths if the error mentions them.`;
 
 
     if (this.currentChat.messages.length > 0) {
-        document.getElementById('chat-messages').innerHTML = '';
+        document.getElementById('chat-messages').textContent = '';
         this.currentChat.messages.forEach(msg => {
             this.addMessage(msg.role, msg.content);
         });
@@ -3860,7 +3860,7 @@ Be specific and include file paths if the error mentions them.`;
       chatInput.parentNode.insertBefore(container, chatInput);
     }
 
-    container.innerHTML = '';
+    container.textContent = '';
     this.attachedFiles.forEach((file, index) => {
       const chip = document.createElement('div');
       chip.className = 'file-chip';
@@ -3878,7 +3878,6 @@ Be specific and include file paths if the error mentions them.`;
     this.renderAttachedFiles();
   }
 
-  ///////////////////////////////////////////////////////////////////////////////////////
   async loadCurrentChatFromJson() {
     try {
       const result = await window.electronAPI.loadCurrentChatJson();
@@ -3886,7 +3885,7 @@ Be specific and include file paths if the error mentions them.`;
         this.currentChat = result.chat;
         // Restore messages to UI
         if (this.currentChat.messages.length > 0) {
-          document.getElementById('chat-messages').innerHTML = '';
+          document.getElementById('chat-messages').textContent = '';
           this.currentChat.messages.forEach(msg => {
             this.addMessage(msg.role, msg.content);
           });
@@ -3944,7 +3943,7 @@ Be specific and include file paths if the error mentions them.`;
     const result = await window.electronAPI.getChatHistory();
     if (result.success) {
       this.chatHistory = result.chats;
-      list.innerHTML = '';
+      list.textContent = '';
 
       if (this.chatHistory.length === 0) {
         list.innerHTML = '<div class="empty-state">No chat history yet</div>';
@@ -3995,7 +3994,7 @@ Be specific and include file paths if the error mentions them.`;
       };
 
       // Clear and rebuild UI
-      document.getElementById('chat-messages').innerHTML = '';
+      document.getElementById('chat-messages').textContent = '';
       this.currentChat.messages.forEach(msg => {
         this.addMessage(msg.role, msg.content);
       });
@@ -4033,7 +4032,7 @@ Be specific and include file paths if the error mentions them.`;
       messages: [],
       date: new Date().toISOString()
     };
-    document.getElementById('chat-messages').innerHTML = '';
+    document.getElementById('chat-messages').textContent = '';
     this.saveCurrentChatToJson();
 
     this.renderWelcomeHub();
