@@ -199,27 +199,35 @@ class App {
       document.getElementById("delete-openai-key").style.display = 'none';
   }
 
+  /**
+    *  Helper function to attach listeners to DOM elements
+    *
+    *  @param {object} element - The DOM element to attach the listener to
+    *  @param {string} event - The event that we connect with the element
+    *  @param {function} handler - The function that triggers on event
+    *  @returns {null}
+  */
+  addListener(element, event, handler) {
+    if (!element)
+      return;
+
+    const exists = this.eventListeners.some(
+      (listener) => listener.element === element
+        && listener.event === event
+        && listener.handler === handler
+    );
+
+    if (!exists) {
+      element.addEventListener(event, handler);
+      this.eventListeners.push({ element, event, handler });
+    }
+  };
+
   // Events that perform actions on HTML elements
   setupEventListeners() {
     window.electronAPI.onBuildProgress((data) => {
       this.handleBuildProgress(data);
     });
-
-    /**
-     *  Helper function to attach listeners to DOM elements
-     *
-     *  @param {object} element - The DOM element to attach the listener to
-     *  @param {string} event - The event that we connect with the element
-     *  @param {function} handler - The function that triggers on event
-     *  @returns {null}
-     */
-    const addListener = (element, event, handler) => {
-      if (!element)
-        return;
-
-      element.addEventListener(event, handler);
-      this.eventListeners.push({ element, event, handler });
-    };
 
     const addIpcListener = (channel, handler) => {
       const unsubscribe = window.electronAPI[channel](handler);
@@ -231,8 +239,20 @@ class App {
       this.updateDownloadProgress(data);
     });
 
+    this.addListener(
+      document,
+      'keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+          e.preventDefault();
+          app.saveCurrentFile();
+        }
+      }
+    );
+
     document.querySelectorAll('input[name="settings-model"]').forEach(radio => {
-      radio.addEventListener('change', async (e) => {
+      this.addListener(
+        radio,
+        'change', async (e) => {
         if (e.target.checked) {
           if (this.currentModel === 'o4')
             return;
@@ -248,7 +268,46 @@ class App {
       })
     });
 
-    addListener(
+    this.addListener(
+      document.getElementById('file-tree'),
+      'click', (e) => this.handleFileTreeClick(e)
+    );
+
+    // Run build
+    this.addListener(
+      document.getElementById("build-btn"),
+      'click', () => this.runBuild()
+    );
+
+    // Run install
+    this.addListener(
+      document.getElementById("install-deps-btn"),
+      'click', () => this.runInstall()
+    );
+
+    // Run test
+    this.addListener(
+      document.getElementById("test-btn"),
+      'click', () => this.runTest()
+    );
+
+    // Clear build output
+    this.addListener(
+      document.getElementById("clear-build-output"),
+      'click', () => this.clearBuildOutput()
+    );
+
+    this.addListener(
+      document.getElementById("build-select-workspace"),
+      'click', () => this.selectWorkspace()
+    );
+
+    this.addListener(
+      document.getElementById("close-build-panel"),
+      'click', () => this.toggleBuildPanel()
+    );
+
+    this.addListener(
       document.getElementById("delete-openai-key"),
       'click', async () =>  {
         if(confirm('Delete OpenAI API key from SaiphAI? You will need to enter your key again to keep using OpenAI models')) {
@@ -259,7 +318,7 @@ class App {
       }
     );
 
-    addListener(
+    this.addListener(
       document.getElementById('btn-get-started'),
       'click', async () => {
         document.getElementById('first-run-modal')?.classList.add('hidden');
@@ -278,7 +337,7 @@ class App {
       }
     );
 
-    addListener(
+    this.addListener(
       document.getElementById("back-to-framework-selection"),
       'click', () => {
         document.getElementById("ollama-detected").style.display = 'none';
@@ -286,7 +345,7 @@ class App {
       }
     );
 
-    addListener(
+    this.addListener(
       document.getElementById("use-ollama"),
       'click', async () => {
         document.getElementById("ollama-detected").style.display = 'none';
@@ -295,14 +354,14 @@ class App {
     );
 
     // Ollama
-    addListener(
+    this.addListener(
       document.getElementById('option-ollama'),
       'click', async () => await this.showOllamaModelDownload()
     );
 
     /*
     // Ollama
-    addListener(
+    this.addListener(
       document.getElementById('option-ollama'),
       'click', () => {
         console.log('Ollama selected');
@@ -345,7 +404,7 @@ class App {
     }
 
     // MacOS Ollama card
-    addListener(
+    this.addListener(
       document.getElementById("option-macOS"),
       'click', () => {
         document.getElementById("os-specific-download").style.display = 'block';
@@ -367,7 +426,7 @@ class App {
     );
 
     // Windows Ollama card
-    addListener(
+    this.addListener(
       document.getElementById("option-windows"),
       'click', () => {
         document.getElementById("os-specific-download").style.display = 'block';
@@ -389,7 +448,7 @@ class App {
     );
 
     // Linux Ollama card
-    addListener(
+    this.addListener(
       document.getElementById("option-linux"),
       'click', () => {
         document.getElementById("os-specific-download").style.display = 'block';
@@ -410,7 +469,7 @@ class App {
       }
     );
 
-    addListener(
+    this.addListener(
       document.getElementById('copy-cmd'),
       'click', () => {
         const pasteCmd = document.getElementById("install-cmd");
@@ -418,7 +477,7 @@ class App {
       }
     );
 
-    addListener(
+    this.addListener(
       document.getElementById("download-ollama-button"),
       'click', () => {
         const windowsBtn = document.getElementById("option-windows");
@@ -435,7 +494,7 @@ class App {
       }
     );
 
-    addListener(
+    this.addListener(
       document.getElementById("close-dl-ollama"),
       'click', () => {
         // Reset selection and selection style
@@ -448,12 +507,12 @@ class App {
       }
     );
 
-    addListener(
+    this.addListener(
       document.getElementById("verify-ollama"),
       'click', async () => await this.verifyOllama()
     );
 
-    addListener(
+    this.addListener(
       document.getElementById("back-to-model-selection-btn"),
       'click', () => {
         // Reset error svg
@@ -464,7 +523,7 @@ class App {
       }
     );
 
-    addListener(
+    this.addListener(
       document.getElementById("try-again-btn"),
       'click', async  () => {
         document.getElementById("ollama-success").style.display = 'block';
@@ -474,7 +533,7 @@ class App {
       }
     );
 
-    addListener(
+    this.addListener(
       document.getElementById("ollama-model-to-pull"),
       'input', () => {
         const inputField = document.getElementById("ollama-model-to-pull");
@@ -497,7 +556,7 @@ class App {
       }
     );
 
-    addListener(
+    this.addListener(
       document.getElementById("dl-ollama-model"),
       'click', async () => {
         const inputField = document.getElementById("ollama-model-to-pull");
@@ -507,12 +566,12 @@ class App {
       }
     );
 
-    addListener(
+    this.addListener(
       document.getElementById("abort-ollama-model-dl"),
       'click', () => window.electronAPI.abortModelDownload()
     );
 
-    addListener(
+    this.addListener(
       document.getElementById("verify-ollama-after-model-dl"),
       'click', async () => {
         await this.verifyOllama();
@@ -532,7 +591,7 @@ class App {
       }
     );
 
-    addListener(
+    this.addListener(
       document.getElementById("option-openai"),
       'click', () => {
         document.getElementById("login-openai").style.display = 'block';
@@ -540,7 +599,7 @@ class App {
       }
     );
 
-    addListener(
+    this.addListener(
       document.getElementById("close-openai-setup"),
       'click', () => {
         document.getElementById("login-openai").style.display = 'none';
@@ -548,22 +607,22 @@ class App {
       }
     );
 
-    addListener(
+    this.addListener(
       document.getElementById("continue-openai-setup"),
       'click', async () => this.continueOpenaiSetup()
     );
 
-    addListener(
+    this.addListener(
       document.querySelector('[data-tab="chat"]'),
       'click', () => this.switchToTab('chat')
     );
 
-    addListener(
+    this.addListener(
       document.getElementById('build-toggle-btn'),
       'click', () => this.toggleBuildPanel()
     );
 
-    addListener(
+    this.addListener(
       document.getElementById('btn-clear-chat'),
       'click', () => {
         this.clearMainChat();
@@ -571,7 +630,7 @@ class App {
       }
     );
 
-    addListener(
+    this.addListener(
       document,
       'keydown', (e) => {
         if (e.key === 'Escape') {
@@ -584,27 +643,27 @@ class App {
       }
     );
 
-    addListener(
+    this.addListener(
       document.getElementById('btn-settings'),
       'click',  () => this.showSettingsModal()
     );
 
-    addListener(
+    this.addListener(
       document.getElementById('btn-select-workspace'),
       'click', () => this.selectWorkspace()
     );
 
-    addListener(
+    this.addListener(
       document.getElementById('btn-refresh-index'),
       'click', () => this.rebuildIndex()
     );
 
-    addListener(
+    this.addListener(
       document.getElementById('btn-send'),
       'click', () => this.sendMessage(null, 'chat')
     );
 
-    addListener(
+    this.addListener(
       document.getElementById('chat-input'),
       'keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -614,12 +673,12 @@ class App {
       }
     );
 
-    addListener(
+    this.addListener(
       document.getElementById('insert-file'),
       'click', () => this.selectFiles()
     );
 
-    addListener(
+    this.addListener(
       document.getElementById('chat-input'),
       'input', (e) => {
         const textarea = e.target;
@@ -651,7 +710,7 @@ class App {
       }
     );
 
-    addListener(
+    this.addListener(
       document.getElementById('ollama-model-selector'),
       'change', (e) => {
         this.currentOllamaModel = e.target.value;
@@ -663,17 +722,17 @@ class App {
       }
     );
 
-    addListener(
+    this.addListener(
       document.getElementById('history'),
       'click',  () => this.showHistoryModal()
     );
 
-    addListener(
+    this.addListener(
       document.getElementById('btn-close-history'),
       'click', () => this.closeHistoryModal()
     );
 
-    addListener(
+    this.addListener(
       document.getElementById('btn-new-chat'),
       'click', () => {
         this.createChatTab();
@@ -681,24 +740,24 @@ class App {
       }
     );
 
-    addListener(
+    this.addListener(
       document.getElementById('btn-new-chat-tab'),
       'click', () => this.createChatTab()
     );
 
-    addListener(
+    this.addListener(
       document.getElementById('btn-download-update'),
       'click', () => this.downloadUpdate()
     );
 
-    addListener(
+    this.addListener(
       document.getElementById('btn-later-update'),
       'click', () => {
         document.getElementById('update-available-modal')?.classList.add('hidden');
       }
     );
 
-    addListener(
+    this.addListener(
       document.getElementById('btn-close-update-error'),
       'click', () => {
         document.getElementById('update-error-modal')?.classList.add('hidden');
@@ -706,7 +765,7 @@ class App {
     );
 
     // Manual check button (in settings)
-    addListener(
+    this.addListener(
       document.getElementById('btn-check-updates'),
       'click', () => this.checkForUpdatesManual()
     );
@@ -912,15 +971,18 @@ class App {
     let isResizing = false;
     let startY, startHeight;
 
-    handle.addEventListener('mousedown', (e) => {
-      isResizing = true;
-      startY = e.clientY;
-      startHeight = history.offsetHeight;
-      document.body.style.cursor = 'ns-resize';
-      document.body.style.userSelect = 'none';
-    });
+    this.addListener(
+      handle,
+      'mousedown', (e) => {
+        isResizing = true;
+        startY = e.clientY;
+        startHeight = history.offsetHeight;
+        document.body.style.cursor = 'ns-resize';
+        document.body.style.userSelect = 'none';
+      }
+    );
 
-    document.addEventListener('mousemove', (e) => {
+    this.addListener(document, 'mousemove', (e) => {
       if (!isResizing)
         return;
 
@@ -931,16 +993,19 @@ class App {
       this.config.buildHistoryHeight = newHeight;
     });
 
-    document.addEventListener('mouseup', () => {
-      if (isResizing) {
-        isResizing = false;
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
-        window.electronAPI.setConfig({
-          buildHistoryHeight: this.config.buildHistoryHeight
-        });
+    this.addListener(
+      document,
+      'mouseup', () => {
+        if (isResizing) {
+          isResizing = false;
+          document.body.style.cursor = '';
+          document.body.style.userSelect = '';
+          window.electronAPI.setConfig({
+            buildHistoryHeight: this.config.buildHistoryHeight
+          });
+        }
       }
-    });
+    );
 
     history.insertBefore(handle, history.firstChild);
   }
@@ -963,63 +1028,60 @@ class App {
   }
 
   _buildTemplate(type, data) {
-    if (type === 'empty') {
-      return `
-        </div>
-        <div class="build-empty">
-          <button class="btn-icon no-workspace-close" onclick="app.toggleBuildPanel()" title="Close build panel" style="margin-left: auto; ">
-            ✕
-          </button>
-          <div class="icon">${data.icon}</div>
-         <div class="message">${data.message}</div>
-          <div class="subtitle">Open a project folder to detect build configuration and start building</div>
-          <button class="action-btn" onclick="app.selectWorkspace()">Select Workspace</button>
-        </div>
-      `;
-    }
-
-    else {
-      return `
-        <div class="build-header">
-            <div class="build-project-info">
-                <div class="build-lang-icon">${data.icon}</div>
-                <div class="build-details">
-                    <div class="build-lang">${data.language.toUpperCase()}</div>
-                    <div class="build-system">${data.detectedFiles}</div>
-                </div>
-            </div>
-            <button class="btn-icon" onclick="app.toggleBuildPanel()" title="Close build panel" style="margin-left: auto; ">✕</button>
-        </div>
-        <div class="build-actions">
-            <button class="build-btn" onclick="app.runBuild()" title="Build project">Build</button>
-            <button class="build-btn" onclick="app.runInstall()" title="Install dependencies">Install</button>
-            <button class="build-btn" onclick="app.runTest()" title="Run tests">Test</button>
-            ${data.language === 'javascript' || data.language === 'typescript' ?
-            `<button class="build-btn" onclick="app.runScript('start')" title="Run start script">Run</button>` : ''}
-        </div>
-          <div class="build-output">
-            <div class="build-output-header">
-              <span>Output</span>
-              <button class="btn-icon" onclick="app.clearBuildOutput()" title="Clear output">Clear</button>
-            </div>
-            <div id="build-output-content" class="build-output-content">
-              <div class="build-starting">Ready to build...</div>
-            </div>
-          </div>
-          <div class="build-history">
-            <div class="build-section-title">Recent Builds</div>
-            <div id="build-history-list" class="build-history-list"></div>
-          </div>
-      `;
-    }
   }
 
   renderBuildPanel() {
     const panel = document.getElementById('build-panel');
+    const config = this.currentBuildConfig;
 
+    /*
     if (!panel.classList.contains('visible'))
       return;
+    */
 
+    if (!this.workspacePath || this.workspacePath === null) {
+      document.getElementById("build-empty").style.display = 'block';
+      return;
+    }
+
+    if (!config?.buildSystem || !config) {
+      document.getElementById("build-empty").style.display = 'block';
+      document.getElementById("no-workspace-other-msg")
+        .textContext = "Open a workspace to detect build configuration";
+
+      document.getElementById("workspace-icon").textContext = "🔧";
+      return;
+    }
+
+    document.getElementById("build-header").style.display = 'block';
+
+    // Build language icon
+    const langIcon = document.querySelector(".build-lang-icon");
+    langIcon.replaceChildren(this.getLanguageIcon(config.language));
+    //langIcon.innerHTML = this.getLanguageIcon(config.language);
+
+    // Build language icon
+    const lang = document.querySelector(".build-lang");
+    lang.textContent = config.language.toUpperCase();
+
+    // Build system
+    const buildSys = document.querySelector(".build-system");
+    buildSys.textContext = config.detectedFiles.join(', ');
+
+    document.getElementById("build-actions").style.display = 'block';
+
+/*
+    // Run script
+    if (config.language === 'javascript' || config.language === 'typescript')
+      this.addListener(
+        document.getElementById("build-btn"),
+        'click', () => this.runScript('start')
+      );*/
+
+    document.querySelector(".build-output").style.display = 'block';
+    document.querySelector(".build-history").style.display = 'block';
+
+    /*
     if (!this.workspacePath || this.workspacePath === null) {
       panel.innerHTML = this._buildTemplate('empty', {
         message: 'No Workspace Selected',
@@ -1027,9 +1089,9 @@ class App {
       });
       return;
     }
+    */
 
-    const config = this.currentBuildConfig;
-
+    /*
     if (!config?.buildSystem || !config) {
       panel.innerHTML = this._buildTemplate('empty', {
         message: 'Open a workspace to detect build configuration',
@@ -1046,16 +1108,18 @@ class App {
       scriptsHtml: config.availableScripts ? this._renderScriptButtons(config.availableScripts) : '',
       actionsHtml: this._renderBuildActions(config)
     });
+    */
 
     if (this.config.buildHistoryHeight) {
-      document.querySelector('.build-history').style.height =
-        `${this.config.buildHistoryHeight}px`;
+      document.querySelector('.build-history')
+        .style.height = `${this.config.buildHistoryHeight}px`;
     }
 
     this.loadBuildHistory();
     this.setupResizeHandle();
   }
 
+  /*
   _renderScriptButtons(scripts) {
     const priority = ['build', 'start', 'dev', 'test', 'lint'];
     const sorted = [...scripts].sort((a, b) => {
@@ -1081,8 +1145,10 @@ class App {
       <button onclick="app.executeBuild('install', '${bs.installCommand[0]}', ${JSON.stringify(bs.installCommand.slice(1))})">Install</button>
     `;
   }
+  */
 
   getLanguageIcon(lang) {
+    /*
     const icons = {
       javascript: 'JS',
       typescript: 'TS',
@@ -1093,7 +1159,12 @@ class App {
       csharp: 'C#',
       cpp: 'C++'
     };
-    return icons[lang] || 'Code';
+    */
+    const img = document.createElement('img');
+    img.src = `../assets/${lang}.png`;
+    return img;
+
+    //return icons[lang] || 'Code';
   }
 
   async runBuild() {
@@ -1130,7 +1201,11 @@ class App {
 
     // Clear previous output for new build
     if (outputContainer) {
-      outputContainer.innerHTML = `<div class="build-starting">Starting ${buildType}...</div>`;
+      const newDiv = document.createElement('div');
+      newDiv.classList.add("build-starting");
+      newDiv.textContent = `Starting ${buildType}...`;
+
+      outputContainer.replaceChildren(newDiv);
     }
 
     let errorData = null;
@@ -1223,7 +1298,7 @@ class App {
 
   async loadBuildHistory() {
     try {
-      const result = await window.electronAPI.getBuildHistory(10);
+      const result = await window.electronAPI.getBuildHistory(50);
 
       if (result.success) {
         this.renderBuildHistory(result.history);
@@ -1236,25 +1311,56 @@ class App {
 
   renderBuildHistory(history) {
     const container = document.getElementById('build-history-list');
-    if (!container) return;
+
+    if (!container)
+      return;
+
+    container.textContent = '';
 
     if (history.length === 0) {
-      container.innerHTML = '<div class="build-empty-history">No builds yet</div>';
-      return;
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'build-empty-history';
+        emptyDiv.textContent = 'No builds yet';
+        container.appendChild(emptyDiv);
+        return;
     }
 
-    container.innerHTML = history.map(build => `
-      <div class="build-history-item build-status-${build.status}">
-        <div class="build-history-info">
-          <span class="build-history-command">${this.truncate(build.command, 30)}</span>
-          <span class="build-history-time">${new Date(build.timestamp).toLocaleTimeString()}</span>
-        </div>
-        <div class="build-history-meta">
-          <span class="build-history-duration">${(build.duration / 1000).toFixed(1)}s</span>
-          <span class="build-history-status">${build.status}</span>
-        </div>
-      </div>
-    `).join('');
+    history.forEach(build => {
+      const itemDiv = document.createElement('div');
+      itemDiv.className = `build-history-item build-status-${build.status}`;
+
+      const infoDiv = document.createElement('div');
+      infoDiv.className = 'build-history-info';
+
+      const cmdSpan = document.createElement('span');
+      cmdSpan.className = 'build-history-command';
+      cmdSpan.textContent = this.truncate(build.command, 30);
+
+      const timeSpan = document.createElement('span');
+      timeSpan.className = 'build-history-time';
+      timeSpan.textContent = new Date(build.timestamp).toLocaleTimeString();
+
+      infoDiv.appendChild(cmdSpan);
+      infoDiv.appendChild(timeSpan);
+
+      const metaDiv = document.createElement('div');
+      metaDiv.className = 'build-history-meta';
+
+      const durationSpan = document.createElement('span');
+      durationSpan.className = 'build-history-duration';
+      durationSpan.textContent = `${(build.duration / 1000).toFixed(1)}s`;
+
+      const statusSpan = document.createElement('span');
+      statusSpan.className = 'build-history-status';
+      statusSpan.textContent = build.status;
+
+      metaDiv.appendChild(durationSpan);
+      metaDiv.appendChild(statusSpan);
+
+      itemDiv.appendChild(infoDiv);
+      itemDiv.appendChild(metaDiv);
+      container.appendChild(itemDiv);
+    });
   }
 
   showErrorAnalysis(result, buildType) {
@@ -1272,17 +1378,27 @@ class App {
     const analysisDiv = document.createElement('div');
 
     analysisDiv.className = 'build-error-analysis';
-    analysisDiv.innerHTML = `
-      <div class="build-analysis-header">
-          <span>Build failed. Analyze with AI?</span>
-          <button id="analysis-btn" class="btn-primary" onclick="app.analyzeBuildError('${buildType}', '${buildId}')">
-            Analyze Error
-          </button>
-      </div>
-    `;
+
+    const buildAnalysis = document.createElement('div');
+    buildAnalysis.classList.add("build-analysis-header");
+
+    const span = document.createElement('span');
+    span.textContent = 'Build failed. Analyze with AI?';
+
+    const btn = document.createElement('button');
+    btn.id = "analysis-btn";
+    btn.className = "btn-primary";
+    btn.textContent = "Analyze Error";
+
+    buildAnalysis.appendChild(span);
+    buildAnalysis.appendChild(btn);
+
+    analysisDiv.replaceChildren(buildAnalysis);
 
     container.appendChild(analysisDiv);
     container.scrollTop = container.scrollHeight;
+
+    this.addListener(btn, 'click', () => this.analyzeBuildError(buildType, buildId));
   }
 
   async analyzeBuildError() {
@@ -1327,12 +1443,20 @@ class App {
     const container = document.getElementById('build-output-content');
     const loadingDiv = document.createElement('div');
     loadingDiv.className = 'build-analysis-loading';
-    loadingDiv.innerHTML = `
-      <div class="build-analysis-header">
-          <span>Analyzing build error...</span>
-      </div>
-      <div class="loading"></div>
-    `;
+
+    const headerDiv = document.createElement('div');
+    headerDiv.className = 'build-analysis-header';
+
+    const statusSpan = document.createElement('span');
+    statusSpan.textContent = 'Analyzing build error...';
+
+    headerDiv.appendChild(statusSpan);
+    loadingDiv.appendChild(headerDiv);
+
+    const innerLoadingDiv = document.createElement('div');
+    innerLoadingDiv.className = 'loading';
+
+    loadingDiv.appendChild(innerLoadingDiv);
     container.appendChild(loadingDiv);
     container.scrollTop = container.scrollHeight;
 
@@ -1371,14 +1495,16 @@ Be specific and include file paths if the error mentions them.`;
 
       const errorDiv = document.createElement('div');
       errorDiv.className = 'build-analysis-error';
-      errorDiv.innerHTML = `
-        <div class="build-analysis-header">
-            <span>Failed to analyze: ${e.message}</span>
-        </div>
-      `;
-      container.appendChild(errorDiv);
 
-      this.updateBuildStatus('Error analysis failed');
+      const divBuildAnalysisHeader = document.createElement('div');
+      divBuildAnalysisHeader.className = 'build-analysis-header';
+
+      const spanFailed = document.createElement('span');
+      span.textContent = `Failed to analyze: ${e.message}`;
+
+      divBuildAnalysisHeader.appendChild(spanFailed);
+      errorDiv.appendChild(divBuildAnalysisHeader);
+      container.appendChild(errorDiv);
     }
   }
 
@@ -1541,8 +1667,6 @@ Be specific and include file paths if the error mentions them.`;
 
     // Show the welcome hub again
     this.renderWelcomeHub();
-
-    this.updateStatus('Chat cleared');
   }
 
   showFirstRunModal() {
@@ -1551,100 +1675,81 @@ Be specific and include file paths if the error mentions them.`;
   }
 
   renderWelcomeHub(tabId = 'chat') {
-    const hub = document.getElementById('welcome-hub');
     const container = document.getElementById('chat-messages');
 
-    if (!this.showWelcomeHub) {
-        hub?.classList.add('hidden');
-        return;
-    }
-
     let hasMessages = false;
+
     if (tabId === 'chat') {
         hasMessages = this.currentChat.messages.length > 0 || this.currentChat.id;
-    } else {
+    }
+    else {
         const chatData = this.openChats.get(tabId);
         hasMessages = chatData && (chatData.messages.length > 0 || chatData.id);
     }
 
     if (hasMessages) {
-        hub?.classList.add('hidden');
         return;
     }
 
-    hub?.classList.remove('hidden');
+    const tipsHubIdMain = tabId === 'chat' ? "tips-hub": `tips-hub-${tabId}`;
 
-    const icon = document.getElementById('hub-icon');
-    const title = document.getElementById('hub-title');
-    const subtitle = document.getElementById('hub-subtitle');
-    const suggestions = document.getElementById('hub-suggestions');
-
-    // Clear previous listeners by cloning
-    const newHub = hub.cloneNode(true);
-    hub.parentNode.replaceChild(newHub, hub);
-
-    // Re-get elements after clone
-    const newIcon = newHub.querySelector('#hub-icon');
-    const newTitle = newHub.querySelector('#hub-title');
-    const newSubtitle = newHub.querySelector('#hub-subtitle');
-    const newSuggestions = newHub.querySelector('#hub-suggestions');
-    const modelMsg = this.currentModel === 'ollama'
-      ? 'Ollama lets you use open-source models (such as Mistral, Kimi, Deepseek, etc) either locally or via cloud'
-      : null;
+    const tipsHubId = tabId === 'chat'
+      ? "tips-hub-no-workspace"
+      : `tips-hub-no-workspace-${tabId}`;
 
     if (!this.workspacePath) {
-      newTitle.textContent = 'Ready to collaborate';
-      newSuggestions.innerHTML = `
-        <button class="hub-suggestion-btn" onclick="app.selectWorkspace()">
-          <span>📂</span> Open workspace folder
-        </button>
-        <button class="hub-suggestion-btn" onclick="app.showSettingsModal()">
-          <span>⚙️</span> Choose model
-        </button>
-      `;
+      document.getElementById(tipsHubId)?.removeAttribute('style');
+      document.getElementById(tipsHubIdMain).style.display = 'none';
+
+      this.addListener(
+        document.getElementById("select-workspace-hub"),
+        'click', () => this.selectWorkspace()
+      );
+
+      this.addListener(
+        document.getElementById("open-settings-hub"),
+        'click', () => this.showSettingsModal()
+      );
+
+      return;
     }
+
     else {
-      // Workspace is open - focus on workspace questions, not "selected files"
-      const hasFiles = this.workspaceIndex && this.workspaceIndex.index.size > 0;
+      document.getElementById(tipsHubIdMain)?.removeAttribute('style');
+      document.getElementById(tipsHubId).style.display = 'none';
+
+      const titleId = tabId === 'chat' ? 'hub-title' : `hub-title-${tabId}`;
+      const subtitleId = tabId === 'chat' ? 'hub-subtitle' : `hub-subtitle-${tabId}`;
+
+      const newTitle = document.getElementById(titleId);
+      const newSubtitle = document.getElementById(subtitleId);
+
+      if (newTitle)
         newTitle.textContent = 'Ready to collaborate';
+
+      if (newSubtitle)
         newSubtitle.textContent = 'What shall we work on?';
 
-        newSuggestions.innerHTML = `
-          <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Review the architecture')">
-              <div class="suggestion-icon">🏗️</div>
-              <div class="suggestion-content">
-                  <div class="suggestion-title">Architecture review</div>
-                  <div class="suggestion-desc">Analyze design patterns and structure</div>
-              </div>
-          </button>
-          <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Optimize for performance')">
-              <div class="suggestion-icon">⚡</div>
-              <div class="suggestion-content">
-                  <div class="suggestion-title">Optimize code</div>
-                  <div class="suggestion-desc">Identify bottlenecks and improve efficiency</div>
-              </div>
-          </button>
-          <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Security audit')">
-              <div class="suggestion-icon">🔒</div>
-              <div class="suggestion-content">
-                  <div class="suggestion-title">Security check</div>
-                  <div class="suggestion-desc">Scan for vulnerabilities and best practices</div>
-              </div>
-          </button>
-          <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Generate documentation')">
-              <div class="suggestion-icon">📝</div>
-              <div class="suggestion-content">
-                  <div class="suggestion-title">Document code</div>
-                  <div class="suggestion-desc">Create README and inline documentation</div>
-              </div>
-          </button>
-        `;
-    }
+      this.addListener(
+        document.getElementById("review-arch"),
+        'click', () => this.sendSuggestion('Review the architecture')
+      );
 
-    // Add hide listener
-    newHub.querySelector('#btn-hide-hub')?.addEventListener('click', () => {
-      this.toggleWelcomeHub(false);
-    });
+      this.addListener(
+        document.getElementById("optimize-for-performance"),
+        'click', () => this.sendSuggestion('Optimize for performance')
+      );
+
+      this.addListener(
+        document.getElementById("security-audit"),
+        'click', () => this.sendSuggestion('Security audit')
+      );
+
+      this.addListener(
+        document.getElementById("gen-doc"),
+        'click', () => this.sendSuggestion('Generate documentation')
+      );
+    }
   }
 
   async sendSuggestion(text, targetTabId = null) {
@@ -1789,12 +1894,22 @@ Be specific and include file paths if the error mentions them.`;
     if (result.success && models.length > 0) {
       this.availableOllamaModels = models;
 
-      if (selector) {
-        selector.innerHTML = models.map(m =>
-            `<option value="${m.name}" ${m.name === this.currentOllamaModel ? 'selected' : ''}>${m.name}</option>`
-        ).join('');
-        selector.classList.remove('hidden');
-      }
+      let options = [];
+
+      models.forEach(m => {
+        const s = document.createElement('option');
+        s.value = m.name;
+        s.textContent = m.name;
+
+        if (m.name === this.currentOllamaModel) {
+          s.selected = true;
+        }
+
+        options.push(s);
+      });
+
+      selector.replaceChildren(...options);
+      selector.classList.remove('hidden');
 
       // Auto-select first model regardless of DOM state
       if (!this.currentOllamaModel) {
@@ -2544,6 +2659,7 @@ Be specific and include file paths if the error mentions them.`;
   async loadWorkspace(path) {
     document.getElementById('workspace-path').textContent = path;
     this.workspacePath = path;
+
     await window.electronAPI.setConfig({ lastWorkspace: path });
     await this.loadFileTree(path);
 
@@ -2568,6 +2684,43 @@ Be specific and include file paths if the error mentions them.`;
     }
 
     await this.initBuildSystem();
+  }
+
+  handleFileTreeClick(e) {
+    const fileItem = e.target.closest('.file-item');
+    if (!fileItem) return;
+
+    const item = {
+        isDirectory: fileItem.classList.contains('directory'),
+        path: fileItem.dataset.path,
+        name: fileItem.textContent.trim()
+    };
+
+    e.stopPropagation();
+
+    if (item.isDirectory) {
+        const existing = fileItem.nextElementSibling;
+
+        if (existing?.classList.contains('dir-children')) {
+            existing.remove();
+        }
+        else {
+            const childrenContainer = document.createElement('div');
+            childrenContainer.className = 'dir-children';
+            fileItem.after(childrenContainer);
+
+            this.loadFileTree(item.path, childrenContainer).then(() => {
+                if (this.activeFilePath) {
+                    const activeEl = document.querySelector(`[data-path="${CSS.escape(this.activeFilePath)}"]`);
+                    if (activeEl)
+                        activeEl.classList.add('active-file');
+                }
+            });
+        }
+    }
+    else {
+        this.openFile(item.path, item.name);
+    }
   }
 
   async loadFileTree(dirPath, parentElement = null) {
@@ -2596,36 +2749,13 @@ Be specific and include file paths if the error mentions them.`;
         }
 
         const icon = item.isDirectory ? '📁' : this.getFileIcon(item.extension);
-        div.innerHTML = `<span class="file-icon">${icon}</span>${item.name}`;
 
-        div.addEventListener('click', async (e) => {
-          e.stopPropagation();
+        const fileIcon = document.createElement('span');
+        fileIcon.className = 'file-icon';
+        fileIcon.textContent = icon;
+        fileIcon.textContent += item.name;
 
-          if (item.isDirectory) {
-            const existing = div.nextElementSibling;
-
-            if (existing?.classList.contains('dir-children')) {
-              existing.remove();
-            }
-            else {
-              const childrenContainer = document.createElement('div');
-              childrenContainer.className = 'dir-children';
-              div.after(childrenContainer);
-
-              await this.loadFileTree(item.path, childrenContainer);
-
-              if (this.activeFilePath) {
-                const activeEl = document.querySelector(`[data-path="${CSS.escape(this.activeFilePath)}"]`);
-
-                if (activeEl)
-                  activeEl.classList.add('active-file');
-              }
-            }
-          }
-          else {
-            this.openFile(item.path, item.name);
-          }
-        });
+        div.appendChild(fileIcon);
         container.appendChild(div);
       }
     } catch (e) {
@@ -2733,69 +2863,90 @@ Be specific and include file paths if the error mentions them.`;
   async restoreEditorState() {
     const config = await window.electronAPI.getConfig();
 
-    if (!config.openFiles || config.openFiles.length === 0)
-      return;
-
-
-    if (this.currentChat.messages.length > 0) {
-        document.getElementById('chat-messages').textContent = '';
-        this.currentChat.messages.forEach(msg => {
-            this.addMessage(msg.role, msg.content);
-        });
-        // Hide welcome hub if chat has content
-        const hub = document.getElementById('welcome-hub');
-        if (hub)
-          hub.style.display = 'none';
+    if (!config.openFiles) {
+      config.openFiles = [];
     }
 
-    // Restore chat tabs
     if (config.openChats && config.openChats.length > 0) {
-        for (const chatConfig of config.openChats) {
-            // Skip if this is the main chat (already restored above)
-            if (chatConfig.tabId === 'chat') continue;
+      for (const chatConfig of config.openChats) {
+        // Restore main chat state if present
+        if (chatConfig.tabId === 'chat' && chatConfig.chatId) {
+          // Check if we already have chat state from loadCurrentChatFromJson
+          if (!this.currentChat.id || this.currentChat.messages.length === 0) {
+            this.currentChat = {
+              id: chatConfig.chatId,
+              title: chatConfig.title,
+              messages: chatConfig.messages || [],
+              date: chatConfig.date || new Date().toISOString()
+            };
 
-            this.createChatTab({
-                tabId: chatConfig.tabId,
-                id: chatConfig.chatId,
-                title: chatConfig.title,
-                messages: chatConfig.messages || []
-            });
+            // Only render to UI if it has messages and hasn't been rendered yet
+            if (
+              this.currentChat.messages.length > 0
+              && document.getElementById('chat-messages').children.length === 0
+            ) {
+              document.getElementById('chat-messages').textContent = '';
+              this.currentChat.messages.forEach(msg => {
+                this.addMessage(msg.role, msg.content);
+              });
+
+              const hub = document.getElementById('welcome-hub');
+              if (hub)
+                hub.style.display = 'none';
+            }
+          }
+          continue; // Skip creating tab for main chat
         }
+
+        // Create secondary chat tabs
+        if (chatConfig.tabId !== 'chat') {
+          this.createChatTab({
+            tabId: chatConfig.tabId,
+            id: chatConfig.chatId,
+            title: chatConfig.title,
+            messages: chatConfig.messages || []
+          });
+        }
+      }
     }
 
-    /*
-    else {
-      // Create default chat if none restored
-      this.createChatTab();
-    }*/
-
-    // Restore active tab
-    if (config.activeTab && (
-      this.openChats.has(config.activeTab) ||
-      this.openFiles.has(config.activeTab)
-    )) {
-      this.switchToTab(config.activeTab);
-    }
-    else if (config.lastActiveChatTab && this.openChats.has(config.lastActiveChatTab)) {
-      this.switchToTab(config.lastActiveChatTab);
-    }
-
-    // Open all files without switching, except the active one
-    for (let i = 0; i < config.openFiles.length; i++) {
-      const fileData = config.openFiles[i];
-      const isActiveFile = fileData.path === config.activeFile;
-
+    for (const fileData of config.openFiles) {
       try {
+        const isActiveFile = fileData.path === config.activeFile;
         await this.openFile(
           fileData.path,
           fileData.name,
           fileData.viewState,
-          isActiveFile // Only switch to tab for the active file
+          isActiveFile
         );
       }
       catch (e) {
         console.error('Failed to restore file:', fileData.path, e);
       }
+    }
+
+    let tabToSwitchTo = null;
+
+    if (config.activeTab && (
+      this.openChats.has(config.activeTab) ||
+      this.openFiles.has(config.activeTab) ||
+      config.activeTab === 'chat'
+    )) {
+      tabToSwitchTo = config.activeTab;
+    }
+    else if (config.lastActiveChatTab && this.openChats.has(config.lastActiveChatTab)) {
+      tabToSwitchTo = config.lastActiveChatTab;
+    }
+
+    if (!tabToSwitchTo) {
+      tabToSwitchTo = 'chat';
+    }
+
+    this.switchToTab(tabToSwitchTo);
+
+    // Only save state if something was actually restored
+    if (config.openChats?.length > 0 || config.openFiles?.length > 0) {
+      await this.saveEditorState();
     }
   }
 
@@ -2806,9 +2957,20 @@ Be specific and include file paths if the error mentions them.`;
 
     tab.className = 'tab';
     tab.dataset.tab = tabId;
-    tab.innerHTML = `<span>${fileName}</span><span class="tab-close" onclick="app.closeTab('${tabId}', event)">×</span>`;
 
-    tab.addEventListener('click', (e) => {
+    const chatTabSpan = document.createElement('span');
+    chatTabSpan.textContent = fileName;
+
+    const chatTabClose = document.createElement('span');
+    chatTabClose.className = 'tab-close';
+    chatTabClose.textContent = "×";
+    this.addListener(chatTabClose, 'click', () => this.closeTab(tabId, event));
+
+    //tab.appendChild(chatTabSpan);
+    chatTabSpan.appendChild(chatTabClose);
+    tab.appendChild(chatTabSpan);
+
+    this.addListener(tab, 'click', (e) => {
       if (!e.target.classList.contains('tab-close'))
         this.switchToTab(tabId);
     });
@@ -2818,7 +2980,14 @@ Be specific and include file paths if the error mentions them.`;
 
     editorDiv.id = tabId;
     editorDiv.className = 'tab-panel editor-container';
-    editorDiv.innerHTML = `<div class="monaco-editor-container" id="editor-${tabId}"></div>`;
+
+    const monacoEditorContainer = document.createElement('div');
+    monacoEditorContainer.className = 'monaco-editor-container';
+    monacoEditorContainer.id = `editor-${tabId}`;
+
+    //editorDiv.innerHTML = `<div class="monaco-editor-container" id="editor-${tabId}"></div>`;
+
+    editorDiv.appendChild(monacoEditorContainer);
     document.querySelector('.tab-contents').appendChild(editorDiv);
 
     this.openFiles.set(tabId, { path: filePath, name: fileName, content, modified: false });
@@ -2844,26 +3013,28 @@ Be specific and include file paths if the error mentions them.`;
   }
 
   setupTabDragHandlers(tab, tabId, type) {
-    tab.addEventListener('dragstart', (e) => {
+    this.addListener(tab, 'dragstart', (e) => {
         e.dataTransfer.setData('text/plain', tabId);
         e.dataTransfer.effectAllowed = 'move';
         tab.classList.add('dragging');
         this.draggedTab = tabId;
     });
 
-    tab.addEventListener('dragend', () => {
+    this.addListener(tab, 'dragend', (e) => {
         tab.classList.remove('dragging');
         this.draggedTab = null;
     });
 
-    tab.addEventListener('dragover', (e) => {
+    this.addListener(tab, 'dragover', (e) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
     });
 
-    tab.addEventListener('drop', (e) => {
+    this.addListener(tab, 'drop', (e) => {
         e.preventDefault();
-        if (!this.draggedTab || this.draggedTab === tabId) return;
+
+        if (!this.draggedTab || this.draggedTab === tabId)
+          return;
 
         // Get the tabs container
         const tabsContainer = document.getElementById('tabs');
@@ -2922,7 +3093,7 @@ Be specific and include file paths if the error mentions them.`;
     }
 
     // Event listeners
-    tab.addEventListener('click', (e) => {
+    this.addListener(tab, 'click', (e) => {
       if (!e.target.classList.contains('tab-close')) {
         this.switchToTab(tabId);
       }
@@ -3038,62 +3209,6 @@ Be specific and include file paths if the error mentions them.`;
     return clean || 'New Chat';
   }
 
-  _renderWelcomeHubContent(tabId) {
-    const title = document.getElementById(`hub-title-${tabId}`);
-    const subtitle = document.getElementById(`hub-subtitle-${tabId}`);
-    const suggestions = document.getElementById(`hub-suggestions-${tabId}`);
-
-    if (!title || !subtitle || !suggestions)
-      return;
-
-    if (!this.workspacePath) {
-        title.textContent = 'Ready to collaborate';
-        suggestions.innerHTML = `
-          <button class="hub-suggestion-btn" onclick="app.selectWorkspace()">
-            <span>📂</span> Open workspace folder
-          </button>
-          <button class="hub-suggestion-btn" onclick="app.showSettingsModal()">
-            <span>⚙️</span> Choose model
-          </button>
-        `;
-      //}
-    }
-    else {
-      title.textContent = 'Ready to collaborate';
-      subtitle.textContent = 'What shall we work on?';
-      suggestions.innerHTML = `
-      <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Review the architecture')">
-        <div class="suggestion-icon">🏗️</div>
-        <div class="suggestion-content">
-          <div class="suggestion-title">Architecture review</div>
-          <div class="suggestion-desc">Analyze design patterns and structure</div>
-        </div>
-      </button>
-      <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Optimize for performance')">
-        <div class="suggestion-icon">⚡</div>
-        <div class="suggestion-content">
-          <div class="suggestion-title">Optimize code</div>
-          <div class="suggestion-desc">Identify bottlenecks and improve efficiency</div>
-        </div>
-      </button>
-      <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Security audit')">
-        <div class="suggestion-icon">🔒</div>
-        <div class="suggestion-content">
-          <div class="suggestion-title">Security check</div>
-          <div class="suggestion-desc">Scan for vulnerabilities and best practices</div>
-        </div>
-      </button>
-      <button class="hub-suggestion-btn" onclick="app.sendSuggestion('Generate documentation')">
-        <div class="suggestion-icon">📝</div>
-        <div class="suggestion-content">
-          <div class="suggestion-title">Document code</div>
-          <div class="suggestion-desc">Create README and inline documentation</div>
-        </div>
-      </button>
-    `;
-    }
-  }
-
   createChatPanel(tabId) {
     const container = document.querySelector('.tab-contents');
     const mainPanel = document.getElementById('chat-panel');
@@ -3123,7 +3238,7 @@ Be specific and include file paths if the error mentions them.`;
     const welcomeHub = document.getElementById(`welcome-hub-${tabId}`);
 
     // Wire up event listeners (identical behavior to main chat)
-    input?.addEventListener('input', (e) => {
+    this.addListener(input, 'input', (e) => {
       const textarea = e.target;
       const minHeight = 60;
       const maxHeight = 320;
@@ -3144,21 +3259,19 @@ Be specific and include file paths if the error mentions them.`;
       }
     });
 
-    input?.addEventListener('keydown', (e) => {
+    this.addListener(input, 'keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         this.sendMessage(null, tabId);
       }
     });
 
-    sendBtn.addEventListener('click', () => this.sendMessage(null, tabId));
-    insertFileBtn.addEventListener('click', () => this.selectFiles());
-    hideHubBtn?.addEventListener('click', () => {
-      welcomeHub?.classList.add('hidden');
-    });
+    this.addListener(sendBtn, 'click', () => this.sendMessage(null, tabId));
+    this.addListener(insertFileBtn, 'click', () => this.selectFiles());
+    this.addListener(hideHubBtn, 'click', () => welcomeHub?.classList.add('hidden'));
 
     // Populate welcome hub content
-    this._renderWelcomeHubContent(tabId);
+    this.renderWelcomeHub(tabId);
 
     // Clear any messages that were cloned from main chat
     const messagesContainer = document.getElementById(`chat-messages-${tabId}`);
@@ -3710,7 +3823,7 @@ Be specific and include file paths if the error mentions them.`;
     const themeRadio = document.querySelector(`input[name="theme-setting"][value="${this.config.theme || 'system'}"]`);
 
     document.querySelectorAll('input[name="theme-setting"]').forEach(radio => {
-      radio.addEventListener('change', (e) => {
+      this.addListener(radio, 'change', (e) => {
         if (e.target.checked) {
           this.previewTheme(e.target.value);
         }
@@ -3966,11 +4079,11 @@ Be specific and include file paths if the error mentions them.`;
 
         // Add event listeners
         list.querySelectorAll('.btn-load').forEach(btn => {
-          btn.addEventListener('click', (e) => this.loadChatFromHistory(e.target.dataset.id));
+          this.addListener(btn, 'click', (e) => this.loadChatFromHistory(e.target.dataset.id));
         });
 
         list.querySelectorAll('.btn-delete').forEach(btn => {
-          btn.addEventListener('click', (e) => this.deleteChatFromHistory(e.target.dataset.id));
+          this.addListener(btn, 'click', (e) => this.deleteChatFromHistory(e.target.dataset.id));
         });
       }
     }
@@ -4040,10 +4153,3 @@ Be specific and include file paths if the error mentions them.`;
 }
 
 const app = new App();
-
-document.addEventListener('keydown', (e) => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-    e.preventDefault();
-    app.saveCurrentFile();
-  }
-});

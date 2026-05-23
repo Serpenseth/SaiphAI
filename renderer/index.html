@@ -246,15 +246,55 @@
           <div class="tab-panel active" id="chat-panel">
             <div class="chat-messages" id="chat-messages">
               <div id="welcome-hub" class="welcome-hub hidden">
-                <div class="hub-content">
-                  <h2 id="hub-title">Ready to code?</h2>
-                  <p id="hub-subtitle" class="hub-subtitle">Select a workspace to get started</p>
+                <h2 id="hub-title">Ready to code?</h2>
+                <p id="hub-subtitle" class="hub-subtitle"></p>
 
-                  <div class="hub-suggestions" id="hub-suggestions"></div>
-                  <button class="btn-hide-hub" id="btn-hide-hub" title="Hide these suggestions">
-                    Dismiss
-                  </button>
-                </div>
+
+                  <div id="tips-hub-no-workspace" class="tips-hub-no-workspace" style="display: none">
+                    <button id='select-workspace-hub' class="hub-suggestion-btn">
+                      <span>📂</span> Open workspace folder
+                    </button>
+                    <button id="open-settings-hub" class="hub-suggestion-btn">
+                      <span>⚙️</span> Choose model
+                    </button>
+                  </div>
+
+                  <div id="tips-hub" class="tips-hub" style="display: none">
+                    <button id='review-arch' class="hub-suggestion-btn">
+                      <div class="suggestion-icon">🏗️</div>
+                      <div class="suggestion-content">
+                        <div class="suggestion-title">Architecture review</div>
+                        <div class="suggestion-desc">Analyze design patterns and structure</div>
+                      </div>
+                    </button>
+                    <button id="optimize-for-performance" class="hub-suggestion-btn">
+                      <div class="suggestion-icon">⚡</div>
+                      <div class="suggestion-content">
+                        <div class="suggestion-title">Optimize code</div>
+                        <div class="suggestion-desc">Identify bottlenecks and improve efficiency</div>
+                      </div>
+                    </button>
+                    <button id='security-audit' class="hub-suggestion-btn">
+                      <div class="suggestion-icon">🔒</div>
+                      <div class="suggestion-content">
+                        <div class="suggestion-title">Security check</div>
+                        <div class="suggestion-desc">Scan for vulnerabilities and best practices</div>
+                      </div>
+                    </button>
+                    <button id="gen-doc" class="hub-suggestion-btn" onclick="app.sendSuggestion('Generate documentation')">
+                      <div class="suggestion-icon">📝</div>
+                      <div class="suggestion-content">
+                        <div class="suggestion-title">Document code</div>
+                        <div class="suggestion-desc">Create README and inline documentation</div>
+                      </div>
+                    </button>
+                  </div>
+
+
+                <div class="hub-suggestions" id="hub-suggestions"></div>
+                <button class="btn-hide-hub" id="btn-hide-hub" title="Hide these suggestions">
+                  Dismiss
+                </button>
               </div>
             </div>
 
@@ -347,8 +387,62 @@
     </div>
   </div>
 
-  <div id="build-panel" class="hidden">
-    <!-- Dynamically created -->
+  <div id="build-panel">
+    <div id='build-empty' class="build-empty" style='display: none;'>
+      <button class="btn-icon no-workspace-close" onclick="app.toggleBuildPanel()" title="Close build panel" style="margin-left: auto; ">
+        ✕
+      </button>
+      <div id="workspace-icon" class="icon">📂</div>
+      <div class="message">No Workspace Selected</div>
+      <div id='no-workspace-other-msg' class="subtitle">
+        Open a project folder to detect build configuration and start building
+      </div>
+      <button id='build-select-workspace' class="action-btn">Select Workspace</button>
+    </div>
+
+    <div id="build-header" class="build-header" style='display: none;'>
+      <div class="build-project-info">
+          <div class="build-lang-icon"></div>
+          <div class="build-details">
+              <div class="build-lang"></div>
+              <div class="build-system"></div>
+          </div>
+      </div>
+      <button id='close-build-panel' class="btn-icon" title="Close build panel" style="margin-left: auto; ">✕</button>
+    </div>
+
+    <div id="build-actions" class="build-actions" style='display: none;'>
+        <button id="build-btn" class="build-btn" title="Build project">Build</button>
+        <button id="install-deps-btn" class="build-btn" title="Install dependencies">Install</button>
+        <button id="test-btn" class="build-btn" title="Run tests">Test</button>
+        <button id="run-btn" class="build-btn" title="Run start script">Run</button>
+    </div>
+
+    <div class="build-output" style='display: none;'>
+      <div class="build-output-header">
+        <span>Output</span>
+        <button id='clear-build-output' class="btn-icon" title="Clear output">Clear</button>
+      </div>
+      <div id="build-output-content" class="build-output-content">
+        <div class="build-starting">Ready to build...</div>
+      </div>
+    </div>
+
+    <div class="build-history" style='display: none;'>
+      <div class="build-section-title">Recent Builds</div>
+      <div id="build-history-list" class="build-history-list">
+        <div class="build-history-item">
+          <div class="build-history-info">
+            <span class="build-history-command"></span>
+            <span class="build-history-time"></span>
+          </div>
+          <div class="build-history-meta">
+            <span class="build-history-duration"></span>
+            <span class="build-history-status"></span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
 <div id="update-available-modal" class="modal hidden">
