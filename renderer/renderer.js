@@ -88,21 +88,6 @@ class App {
       }
     }
 
-    /*
-    // Try preload first, then fall back to CDN global
-    if (window.electronAPI?.loadTransformers) {
-        this.transformers = await window.electronAPI.loadTransformers();
-    }
-    else {
-      this.transformers = window.transformers || window.Transformers;
-    }
-
-    // Setup download progress listener (for Ollama)
-    window.electronAPI.onDownloadProgress((data) => {
-      this.updateDownloadProgress(data);
-    });
-    */
-
     this.showWelcomeHub = !this.config.hideWelcomeHub;
 
     this.setupEventListeners();
@@ -323,17 +308,6 @@ class App {
       'click', async () => {
         document.getElementById('first-run-modal')?.classList.add('hidden');
         await this.introInstructions();
-
-        /*
-        // Set Ollama as default model
-        await window.electronAPI.setConfig({
-          modelType: 'ollama',
-          modelName: null
-        });
-
-        this.currentModel = 'ollama';
-        await this.populateOllamaModels();
-        */
       }
     );
 
@@ -358,16 +332,6 @@ class App {
       document.getElementById('option-ollama'),
       'click', async () => await this.showOllamaModelDownload()
     );
-
-    /*
-    // Ollama
-    this.addListener(
-      document.getElementById('option-ollama'),
-      'click', () => {
-        console.log('Ollama selected');
-        this.selectModel('ollama');
-      }
-    );*/
 
     /**
      *  Helper function to reset os card styles
@@ -1034,11 +998,6 @@ class App {
     const panel = document.getElementById('build-panel');
     const config = this.currentBuildConfig;
 
-    /*
-    if (!panel.classList.contains('visible'))
-      return;
-    */
-
     if (!this.workspacePath || this.workspacePath === null) {
       document.getElementById("build-empty").style.display = 'block';
       return;
@@ -1069,46 +1028,8 @@ class App {
     buildSys.textContext = config.detectedFiles.join(', ');
 
     document.getElementById("build-actions").style.display = 'block';
-
-/*
-    // Run script
-    if (config.language === 'javascript' || config.language === 'typescript')
-      this.addListener(
-        document.getElementById("build-btn"),
-        'click', () => this.runScript('start')
-      );*/
-
     document.querySelector(".build-output").style.display = 'block';
     document.querySelector(".build-history").style.display = 'block';
-
-    /*
-    if (!this.workspacePath || this.workspacePath === null) {
-      panel.innerHTML = this._buildTemplate('empty', {
-        message: 'No Workspace Selected',
-        icon: '📂'
-      });
-      return;
-    }
-    */
-
-    /*
-    if (!config?.buildSystem || !config) {
-      panel.innerHTML = this._buildTemplate('empty', {
-        message: 'Open a workspace to detect build configuration',
-        icon: '🔧'
-      });
-      return;
-    }
-
-    // Unified template generator
-    panel.innerHTML = this._buildTemplate('panel', {
-      language: config.language,
-      icon: this.getLanguageIcon(config.language),
-      detectedFiles: config.detectedFiles.join(', '),
-      scriptsHtml: config.availableScripts ? this._renderScriptButtons(config.availableScripts) : '',
-      actionsHtml: this._renderBuildActions(config)
-    });
-    */
 
     if (this.config.buildHistoryHeight) {
       document.querySelector('.build-history')
@@ -1119,47 +1040,7 @@ class App {
     this.setupResizeHandle();
   }
 
-  /*
-  _renderScriptButtons(scripts) {
-    const priority = ['build', 'start', 'dev', 'test', 'lint'];
-    const sorted = [...scripts].sort((a, b) => {
-      const aIdx = priority.indexOf(a);
-      const bIdx = priority.indexOf(b);
-
-      if (aIdx === -1 && bIdx === -1)
-        return a.localeCompare(b);
-
-      return aIdx === -1 ? 1 : bIdx === -1 ? -1 : aIdx - bIdx;
-    });
-
-    return sorted.slice(0, 6).map(script =>
-      `<button class="btn-script" onclick="app.runScript('${script}')">${script}</button>`
-    ).join('');
-  }
-
-  _renderBuildActions(config) {
-    const bs = config.buildSystem;
-
-    return `
-      <button onclick="app.executeBuild('build', '${bs.defaultCommand}', ${JSON.stringify(bs.defaultArgs)})">Build</button>
-      <button onclick="app.executeBuild('install', '${bs.installCommand[0]}', ${JSON.stringify(bs.installCommand.slice(1))})">Install</button>
-    `;
-  }
-  */
-
   getLanguageIcon(lang) {
-    /*
-    const icons = {
-      javascript: 'JS',
-      typescript: 'TS',
-      python: '🐍',
-      rust: 'RS',
-      go: 'GO',
-      java: 'JV',
-      csharp: 'C#',
-      cpp: 'C++'
-    };
-    */
     const img = document.createElement('img');
     img.src = `../assets/${lang}.png`;
     return img;
@@ -1699,7 +1580,9 @@ Be specific and include file paths if the error mentions them.`;
 
     if (!this.workspacePath) {
       document.getElementById(tipsHubId)?.removeAttribute('style');
-      document.getElementById(tipsHubIdMain).style.display = 'none';
+
+      if (tipsHubIdMain)
+        document.getElementById(tipsHubIdMain).style.display = 'none';
 
       this.addListener(
         document.getElementById("select-workspace-hub"),
@@ -1716,7 +1599,10 @@ Be specific and include file paths if the error mentions them.`;
 
     else {
       document.getElementById(tipsHubIdMain)?.removeAttribute('style');
-      document.getElementById(tipsHubId).style.display = 'none';
+
+      if (tipsHubId)
+        document.getElementById(tipsHubId).style.display = 'none';
+      //.style.display = 'none';
 
       const titleId = tabId === 'chat' ? 'hub-title' : `hub-title-${tabId}`;
       const subtitleId = tabId === 'chat' ? 'hub-subtitle' : `hub-subtitle-${tabId}`;
@@ -1957,21 +1843,6 @@ Be specific and include file paths if the error mentions them.`;
         document.getElementById("model-selection").style.display = 'block';
         break;
     }
-
-        /*
-        if (result === 0) {
-          document.getElementById('intro-model-instructions')?.classList.add('hidden');
-          return;
-        }
-
-        else if (result === 1) {
-          document.getElementById("no-models").classList.remove('hidden');
-          return;
-          // Ollama is running but has no models pulled
-          //const subtitle = document.getElementById("subtitle-intro");
-          //subtitle.innerHTML = "Ollama was found on your device, but there are no models installed";
-        }
-        */
   }
 
   async showOllamaModelDownload() {
@@ -2096,16 +1967,6 @@ Be specific and include file paths if the error mentions them.`;
       return;
     }
 
-    /*
-    const userModels = await window.electronAPI.getOllamaModels();
-    const doesUserAlreadyHaveModel = userModels.find(x => x.name === this.modelToDownload);
-
-    if (doesUserAlreadyHaveModel) {
-      alert('Model is already installed');
-      return;
-    }
-    */
-
     const progressText = document.getElementById('ollama-dl-progress-text');
     const dlText = document.getElementById("dl-text");
     const downloadBtn = document.getElementById("dl-ollama-model");
@@ -2217,23 +2078,8 @@ Be specific and include file paths if the error mentions them.`;
   */
   async sendMessage(text = null, targetTabId = null) {
     const config = await window.electronAPI.getConfig();
-
-    //await this.populateOllamaModels();
-
-    /*
-    // Security: Model validation
-    if (this.currentModel === 'ollama' && config.modelType === 'ollama') {
-      if (!this.currentOllamaModel) {
-        await this.populateOllamaModels();
-
-        if (!this.currentOllamaModel) {
-          throw new Error('No Ollama model selected. Please open Settings and select a model.');
-        }
-      }
-    }
-    */
-
     const hub = document.getElementById('welcome-hub');
+
     if (hub) {
       hub.style.display = 'none';
     }
@@ -2342,15 +2188,6 @@ Be specific and include file paths if the error mentions them.`;
       let responseText;
       //let basePrompt;
       const basePrompt = await window.electronAPI.getSystemPrompt();
-
-      //if (this.currentModal === 'ollama')
-      //basePrompt = await window.electronAPI.getSystemPrompt();
-
-      /*
-      else
-        basePrompt = await window.electronAPI.getLlamaPrompt();
-      */
-
       let contextPrompt = basePrompt;
 
       // Security: Build context securely
@@ -3071,10 +2908,17 @@ Be specific and include file paths if the error mentions them.`;
     tab.dataset.tab = tabId;
     tab.draggable = true; // Enable dragging
 
-    tab.innerHTML = `
-      <span class="chat-tab-title">${this.escapeHtml(chatData.title)}</span>
-      <span class="tab-close" onclick="app.closeChatTab('${tabId}', event)">×</span>
-    `;
+    const chatTabTitle = document.createElement('span');
+    chatTabTitle.className = "chat-tab-title";
+    chatTabTitle.innerHTML = this.escapeHtml(chatData.title);
+
+    const tabClose = document.createElement('span');
+    tabClose.className = "tab-close";
+    tabClose.textContent = "×";
+    this.addListener(tabClose, 'click', () => this.closeChatTab(tabId, event));
+
+    tab.appendChild(chatTabTitle);
+    tab.appendChild(tabClose);
 
     // Insert into chat section (before Monaco tabs)
     const firstFileTab = Array.from(tabsContainer.children).find(t =>
@@ -3107,7 +2951,8 @@ Be specific and include file paths if the error mentions them.`;
   }
 
   async closeChatTab(tabId, event) {
-    if (event) event.stopPropagation();
+    if (event)
+      event.stopPropagation();
 
     const tabElement = document.querySelector(`[data-tab="${tabId}"]`);
     const chatData = this.openChats.get(tabId);
@@ -3277,7 +3122,7 @@ Be specific and include file paths if the error mentions them.`;
     const messagesContainer = document.getElementById(`chat-messages-${tabId}`);
 
     if (messagesContainer)
-      messagesContainer.innerHTML = '';
+      messagesContainer.textContent = '';
 
     if (input) {
       input.value = ''; // Clear cloned input text
@@ -3964,12 +3809,13 @@ Be specific and include file paths if the error mentions them.`;
     let container = document.getElementById(containerId);
     const chatInput = document.getElementById(chatInputId);
 
-    if (!chatInput) return; // Safety check
+    if (!chatInput)
+      return; // Safety check
 
     if (!container) {
       container = document.createElement('div');
       container.id = containerId;
-      container.style.cssText = 'display: flex; flex-wrap: wrap; gap: 8px; padding: 8px; border-bottom: 1px solid var(--border-color);';
+      container.style.cssText = 'display: flex; flex-wrap: wrap; gap: 8px; padding: 8px;';
       chatInput.parentNode.insertBefore(container, chatInput);
     }
 
@@ -3978,10 +3824,17 @@ Be specific and include file paths if the error mentions them.`;
       const chip = document.createElement('div');
       chip.className = 'file-chip';
       chip.style.cssText = 'display: flex; align-items: center; gap: 6px; background: var(--accent-color); color: white; padding: 4px 12px; border-radius: 16px; font-size: 0.85em;';
-      chip.innerHTML = `
-        <span>${file.name}</span>
-        <button onclick="app.removeAttachedFile(${index})" style="background: none; border: none; color: white; cursor: pointer; font-weight: bold;">×</button>
-      `;
+
+      const fname = document.createElement('span');
+      fname.textContent = file.name;
+
+      const fbtn = document.createElement('span');
+      fbtn.style.cssText = "style=background: none; border: none; color: white; cursor: pointer; font-weight: bold;"
+      fbtn.textContent = "×";
+      this.addListener(fbtn, 'click', () => this.removeAttachedFile(index));
+
+      chip.appendChild(fname);
+      chip.appendChild(fbtn);
       container.appendChild(chip);
     });
 }
@@ -4054,13 +3907,21 @@ Be specific and include file paths if the error mentions them.`;
     const list = document.getElementById('history-list');
 
     const result = await window.electronAPI.getChatHistory();
+
     if (result.success) {
       this.chatHistory = result.chats;
       list.textContent = '';
 
       if (this.chatHistory.length === 0) {
-        list.innerHTML = '<div class="empty-state">No chat history yet</div>';
-      } else {
+        const emptyState = document.createElement('div');
+        emptyState.className = "empty-state";
+        emptyState.textContent = "No chat history yet";
+
+        list.replaceChildren(emptyState);
+
+        //list.innerHTML = '<div class="empty-state">No chat history yet</div>';
+      }
+      else {
         this.chatHistory.forEach(chat => {
           const item = document.createElement('div');
           item.className = 'history-item';
@@ -4074,6 +3935,7 @@ Be specific and include file paths if the error mentions them.`;
               <button class="btn-delete" data-id="${chat.id}">Delete</button>
             </div>
           `;
+
           list.appendChild(item);
         });
 
