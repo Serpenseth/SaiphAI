@@ -991,9 +991,6 @@ class App {
     }
   }
 
-  _buildTemplate(type, data) {
-  }
-
   renderBuildPanel() {
     const panel = document.getElementById('build-panel');
     const config = this.currentBuildConfig;
