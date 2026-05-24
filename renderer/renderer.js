@@ -116,6 +116,10 @@ class App {
     window.addEventListener('beforeunload', async () => {
       await this.saveEditorState();
       this.cleanupEventListeners();
+
+      // Kill any builds that are running
+      for (const k of this.activeBuilds.keys())
+        await window.electronAPI.stopBuild(k)
     });
 
 
