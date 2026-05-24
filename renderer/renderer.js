@@ -213,10 +213,13 @@ class App {
   };
 
   // Events that perform actions on HTML elements
+
   setupEventListeners() {
+    /*
     window.electronAPI.onBuildProgress((data) => {
       this.handleBuildProgress(data);
     });
+    */
 
     const addIpcListener = (channel, handler) => {
       const unsubscribe = window.electronAPI[channel](handler);
@@ -265,19 +268,19 @@ class App {
     // Run build
     this.addListener(
       document.getElementById("build-btn"),
-      'click', () => this.runBuild()
+      'click', async () => await this.runBuild()
     );
 
     // Run install
     this.addListener(
       document.getElementById("install-deps-btn"),
-      'click', () => this.runInstall()
+      'click', async () => this.runInstall()
     );
 
     // Run test
     this.addListener(
       document.getElementById("test-btn"),
-      'click', () => this.runTest()
+      'click', async () => this.runTest()
     );
 
     // Clear build output
@@ -1106,15 +1109,14 @@ class App {
 
       if (result.success) {
         this.appendBuildOutput(`\n✓ Build completed in ${result.result.duration}ms\n`, 'success');
-        this.updateBuildStatus(`${buildType} completed`);
       }
       else {
         const errorOutput = result.stderr || result.error || '';
-        this.appendBuildOutput(`\n✗ Build failed (Exit code: ${result.exitCode})\n${result.stderr || result.error}\n`, 'error');
-        this.updateBuildStatus(`${buildType} failed`);
+        this.appendBuildOutput(`\n✗ Build failed (Exit code: ${result.exitCode})\n${result.stderr || result.error}\n\n`, 'error');
 
         // Store output in build data for retrieval
         const buildData = this.activeBuilds.get(buildId);
+
         if (buildData) {
             buildData.output = errorOutput;
             buildData.exitCode = result.exitCode;
@@ -1135,7 +1137,7 @@ class App {
       }
     }
     catch (e) {
-      this.appendBuildOutput(`\n✗ Error: ${e.message}\n`, 'error');
+     this.appendBuildOutput(`\n✗ Error: ${e.message}\n`, 'error');
     }
     finally {
       // Delay cleanup slightly to give UI time to render
@@ -1145,15 +1147,17 @@ class App {
       }, 100);
     }
   }
-
   handleBuildProgress(data) {
     const { buildId, type, data: content } = data;
+
+    console.log(JSON.stringify(data));
+
     const prefix = type === 'stderr' ? '[stderr] ' : '';
     this.appendBuildOutput(prefix + content, type);
   }
 
   appendBuildOutput(text, type = 'stdout') {
-    const container = document.getElementById('build-output-content');
+    const container = document.querySelector('.build-output-content');
 
     if (!container)
       return;

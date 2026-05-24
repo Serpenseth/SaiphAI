@@ -2104,7 +2104,7 @@ class BuildToolManager {
           env: { ...process.env, ...env },
           maxBuffer: this.outputMaxSize,
           timeout: this.buildTimeout,
-          killSignal: 'SIGTERM',
+          killSignal: 'SIGINT',
           windowsHide: true
         },
         (error, stdout, stderr) => {
@@ -2149,15 +2149,19 @@ class BuildToolManager {
       if (onProgress && child.stdout) {
         child.stdout.on('data', (data) => {
           const chunk = data.toString();
+
+          /*
           if (buildProcess.output.length === 0 ||
               buildProcess.output[buildProcess.output.length - 1].type !== 'stdout') {
             buildProcess.output.push({ type: 'stdout', data: chunk });
-          } else {
-            buildProcess.output[buildProcess.output.length - 1].data += chunk;
           }
+          else {
+            buildProcess.output[buildProcess.output.length - 1].data += chunk;
+          }*/
 
           // Limit output size in memory
           const totalSize = buildProcess.output.reduce((sum, o) => sum + o.data.length, 0);
+
           if (totalSize > this.outputMaxSize) {
             child.kill('SIGTERM');
             reject(new Error('Build output exceeded maximum size'));
