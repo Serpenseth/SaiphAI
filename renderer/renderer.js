@@ -1024,7 +1024,7 @@ class App {
     const buildSys = document.querySelector(".build-system");
     buildSys.textContext = config.detectedFiles.join(', ');
 
-    document.getElementById("build-actions").style.display = 'block';
+    document.getElementById("build-actions").style.display = '';
     document.querySelector(".build-output").style.display = 'block';
     document.querySelector(".build-history").style.display = 'block';
 
