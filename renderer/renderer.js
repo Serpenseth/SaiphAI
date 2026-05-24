@@ -1025,8 +1025,8 @@ class App {
     buildSys.textContext = config.detectedFiles.join(', ');
 
     document.getElementById("build-actions").style.display = '';
-    document.querySelector(".build-output").style.display = 'block';
-    document.querySelector(".build-history").style.display = 'block';
+    document.querySelector(".build-output").style.display = '';
+    document.querySelector(".build-history").style.display = '';
 
     if (this.config.buildHistoryHeight) {
       document.querySelector('.build-history')
