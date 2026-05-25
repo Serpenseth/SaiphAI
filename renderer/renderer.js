@@ -102,6 +102,18 @@ class App {
 
       if (this.currentModel === 'ollama')
         await this.populateOllamaModels();
+
+      else {
+        const selector = document.getElementById('ollama-model-selector');
+        selector.value = 'o4';
+
+        const s = document.createElement('option');
+        s.value ='o4';
+        s.textContent = 'o4';
+
+        selector.replaceChildren(s)
+        selector.selected = 'o4';
+      }
     }
 
     await this.loadCurrentChatFromJson();
@@ -3746,6 +3758,15 @@ Be specific and include file paths if the error mentions them.`;
       }
 
       this.currentModel = selectedModel;
+      const selector = document.getElementById('ollama-model-selector');
+      selector.value = 'o4';
+
+      const s = document.createElement('option');
+      s.value ='o4';
+      s.textContent = 'o4';
+
+      selector.replaceChildren(s)
+      selector.selected = 'o4';
       await this.selectModel(selectedModel);
     }
 
