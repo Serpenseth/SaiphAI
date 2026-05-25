@@ -99,7 +99,9 @@ class App {
     }
     else {
       this.currentModel = this.config.modelType;
-      await this.populateOllamaModels();
+
+      if (this.currentModel === 'ollama')
+        await this.populateOllamaModels();
     }
 
     await this.loadCurrentChatFromJson();
@@ -2188,8 +2190,6 @@ Be specific and include file paths if the error mentions them.`;
     }
 
     try {
-      console.log(this.currentModel);
-
       let responseText;
       //let basePrompt;
       const basePrompt = await window.electronAPI.getSystemPrompt();
