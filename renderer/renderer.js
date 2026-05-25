@@ -3708,63 +3708,67 @@ Be specific and include file paths if the error mentions them.`;
   async saveSettings() {
     const selectedModel = document.querySelector('input[name="settings-model"]:checked')?.value;
 
-    if (selectedModel === 'o4') {
-      try {
-        const apiKey = document.getElementById("input-openai-api");
+    if (selectedModel !== this.currentModel) {
+      if (selectedModel === 'o4') {
+        try {
+          const apiKey = document.getElementById("input-openai-api");
 
-        if (apiKey.value && apiKey.value.length !== 0) {
-          const result = await fetch("https://api.openai.com/v1/models", {
-            method: 'GET',
-            headers: { 'Authorization': `Bearer ${apiKey.value}` }
-          });
+          if (apiKey.value && apiKey.value.length !== 0) {
+            const result = await fetch("https://api.openai.com/v1/models", {
+              method: 'GET',
+              headers: { 'Authorization': `Bearer ${apiKey.value}` }
+            });
 
-          if (result.status === 401) {
-            alert("Error: Invalid API key. Try again");
+            if (result.status === 401) {
+              alert("Error: Invalid API key. Try again");
+              return;
+            }
+
+            await window.electronAPI.writeToEnvFile('OPENAI_KEY', apiKey.value);
+
+            apiKey.value = null;
+            document.getElementById("delete-openai-key").style.display = 'block';
+          }
+          else {
+            alert("No OpenAI key was entered");
             return;
           }
-
-          await window.electronAPI.writeToEnvFile('OPENAI_KEY', apiKey.value);
-
-          apiKey.value = null;
-          document.getElementById("delete-openai-key").style.display = 'block';
         }
-        else {
-          alert("No OpenAI key was entered");
+        catch(e) {
+          alert(e);
           return;
-        }
+        };
       }
-      catch(e) {
-        alert(e);
-        return;
-      };
+
+      this.currentModel = selectedModel;
+      await this.selectModel(selectedModel);
     }
 
     try {
-      this.currentModel = selectedModel;
-      await this.selectModel(selectedModel);
-
       // Handle theme change
       const selectedTheme = document.querySelector('input[name="theme-setting"]:checked')?.value;
-      if (selectedTheme) {
-          this.applyTheme(selectedTheme);
-          await window.electronAPI.setTheme(selectedTheme);
-          this.config.theme = selectedTheme;
-      }
 
-      this.closeSettingsModal();
+      if (this.config.theme !== selectedTheme) {
+        if (selectedTheme) {
+            this.applyTheme(selectedTheme);
+            await window.electronAPI.setTheme(selectedTheme);
+            this.config.theme = selectedTheme;
+        }
+      }
 
       const showHub = document.getElementById('setting-show-hub')?.checked;
 
       if (showHub !== undefined && showHub !== this.showWelcomeHub) {
-          await this.toggleWelcomeHub(showHub);
-          // Update toggle button if exists
-          const toggleBtn = document.getElementById('hub-toggle');
+        await this.toggleWelcomeHub(showHub);
+        // Update toggle button if exists
+        const toggleBtn = document.getElementById('hub-toggle');
 
-          if (toggleBtn) {
-              toggleBtn.textContent = showHub ? 'Tips: On' : 'Tips: Off';
-              toggleBtn.classList.toggle('active', showHub);
-          }
+        if (toggleBtn) {
+            toggleBtn.textContent = showHub ? 'Tips: On' : 'Tips: Off';
+            toggleBtn.classList.toggle('active', showHub);
         }
+      }
+      this.closeSettingsModal();
     }
     catch (e) {
       console.error('Failed to save settings:', e);
