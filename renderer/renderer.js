@@ -3740,6 +3740,7 @@ Be specific and include file paths if the error mentions them.`;
           }
           else {
             alert('something went wrong');
+            return;
           }
         }
         catch(e) {
