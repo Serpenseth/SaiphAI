@@ -430,6 +430,22 @@ ol li {
   text-align: left;
 }
 
+.message-bubble code:not(pre code),
+.message-bubble .hljs.inline {
+  background: #535357;
+  padding: 0rem 0.25rem;
+  border-radius: 7px;
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+}
+
+/* For code blocks, maintain syntax highlighting */
+.message-bubble pre .hljs {
+  color: inherit;
+  background: inherit;
+  font-family: inherit
+}
+
 .message.user .message-bubble {
   background: var(--user-chat-bubble);;
   color: #eff1f3;
@@ -452,7 +468,7 @@ ol li {
 }
 
 .message-content code {
-  background: rgba(0, 0, 0, 0.05);
+  color: yellow;
   padding: 0.2rem 0.4rem;
   border-radius: 3px;
   font-size: 0.9em;
@@ -902,11 +918,14 @@ ol li {
 }
 
 /* Inline code (not in pre blocks) */
-.message-content :not(pre) > code {
-  background: rgba(0, 0, 0, 0.05);
-  padding: 0.2rem 0.4rem;
-  border-radius: 3px;
-  color: var(--accent-color);
+/*.message-content :not(pre) > code {*/
+.message-content code:not(pre code),
+.message-content code.hljs {
+    color: yellow;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
 }
 
 .message-bubble ul,
