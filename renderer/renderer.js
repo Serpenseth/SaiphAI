@@ -3709,25 +3709,29 @@ Be specific and include file paths if the error mentions them.`;
     const selectedModel = document.querySelector('input[name="settings-model"]:checked')?.value;
 
     if (selectedModel === 'o4') {
-      const isOpenaiKeyEmpty = await window.electronAPI.envKeyEmpty('OPENAI_KEY');
-
       try {
         const apiKey = document.getElementById("input-openai-api");
 
-        const result = await fetch("https://api.openai.com/v1/models", {
-          method: 'GET',
-          headers: { 'Authorization': `Bearer ${apiKey.value}` }
-        });
+        if (apiKey.value && apiKey.value.length !== 0) {
+          const result = await fetch("https://api.openai.com/v1/models", {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${apiKey.value}` }
+          });
 
-        if (result.status === 401) {
-          alert("Error: Invalid API key. Try again");
+          if (result.status === 401) {
+            alert("Error: Invalid API key. Try again");
+            return;
+          }
+
+          await window.electronAPI.writeToEnvFile('OPENAI_KEY', apiKey.value);
+
+          apiKey.value = null;
+          document.getElementById("delete-openai-key").style.display = 'block';
+        }
+        else {
+          alert("No OpenAI key was entered");
           return;
         }
-
-        await window.electronAPI.writeToEnvFile('OPENAI_KEY', apiKey.value);
-
-        apiKey.value = null;
-        document.getElementById("delete-openai-key").style.display = 'block';
       }
       catch(e) {
         alert(e);
