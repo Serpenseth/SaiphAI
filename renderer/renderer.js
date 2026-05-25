@@ -3711,27 +3711,35 @@ Be specific and include file paths if the error mentions them.`;
     if (selectedModel !== this.currentModel) {
       if (selectedModel === 'o4') {
         try {
-          const apiKey = document.getElementById("input-openai-api");
+          const keyEmpty = await window.electronAPI.envKeyEmpty('OPENAI_KEY');
 
-          if (apiKey.value && apiKey.value.length !== 0) {
-            const result = await fetch("https://api.openai.com/v1/models", {
-              method: 'GET',
-              headers: { 'Authorization': `Bearer ${apiKey.value}` }
-            });
+          // Only save key if not already present
+          if (keyEmpty) {
+            const apiKey = document.getElementById("input-openai-api");
 
-            if (result.status === 401) {
-              alert("Error: Invalid API key. Try again");
+            if (apiKey.value && apiKey.value.length !== 0) {
+              const result = await fetch("https://api.openai.com/v1/models", {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${apiKey.value}` }
+              });
+
+              if (result.status === 401) {
+                alert("Error: Invalid API key. Try again");
+                return;
+              }
+
+              await window.electronAPI.writeToEnvFile('OPENAI_KEY', apiKey.value);
+
+              apiKey.value = null;
+              document.getElementById("delete-openai-key").style.display = 'block';
+            }
+            else {
+              alert("No OpenAI key was entered");
               return;
             }
-
-            await window.electronAPI.writeToEnvFile('OPENAI_KEY', apiKey.value);
-
-            apiKey.value = null;
-            document.getElementById("delete-openai-key").style.display = 'block';
           }
           else {
-            alert("No OpenAI key was entered");
-            return;
+            alert('something went wrong');
           }
         }
         catch(e) {
