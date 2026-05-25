@@ -3738,10 +3738,6 @@ Be specific and include file paths if the error mentions them.`;
               return;
             }
           }
-          else {
-            alert('something went wrong');
-            return;
-          }
         }
         catch(e) {
           alert(e);
