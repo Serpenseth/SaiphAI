@@ -2439,6 +2439,8 @@ ipcMain.handle('rm-env-key', async (event, key) => {
 
     lines[keyIndex] = `${key}=`;
     await fs.writeFile(ENV_PATH, lines.join('\n'), 'utf8');
+    // Reload env
+    dotenv.config({ path: ENV_PATH, override: true });
 
     return { success: true, error: null }
   }
@@ -2480,7 +2482,8 @@ ipcMain.handle('write-to-env-file', async (event, key, content) => {
   }
 
   await fs.writeFile(ENV_PATH, lines.join('\n'), 'utf8');
-  dotenv.config({ path: ENV_PATH });
+  // Reload env
+  dotenv.config({ path: ENV_PATH, override: true });
 });
 
 
