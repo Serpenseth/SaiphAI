@@ -1659,12 +1659,12 @@ Be specific and include file paths if the error mentions them.`;
 
     const tipsHubIdMain = tabId === 'chat' ? "tips-hub": `tips-hub-${tabId}`;
 
-    const tipsHubId = tabId === 'chat'
-      ? "tips-hub-no-workspace"
-      : `tips-hub-no-workspace-${tabId}`;
+    const tipsHubIdNoWorkspace = tabId === 'chat'
+        ? "tips-hub-no-workspace"
+        : `tips-hub-no-workspace-${tabId}`;
 
     if (!this.workspacePath) {
-      document.getElementById(tipsHubId)?.removeAttribute('style');
+      document.getElementById(tipsHubIdNoWorkspace)?.removeAttribute('style');
 
       if (tipsHubIdMain)
         document.getElementById(tipsHubIdMain).style.display = 'none';
@@ -1685,10 +1685,8 @@ Be specific and include file paths if the error mentions them.`;
     else {
       document.getElementById(tipsHubIdMain)?.removeAttribute('style');
 
-      if (tipsHubId)
-        document.getElementById(tipsHubId)?.removeAttribute('style');
-        //document.getElementById(tipsHubId).style.display = 'none';
-      //.style.display = 'none';
+      if (tipsHubIdNoWorkspace)
+        document.getElementById(tipsHubIdNoWorkspace).style.display = 'none';
 
       const titleId = tabId === 'chat' ? 'hub-title' : `hub-title-${tabId}`;
       const subtitleId = tabId === 'chat' ? 'hub-subtitle' : `hub-subtitle-${tabId}`;
