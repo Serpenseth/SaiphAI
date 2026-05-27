@@ -144,8 +144,6 @@ class App {
     }
 
     await this.loadCurrentChatFromJson();
-
-    //document.getElementById('app').classList.remove('hidden');
     this.initMonaco();
 
     window.electronAPI.onFileSystemEvent((data) => {
@@ -2603,7 +2601,6 @@ Be specific and include file paths if the error mentions them.`;
             this.workspaceIndex.index.set(file.path, file);
           });
           console.log(`Indexed ${this.workspaceIndex.index.size} files. Detected: ${metadata.type} project`);
-          document.getElementById("build-toggle-btn").style.display = '';
         }
       }
     }
@@ -2611,6 +2608,7 @@ Be specific and include file paths if the error mentions them.`;
       console.error('Failed to build/load index:', e);
     }
 
+    document.getElementById("build-toggle-btn").style.display = '';
     await this.initBuildSystem();
   }
 
