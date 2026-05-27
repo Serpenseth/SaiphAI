@@ -90,6 +90,9 @@ class App {
       }
     }
 
+    if (!this.config.lastWorkspace)
+      document.getElementById("build-toggle-btn").style.display = 'none';
+
     if (this.config.showSidebar === null || this.config.showSidebar === undefined) {
       await window.electronAPI.setConfig({ showSidebar: true });
       this.showSidebar = true;
@@ -2595,6 +2598,7 @@ Be specific and include file paths if the error mentions them.`;
             this.workspaceIndex.index.set(file.path, file);
           });
           console.log(`Indexed ${this.workspaceIndex.index.size} files. Detected: ${metadata.type} project`);
+          document.getElementById("build-toggle-btn").style.display = '';
         }
       }
     }
