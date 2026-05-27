@@ -1891,12 +1891,6 @@ Be specific and include file paths if the error mentions them.`;
         if (selector) {
             selector.value = this.currentOllamaModel;
         }
-
-        // Persist selection immediately so it's available for chat
-        await window.electronAPI.setConfig({
-            modelType: 'ollama',
-            modelName: this.currentOllamaModel
-        });
       }
 
       return 0;
@@ -1951,6 +1945,11 @@ Be specific and include file paths if the error mentions them.`;
         const success = document.getElementById('ollama-success');
         success.style.display = 'block';
 
+        await window.electronAPI.setConfig({
+          modelType: 'ollama',
+          modelName: this.currentOllamaModel
+        });
+
         new Promise(resolve => {
           setTimeout(() => {
             success.style.display = 'none';
@@ -1961,6 +1960,7 @@ Be specific and include file paths if the error mentions them.`;
             resolve();
           }, 3000)
         });
+
 
         break;
 
@@ -2014,6 +2014,11 @@ Be specific and include file paths if the error mentions them.`;
 
         this._createStatusSVG('success');
         this._setSuccessTitle("Ollama is set. You are eady to go!");
+
+        await window.electronAPI.setConfig({
+            modelType: 'ollama',
+            modelName: this.currentOllamaModel
+        });
 
         setTimeout(() => {
           document.getElementById('intro-model-instructions')?.classList.add('hidden');
