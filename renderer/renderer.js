@@ -1679,7 +1679,8 @@ Be specific and include file paths if the error mentions them.`;
       document.getElementById(tipsHubIdMain)?.removeAttribute('style');
 
       if (tipsHubId)
-        document.getElementById(tipsHubId).style.display = 'none';
+        document.getElementById(tipsHubId)?.removeAttribute('style');
+        //document.getElementById(tipsHubId).style.display = 'none';
       //.style.display = 'none';
 
       const titleId = tabId === 'chat' ? 'hub-title' : `hub-title-${tabId}`;
@@ -3158,6 +3159,25 @@ Be specific and include file paths if the error mentions them.`;
     const hideHubBtn = document.getElementById(`btn-hide-hub-${tabId}`);
     const welcomeHub = document.getElementById(`welcome-hub-${tabId}`);
 
+    // Populate welcome hub content
+    this.renderWelcomeHub(tabId);
+
+    // Clear any messages that were cloned from main chat
+    const messagesContainer = document.getElementById(`chat-messages-${tabId}`);
+
+    if (messagesContainer)
+      messagesContainer.replaceChildren();
+
+    if (input) {
+      input.value = ''; // Clear cloned input text
+      input.style.height = '60px'; // Reset height
+    }
+
+    // Ensure welcome hub is visible for new empty tabs
+    if (welcomeHub) {
+      welcomeHub.style.display = 'block';
+    }
+
     // Wire up event listeners (identical behavior to main chat)
     this.addListener(input, 'input', (e) => {
       const textarea = e.target;
@@ -3190,25 +3210,6 @@ Be specific and include file paths if the error mentions them.`;
     this.addListener(sendBtn, 'click', () => this.sendMessage(null, tabId));
     this.addListener(insertFileBtn, 'click', () => this.selectFiles());
     this.addListener(hideHubBtn, 'click', () => welcomeHub?.classList.add('hidden'));
-
-    // Populate welcome hub content
-    this.renderWelcomeHub(tabId);
-
-    // Clear any messages that were cloned from main chat
-    const messagesContainer = document.getElementById(`chat-messages-${tabId}`);
-
-    if (messagesContainer)
-      messagesContainer.textContent = '';
-
-    if (input) {
-      input.value = ''; // Clear cloned input text
-      input.style.height = '60px'; // Reset height
-    }
-
-    // Ensure welcome hub is visible for new empty tabs
-    if (welcomeHub) {
-      welcomeHub.style.display = 'block';
-    }
 
     // Reset scroll position
     if (messagesContainer) {
