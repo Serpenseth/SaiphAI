@@ -61,6 +61,8 @@ class App {
       remoteVersion: null,
       githubData: {}
     };
+    // Show/hide sidebar
+    this.showSidebar = null;
 
     this.init();
   }
@@ -86,6 +88,26 @@ class App {
         if (el)
           el.classList.add('active-file');
       }
+    }
+
+    if (this.config.showSidebar === null || this.config.showSidebar === undefined)
+      await window.electronAPI.setConfig({ showSidebar: true });
+
+    else
+      this.showSidebar = this.config.showSidebar;
+
+    if (this.showSidebar) {
+      document.querySelector(".sidebar").style.display = 'block';
+      document.getElementById("no-sidebar").style.display = 'none';
+      document.querySelector(".content").style.marginLeft = '';
+      document.querySelector(".chat-input-container").style.padding = '';
+    }
+
+    else {
+        document.querySelector(".sidebar").style.display = 'none';
+        document.getElementById("no-sidebar").style.display = "block";
+        document.querySelector(".content").style.marginLeft = "-43px";
+        document.querySelector(".chat-input-container").style.padding = '0.35rem 1.5rem';
     }
 
     this.showWelcomeHub = !this.config.hideWelcomeHub;
@@ -128,6 +150,9 @@ class App {
     this.renderWelcomeHub();
 
     window.addEventListener('beforeunload', async () => {
+      //if (sidebarHidden)
+      await window.electronAPI.setConfig({ showSidebar: this.showSidebar })
+
       await this.saveEditorState();
       this.cleanupEventListeners();
 
@@ -252,6 +277,30 @@ class App {
           e.preventDefault();
           app.saveCurrentFile();
         }
+      }
+    );
+
+    this.addListener(
+      document.getElementById("hide-sidebar"),
+      'click', () => {
+        document.querySelector(".sidebar").style.display = 'none';
+        document.getElementById("no-sidebar").style.display = "block";
+        document.querySelector(".content").style.marginLeft = "-43px";
+        document.querySelector(".chat-input-container").style.padding = '0.35rem 1.5rem';
+
+        this.showSidebar = false;
+      }
+    );
+
+    this.addListener(
+      document.getElementById("show-sidebar"),
+      'click', () => {
+        document.querySelector(".sidebar").style.display = 'block';
+        document.getElementById("no-sidebar").style.display = 'none';
+        document.querySelector(".content").style.marginLeft = '';
+        document.querySelector(".chat-input-container").style.padding = '';
+
+        this.showSidebar = true;
       }
     );
 

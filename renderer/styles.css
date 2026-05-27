@@ -236,6 +236,7 @@ ol li {
   background: var(--sidebar);
   display: flex;
   flex-direction: column;
+  z-index: 0;
 }
 
 .sidebar-action-btn {
@@ -250,6 +251,20 @@ ol li {
 .sidebar-action-btn:hover {
   background: var(--bg-tertiary);
   filter: brightness(0.9);
+}
+
+#no-sidebar {
+  background: var(--bg-primary);
+  width: auto;
+  margin-top: 25%;
+}
+
+#show-sidebar {
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  z-index: 500;
+  position: relative;
+  padding: 0.3rem;
 }
 
 .file-tree {
@@ -302,6 +317,7 @@ ol li {
   display: flex;
   flex-direction: column;
   background: var(--bg-primary);
+  z-index: 40;
 }
 
 /* Tabs */
@@ -310,7 +326,7 @@ ol li {
   background: var(--bg-primary);
   border-bottom: 1px solid var(--border-color);
   position: relative;
-  z-index: 10;
+  z-index: 40;
   flex-wrap: wrap;
 }
 
@@ -326,6 +342,7 @@ ol li {
   border-radius: 4px 4px 0 0;
   margin-left: 1px;
   flex-shrink: 0;
+  z-index: 41;
 }
 
 .tab:hover {
@@ -856,24 +873,6 @@ ol li {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .model-options {
-  grid-template-columns: 1fr;
-  }
-
-  .sidebar {
-  position: absolute;
-  left: -100%;
-  z-index: 100;
-  transition: left 0.3s;
-  }
-
-  .sidebar.open {
-  left: 0;
-  }
 }
 
 .model-selection {
