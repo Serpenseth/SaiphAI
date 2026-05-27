@@ -189,33 +189,45 @@
   <!-- Main App -->
   <div id="app" class="hidden">
     <!-- Title Bar -->
+    <!--
     <div class="title-bar">
       <div class="title-bar-left">
+
         <button class="btn-icon" id="btn-select-workspace" title="Select Workspace" style='font-size: 0.8rem; padding: 0.5rem 1rem'>
           Change workspace
         </button>
 
-        <span class="workspace-path" id="workspace-path"></span>
-        <button class="btn-icon" id="btn-refresh-index" title="Rebuild Index">
-          <img style='height: 24px; width: 24px; align-item: self;' src="../assets/refresh.png">
-        </button>
+
       </div>
       <div class="title-bar-right">
         <button id="build-toggle-btn" class="btn-icon" title="Toggle Build Panel">
           🔨
         </button>
-        <!-- Settings -->
+
         <button class="btn-icon" id="btn-settings" title="Settings">
           <img style='height: 24px; width: 24px; align-item: self;' src="../assets/settings.png">
         </button>
         </button>
       </div>
-    </div>
+    </div>-->
+
 
     <!-- Main Container -->
     <div class="main-container">
       <!-- Sidebar -->
       <div class="sidebar">
+<!--         <span class="workspace-path" id="workspace-path"></span> -->
+        <div class="sidebar-actions" style="padding: 0 0.5rem; padding-bottom: 0.5rem; padding-top: 8px; border-bottom: 1px solid var(--border-color);">
+          <button id="toggle-sidebar" class="btn-icon sidebar-action-btn" title="Show/hide sidebar">
+            <img style='height: 24px; width: 24px; margin-right: 7px;' src="../assets/close-sidebar.png">Hide Sidebar
+          </button>
+          <button id="build-toggle-btn" class="btn-icon sidebar-action-btn" title="Toggle Build Panel">
+            <img style='height: 24px; width: 24px; margin-right: 7px;' src="../assets/build-icon.png">Build Project
+          </button>
+          <button class="btn-icon sidebar-action-btn" id="btn-settings" title="Settings" value="Settings">
+            <img style='height: 24px; width: 24px; margin-right: 7px;' src="../assets/settings.png">Settings
+          </button>
+        </div>
         <div class="file-tree" id="file-tree">
           <div class="empty-state">No workspace selected</div>
         </div>
