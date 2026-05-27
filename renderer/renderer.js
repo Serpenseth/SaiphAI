@@ -2511,7 +2511,7 @@ Be specific and include file paths if the error mentions them.`;
   }
 
   async loadWorkspace(path) {
-    document.getElementById('workspace-path').textContent = path;
+    //document.getElementById('workspace-path').textContent = path;
     this.workspacePath = path;
 
     await window.electronAPI.setConfig({ lastWorkspace: path });
