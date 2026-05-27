@@ -810,6 +810,11 @@ class App {
       }
     );
 
+    this.addListener(
+      document.getElementById('update-available-modal'),
+      'click', () => document.getElementById('update-available-modal').classList.add('hidden')
+    );
+
     // Manual check button (in settings)
     this.addListener(
       document.getElementById('btn-check-updates'),
