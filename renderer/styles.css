@@ -238,7 +238,20 @@ ol li {
   background: var(--sidebar);
   display: flex;
   flex-direction: column;
+}
 
+.sidebar-action-btn {
+  display: flex;
+  width: 100%;
+  justify-content: flex-start;
+  font-size: 0.9rem;
+  border-radius: 4px;
+  margin-bottom: 2px;
+}
+
+.sidebar-action-btn:hover {
+  background: var(--bg-tertiary);
+  filter: brightness(0.9);
 }
 
 .file-tree {
