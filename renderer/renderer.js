@@ -271,6 +271,16 @@ class App {
     });
 
     this.addListener(
+      document.getElementById("close-settings"),
+      'click', () => this.closeSettingsModal()
+    );
+
+    this.addListener(
+      document.getElementById("save-settings"),
+      'click', () => this.saveSettings()
+    );
+
+    this.addListener(
       document,
       'keydown', (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === 's') {
