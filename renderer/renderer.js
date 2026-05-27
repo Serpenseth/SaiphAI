@@ -90,8 +90,10 @@ class App {
       }
     }
 
-    if (this.config.showSidebar === null || this.config.showSidebar === undefined)
+    if (this.config.showSidebar === null || this.config.showSidebar === undefined) {
       await window.electronAPI.setConfig({ showSidebar: true });
+      this.showSidebar = true;
+    }
 
     else
       this.showSidebar = this.config.showSidebar;
