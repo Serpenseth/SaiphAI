@@ -199,14 +199,13 @@ ol li {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: var(--button-bg);
-  border: 1px solid var(--border-color);
+  background: none;
+  border: none;
   color: var(--text-primary);
   cursor: pointer;
   padding: 0.25rem;
   border-radius: 32px;
   font-size: 1rem;
-  transition: background 0.2s;
   margin-top: 0.5em;
 }
 
