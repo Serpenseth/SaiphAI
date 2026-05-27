@@ -245,7 +245,7 @@
         <div class="tabs" id="tabs">
           <div class="tab active" data-tab="chat">
             <span>Chat</span>
-            <button id="btn-clear-chat" class="tab-close" title="Clear chat" onclick="app.clearMainChat()">
+            <button id="btn-clear-chat" class="tab-close" title="Clear chat">
             ×
             </button>
           </div>
@@ -299,7 +299,7 @@
                         <div class="suggestion-desc">Scan for vulnerabilities and best practices</div>
                       </div>
                     </button>
-                    <button id="gen-doc" class="hub-suggestion-btn" onclick="app.sendSuggestion('Generate documentation')">
+                    <button id="gen-doc" class="hub-suggestion-btn">
                       <div class="suggestion-icon">📝</div>
                       <div class="suggestion-content">
                         <div class="suggestion-title">Document code</div>
@@ -467,7 +467,7 @@
   <div class="modal-content small">
     <div class="modal-header">
       <h1>New Update Available!</h2>
-      <button class="btn-icon" style="background: none; border: none;" onclick="document.getElementById('update-available-modal').classList.add('hidden')">✕</button>
+      <button class="btn-icon" id="close-update" style="background: none; border: none;">✕</button>
     </div>
     <div class="update-info">
 
