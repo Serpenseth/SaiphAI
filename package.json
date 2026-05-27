@@ -2,7 +2,7 @@
   "name": "saiphai",
   "productName": "SaiphAI",
   "author": "Serpenseth",
-  "version": "2.2.1",
+  "version": "2.3.0",
   "description": "AI coding assistant with OpenAI and Ollama support",
   "main": "./main/index.js",
   "scripts": {
