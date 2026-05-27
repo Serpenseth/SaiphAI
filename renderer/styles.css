@@ -173,7 +173,6 @@ ol li {
   align-items: center;
   justify-content: space-between;
   padding: 1rem;
-  -webkit-app-region: drag;
 }
 
 .title-bar-left, .title-bar-right {
@@ -182,7 +181,6 @@ ol li {
   gap: 1rem;
   margin-top: 0.5em;
   margin-bottom: 0.75em;
-  -webkit-app-region: no-drag;
 }
 
 .workspace-path {
