@@ -2,7 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self';
+                    script-src 'self' https://cdn.jsdelivr.net;
+                    worker-src 'self' blob:;
+                    style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com;
+                    script-src-elem 'self' https://cdnjs.cloudflare.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net;
+                    style-src-elem 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
+                    font-src 'self' https://cdn.jsdelivr.net;
+                    img-src 'self' https://ollama.com https://logos-world.net"
+  >
   <title>SaiphAI</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
