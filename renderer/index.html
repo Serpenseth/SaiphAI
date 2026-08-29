@@ -1,512 +1,430 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self';
-                    script-src 'self' https://cdn.jsdelivr.net;
-                    worker-src 'self' blob:;
-                    style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com;
-                    script-src-elem 'self' https://cdnjs.cloudflare.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net;
-                    style-src-elem 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
-                    font-src 'self' https://cdn.jsdelivr.net;
-                    img-src 'self' https://ollama.com https://logos-world.net"
-  >
-  <title>SaiphAI</title>
-  <link rel="stylesheet" href="./styles.css">
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy"
+      content="default-src 'self';
+                      script-src 'self' https://cdn.jsdelivr.net;
+                      worker-src 'self' blob:;
+                      style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com;
+                      script-src-elem 'self' https://cdnjs.cloudflare.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net;
+                      style-src-elem 'unsafe-inline' 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
+                      font-src 'self' https://cdn.jsdelivr.net;
+                      img-src 'self' https://ollama.com https://logos-world.net blob: ;"
+    >
+    <title>SaiphAI</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
 
-  <div id="first-run-modal" class="modal hidden">
-    <div class="modal-content">
-      <h2>Welcome to SaiphA!</h2>
-      <p class="subtitle-intro">Your Coding Workspace... Smarter</p>
-      <div class="intro-text">
-        SaiphAI helps you work with your code. It can read your projects, find bugs, build applications, and more!
-      </div>
-      <div class="get-started-container">
-        <button id="btn-get-started" class="btn-primary">
-          Get Started
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <div id=intro-model-instructions class="modal hidden">
-    <div class="modal-content">
-
-      <div id="ollama-detected" class="intro-text">
-        <h2>Ollama detected</h2>
-        <p class='subtitle'>Ollama was found. Would you like to use Ollama?</p>
-        <button id='back-to-framework-selection' class="btn btn-secondary modal-nav-button">Select another AI framework</button>
-        <button id='use-ollama' class="btn btn-primary modal-nav-button">Use Ollama</button>
-      </div>
-
-      <div id="model-selection" class="intro-text">
-        <p class="subtitle"><b>Let's set up your AI model preference</b></p>
-        <div class="model-options">
-          <!-- OpenAI  -->
-          <div class="model-card" id="option-openai" style='padding-top: 2.5rem'>
-            <img
-              src="../assets/OpenAI-white-monoblossom.png"
-              style="height: 65px; width: 65px; align-item: self;"
-            >
-            <h3 style="margin-top: 0.85rem; color: #eff1f3;">OpenAI</h3>
-            <p>OpenAI is an AI research and deployment company that builds advanced machine-learning models and tools (e.g., the GPT and DALL·E families)</p>
-          </div>
-          <!-- Ollama  -->
-          <div class="model-card" id="option-ollama">
-            <!-- <div class="badge">Advanced</div> -->
-            <img
-              src="https://ollama.com/public/assets/c889cc0d-cb83-4c46-a98e-0d0e273151b9/42f6b28d-9117-48cd-ac0d-44baaf5c178e.png"
-              style="height: 48px; width: 48px; align-item: self;"
-            >
-            <h3 style="padding-top: 1em; color: #eff1f3;">Ollama</h3>
-            <p>Full-powered local/cloud open-source AI models.</p>
-            <p>System requirements vary on model's size</p>
-            <p>Minimum requirements for a 1B to 4B model: GTX 1650 or Apple M1 and 4 GB of RAM</p>
-          </div>
-        </div>
-        <p class="subtitle" style="margin-bottom: -1em;"> <b>Note</b>: If you have Ollama installed, make sure that it's running before selecting Ollama</p>
-        <br>
-         <p class="subtitle" style="margin-bottom: -1em; color: #f59e0b; font-size: 0.7em"> SaiphAI is not endorsed by, sponsored by, or partnered with OpenAI or Ollama in any way.</p>
-      </div>
-
-      <div id="login-openai">
-        <h2>OpenAI setup</h2>
-        <p class="subtitle">Enter your OpenAI API key</p>
-        <p class="subtitle" style="margin-top: -1rem">This key will be used to send prompts to OpenAI models</p>
-        <div class="model-login">
-            <p style="margin-bottom: 1.25em;"> API key:</p>
-            <input id="openai-acc" class="input" placeholder="sk-proj-..."></input>
-        </div>
-
-        <div style="padding-top: 1em;">
-          <button id="close-openai-setup" class="btn btn-secondary">Cancel</button>
-          <button id="continue-openai-setup" class="btn btn-primary">Continue</button>
-        </div>
-
-        <div style="flex-direction: row; margin-top: 16px; font-size: 0.7rem;">
-          Can't find your OpenAI API key?
-          <a href="https://platform.openai.com/api-keys" target="_blank" style="margin-left: 2px;">Click here</a>
-        </div>
-      </div>
-
-      <div id="no-models" class="intro-text">
-        <h3 style="color: white;">Ollama is installed, but no models were found</h3>
-        <div style="margin-bottom: 16px; border: 1px solid var(--border-color); border-radius: 4px; padding: 1.25em; margin-top: 0.5rem;">
-          <p style="color: #eff1f3; padding-bottom: 1.5em;">To install an Ollama model, follow the steps below:</text>
-          <ol type="1">
-            <li>Select a model from the
-              <a href="https://ollama.com/library?sort=newest" target="_blank" style="margin-left: 2px;">Ollama models page</a>
-            </li>
-            <li>Paste the model's name:
-              <input id="ollama-model-to-pull" class="input" style="margin-bottom: 0" placeholder="example: mistral-medium-3.5:latest"></input>
-            </li>
-            <li id='press-download-to-start' style='display: none;'>Press the "Download Model" button below to start the download</li>
-          </ol>
-          <br>
-          <button id="dl-ollama-model" class="btn download-ollama-btn" style="margin-left: auto; margin-right: auto; width: 30%; margin-top: -0.5em;">Download Model</button>
-          <div style='padding-top: -4em;'>
-            <p id="dl-text" style="display: none; padding-top: 0; margin-top: -12px">Downloading...</p>
-            <p id="ollama-dl-progress-text"></p>
-          </div>
-            <button id='abort-ollama-model-dl' class="btn download-ollama-btn" style='display: none; margin-left: auto; margin-right: auto;'>Cancel download</button>
-        </div>
-
-        <div style='display: flex: flex-direction: row; padding-top: 1rem; margin-bottom: -1.25rem;'>
-          <button id="close-ollama-model-dl" class="btn btn-secondary modal-nav-button">Choose another AI framework</button>
-          <button id="verify-ollama-after-model-dl" class="btn btn-primary modal-nav-button" style="display: none">Continue</button>
-        </div>
-      </div>
-
-      <!-- Guided Install Ollama instructions -->
-      <div id="dl-ollama-instructions">
-        <h2 style="margin-bottom: -0.5em;">Install Ollama<h2>
-        <br>
-
-        <div style="border: 1px solid var(--border-color); border-radius: 4px;" padding="-1em">
+  <body>
+    <div id="welcome-modal" class="modal" style="content-visibility: hidden">
+      <div class="modal-content">
+        <h1>Welcome to SaiphAI!</h1>
+        <p class="subtitle-intro">Your Coding Workspace... Smarter</p>
         <div class="intro-text">
-          Click on your operating system to see download/install instructions
+          SaiphAI helps you work with your code. It can read your projects, find bugs, build applications, and more!
+          <div class="btn-bottom-container">
+            <button id="btn-get-started" class="btn btn-primary modal-nav-button">
+              Get Started
+            </button>
+        </div>
+        </div>
+      </div>
+    </div>
+
+    <div id='intro-model-instructions' class="modal" style="display: none">
+      <div class="modal-content">
+
+        <div id="ollama-detected" class="intro-text" style="content-visibility: hidden">
+          <!-- Select default model -->
+          <div id="ollama-stats-container" class="intro-text" style="content-visibility: hidden;">
+            <h1> Ollama Setup</h1>
+            <p>Ollama is installed. Below is a brief breakdown of Ollama status:</p><br>
+
+            <ul class="details">
+              <li id="ollama-connection">Connection:</li>
+              <li id="model-count">Total Models Found:</li>
+              <li id="models-installed">Default Model:
+                <select id="details-modal-select" class="details-modal-select">
+                  <option></option>
+                  </select>
+              </li>
+            </ul>
+            <br>
+            <p class="secondary-text">The Default model can be changed at any time via settings</p>
+
+            <div class="btn-bottom-container">
+              <button id="close-ollama-details" class="btn btn-secondary modal-nav-button">Choose another AI framework</button>
+              <button id="ollama-detected-complete" class="btn btn-primary modal-nav-button">Complete setup</button>
+            </div>
+          </div>
+
+          <!-- No models found -->
+          <div id="no-models" class="intro-text" style="content-visibility: hidden">
+            <h1> Ollama Setup</h1>
+            <h3 style="margin-bottom: -0.5rem;">Ollama is installed, but no models were found</h3>
+            <div style="margin-bottom: 16px; padding: 1.25em; margin-top: 0.5rem;">
+              <p style="color: #eff1f3; padding-bottom: 1.5em;">To install an Ollama model, follow the steps below:</p>
+              <ol type="1">
+                <li>Select a model from the
+                  <a id="ollama-link" href="https://ollama.com/library?sort=newest" target="_blank" style="margin-left: 2px;">Ollama models page</a>
+                </li>
+                <li>Paste the model's name:
+                  <input id="ollama-model-to-pull" class="input model-pull" placeholder="example: mistral-medium-3.5:latest"></input>
+                </li>
+                <li id='press-download-to-start' style='display: none;'>Press the "Download Model" button below to start the download</li>
+              </ol>
+
+              <p id="download-error" class="download-error" style="display: none; margin-top: 0.5rem; margin-bottom: 0.5rem;"></p>
+
+              <button id="dl-ollama-model" class="btn btn-secondary" style="display: none">Download Model</button>
+              <div style='margin-top: 1.5em;'>
+                <p id="dl-text" style="display: none; padding-top: 0; color: #eff1f3; font-size: 1.2rem;"><strong>Downloading...</strong></p>
+                <p id="ollama-dl-progress-text"></p>
+              </div>
+              <button id='abort-ollama-model-dl' class="btn btn-secondary modal-nav-button" style='display: none;'>
+                Cancel download
+              </button>
+            </div>
+
+            <div class="btn-bottom-container">
+              <button id="close-ollama-model-dl" class="btn btn-primary modal-nav-button">Choose another AI framework</button>
+              <button id="verify-ollama-after-model-dl" class="btn btn-primary modal-nav-button" style="display: none">Continue</button>
+            </div>
+          </div>
+
         </div>
 
-        <div id="model-selection" class="intro-text" style="gap: 3em;">
-          <div class="model-card ollama-download-card" id="option-macOS">
-            <img
-              src="https://logos-world.net/wp-content/uploads/2020/04/Apple-Logo.png"
-              style="height: 32px; width: 32px; align-item: self; margin-bottom: 4px;"
-            >
-            <p style="margin-bottom: 0;">MacOS</p>
+        <div id="model-selection" class="intro-text" style="content-visibility: hidden">
+          <h1>AI preference</h1>
+          <h3>Click on which AI framework you want to use</h3>
+          <div class="model-options">
+            <!-- OpenAI  -->
+            <div class="model-card" id="option-openai">
+              <img
+                src="../assets/OpenAI-white-monoblossom.png"
+                style="height: 65px; width: 65px; align-item: self;"
+              >
+              <h2 style="margin-top: 0.85rem">OpenAI</h2>
+              <p class="secondary-text">
+                OpenAI is an AI research and deployment company that builds advanced machine-learning models and tools (e.g., the GPT and DALL·E families)
+              </p>
+            </div>
+            <!-- Ollama  -->
+            <div class="model-card" id="option-ollama">
+              <!-- <div class="badge">Advanced</div> -->
+              <img
+                src="https://ollama.com/public/assets/c889cc0d-cb83-4c46-a98e-0d0e273151b9/42f6b28d-9117-48cd-ac0d-44baaf5c178e.png"
+                style="height: 48px; width: 48px; align-item: self; margin-top: 0.55rem;"
+              >
+              <h2 style="margin-top: 1em">Ollama</h2>
+              <p class="secondary-text">Full-powered local/cloud open-source AI models.</p>
+              <p>System requirements vary on model's size</p><br>
+              <p>Minimum requirements for a 1B to 4B model: GTX 1650 or Apple M1 and 8 GB of RAM</p>
+            </div>
           </div>
-
-          <div class="model-card ollama-download-card" id="option-windows">
-            <img
-              src="https://logos-world.net/wp-content/uploads/2020/12/Windows-New-Logo.png"
-              style="height: 32px; width: 32px; align-item: self; margin-bottom: 4px;"
-            >
-            <p style="margin-bottom: 0;">Windows</p>
-          </div>
-
-          <div class="model-card ollama-download-card" id="option-linux">
-            <img
-              src="https://logos-world.net/wp-content/uploads/2020/09/Linux-Logo.png"
-              style="height: 32px; width: 32px; align-item: self; margin-bottom: 4px;"
-            >
-            <p style="margin-bottom: 0;">Linux</p>
-          </div>
+          <p class="subtitle" style="margin-bottom: -1em;">
+            <b>Note</b>: If you have Ollama installed, make sure that it's running before selecting Ollama
+          </p>
+          <br>
+          <p class="subtitle" style="margin-bottom: -1.7em; color: #f59e0b; font-size: 0.7em">
+            SaiphAI is not endorsed by, sponsored by, or partnered with OpenAI or Ollama in any way.
+          </p>
         </div>
 
-        <div id="os-specific-download" style="flex-direction: column;">
-          <!-- Complete sentence dynamically based on OS -->
-          <p class='sub-msg' style="margin-top: 0.25rem;" id="paste-into"></p>
-          <div style="flex-direction: row;">
-            <input class="input" readonly="true" id="install-cmd">
-            <button id="copy-cmd">
-              <img src="../assets/copy.png" style="display: flex; width: 16px; height: 16px;"></img>
+        <div id="login-openai" class="login-openai" style="content-visibility: hidden">
+          <h1>OpenAI setup</h1>
+          <div id='api-key-container'>
+            <p class="subtitle">Enter your OpenAI API key</p>
+            <p class="secondary-text" style="margin-top: -1rem">This key will be used to send prompts to OpenAI models</p>
+            <div class="model-login">
+              <p style="margin-bottom: 5px;"> API key:</p>
+              <input id="openai-acc" class="input model-pull" placeholder="sk-proj-..."></input>
+            </div>
+            <p id="openai-apikey-error" class="download-error" style=" display: none;  margin-top: -3em; margin-bottom: 4em"></p>
+
+            <div style="display: flex; flex-direction: column; margin-top: -3em; gap: 1rem;">
+              <button id="verify-openai-key" class="btn btn-secondary modal-action-btn" style="display: none;">Verify</button>
+              <p class="secondary-text" style="font-size: 0.85rem; margin-top: 0.25rem;">Can't find your OpenAI API key?</p>
+              <a href="https://platform.openai.com/api-keys" target="_blank" style="margin-left: 3px; margin-top: -0.75rem;">Click here</a>
+            </div>
+          </div>
+
+          <div id="loading-overlay-openai" class="loading-overlay" style="display: none;">
+            <h1>Verfiying API key. Please wait...</h1>
+            <p class="text-secondary">No api credits will be used</p>
+            <div class="spinner"></div>
+          </div>
+          <div id='openai-stats-container' style="content-visibility: hidden">
+            <p>OpenAI is ready to go. Below is a brief breakdown of OpenAI status:</p><br>
+            <ul class="details openai-details">
+              <li>✔️ Connected to OpenAI</li>
+              <li id="openai-model-count"></li>
+              <li>Default Model:
+                <select  id="openai-model-select" class="details-modal-select">
+                  <option></option>
+                  </select>
+              </li>
+            </ul>
+            <br>
+            <p class="secondary-text">The Default model can be changed at any time via settings</p>
+          </div>
+
+          <div class="btn-bottom-container">
+            <button id="close-openai-setup" class="btn btn-secondary modal-nav-button">Go back</button>
+            <button id="continue-openai-setup" class="btn btn-primary modal-nav-button" style="display: none;">
+              Continue
             </button>
           </div>
-          <p class='sub-msg' style="margin-bottom: -4px;"> or press the button below to download Ollama</p>
-          <button id="download-ollama-button" class="btn download-ollama-btn">Download</button>
-          <p class="sub-msg" style="color: #eff1f3; font-size: 0.45em; padding-top: 5px;" id="requires-msg"></p>
         </div>
-        <br>
-      </div>
-      <br>
-      <button id="close-dl-ollama" class="btn btn-secondary modal-nav-button">Return</button>
-      <button id="verify-ollama" class="btn btn-primary modal-nav-button">Continue</button>
-      </div>
 
-      <div id="ollama-success">
-        <h2 id="success-title"></h2>
-        <br>
-        <div class="checkmark-container" id="checkmark-container">
+        <!-- Guided Install Ollama instructions -->
+        <div id="dl-ollama-instructions" style="content-visibility: hidden">
+          <h1>Install Ollama<h1>
+          <p class="secondary-text" style="font-size: 1rem;">Click on your operating system to see download/install instructions</p>
+
+          <div>
+            <div id="os-selected" class="intro-text" style="gap: 3em; display: flex; flex-direction: row; margin-top: 2em;">
+              <div id="option-macOS" class="model-card ollama-download-card">
+                <img
+                  src="https://logos-world.net/wp-content/uploads/2020/04/Apple-Logo.png"
+                  style="height: 32px; width: 32px; align-item: self; margin-bottom: 4px;"
+                >
+                <p style="margin-bottom: 0;">MacOS</p>
+              </div>
+
+              <div id="option-windows" class="model-card ollama-download-card" >
+                <img
+                  src="https://logos-world.net/wp-content/uploads/2020/12/Windows-New-Logo.png"
+                  style="height: 32px; width: 32px; align-item: self; margin-bottom: 4px;"
+                >
+                <p style="margin-bottom: 0;">Windows</p>
+              </div>
+
+              <div id="option-linux" class="model-card ollama-download-card">
+                <img
+                  src="https://logos-world.net/wp-content/uploads/2020/09/Linux-Logo.png"
+                  style="height: 32px; width: 32px; align-item: self; margin-bottom: 4px;"
+                >
+                <p style="margin-bottom: 0;">Linux</p>
+              </div>
+            </div>
+
+            <div id="os-specific-download" class="intro-text" style="flex-direction: column; margin-top: 0.5em;">
+              <!-- Complete sentence dynamically based on OS -->
+              <p id="paste-into" class='secondary-text' style="margin-top: 0.5rem; margin-bottom: 0.5rem;" ></p>
+              <div style="flex-direction: row;">
+                <input id="install-cmd" class="input" readonly="true">
+                <button id="copy-cmd">
+                  <img src="../assets/copy.png" style="display: flex; width: 16px; height: 16px;"></img>
+                </button>
+              </div>
+              <p class='secondary-text' style="font-size: 0.8rem; margin-top: 0.5rem">
+                or press the button below to download Ollama
+              </p>
+              <button id="download-ollama-btn" class="btn btn-secondary" style="margin: 1rem 0;">Download</button>
+              <p id="requires-msg"></p>
+            </div>
+            <br>
+          </div>
+          <br>
+          <div class="btn-bottom-container">
+            <button id="return-instructions-btn" class="btn btn-secondary modal-nav-button">Return</button>
+            <button id="complete-instructions-btn" class="btn btn-primary modal-nav-button">Continue</button>
+          </div>
         </div>
-        <p id="window-will-close" class="subtitle">This window will close automatically in 3 seconds</p>
-        <p id="try-again-msg" class="subtitle">
-          Ollama has not been installed successfully, or it's not running.<br>
-          Please make sure Ollama is running, and try again
+
+        <div id="ollama-success" style="content-visibility: hidden">
+          <h2 id="success-title"></h2>
+          <br>
+          <div class="checkmark-container" id="checkmark-container">
+          </div>
+          <p id="window-will-close" class="subtitle" style='display: none'>This window will close automatically in 3 seconds</p>
+          <p id="try-again-msg" class="subtitle" style="content-visibility: hidden;">
+            Ollama has not been installed successfully, or it's not running.<br>
+            Please make sure Ollama is running, and try again
+          </p>
+          <div id='ollama-check-failed-btns' class="btn-bottom-container">
+            <button id="go-back-btn" class="btn btn-secondary modal-nav-button" style="display: none">Go back</button>
+<!--             <button id="try-again-btn" class="btn btn-primary modal-nav-button">Try again</button> -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div id='indexing-workspace-modal' class='secondary-modal' style='display: none'>
+      <div id='index-workspace-dialog' class='modal-content-medium'>
+        <h1 style='padding-top: 1rem'>
+          Indexing workspace
+        </h1>
+        <p style='padding-top: 0.5rem'>
+          Your workspace is stored on device
         </p>
-        <div id='ollama-check-failed-btns' style="display: flex; justify-content: center; align-item: center;">
-          <button id="back-to-model-selection-btn" class="btn btn-secondary modal-nav-button">Back to model selection</button>
-          <button id="try-again-btn" class="btn btn-primary modal-nav-button">Try again</button>
-        </div>
+        <p class="secondary-text" style='padding-top: 1rem; padding-bottom: 0.5rem'>
+          This may take a while...
+        </p>
+        <div style='padding-top: 0.5rem' class="spinner"></div>
+        <p id='indexing-text' class="secondary-text" style='padding-top: 1rem; padding-bottom: 0.5rem'>
+          Indexing
+        </p>
+        </p>
       </div>
-
     </div>
-  </div>
 
-  <!-- Main App -->
-  <div id="app" class="hidden">
-    <!-- Title Bar -->
-    <!--
-    <div class="title-bar">
-      <div class="title-bar-left">
-
-        <button class="btn-icon" id="btn-select-workspace" title="Select Workspace" style='font-size: 0.8rem; padding: 0.5rem 1rem'>
-          Change workspace
-        </button>
-
-
+    <div id='display-selected-files' class='secondary-modal' style='display: none'>
+      <div id='expand-uploaded-contents'  class="modal-content-small">
       </div>
-      <div class="title-bar-right">
-        <button id="build-toggle-btn" class="btn-icon" title="Toggle Build Panel">
-          🔨
-        </button>
+    </div>
 
-        <button class="btn-icon" id="btn-settings" title="Settings">
-          <img style='height: 24px; width: 24px; align-item: self;' src="../assets/settings.png">
-        </button>
-        </button>
-      </div>
-    </div>-->
+    <div id="main-window-ui" style="content-visibility: hidden;">
+      <div class="main-container">
+        <div id='sidebar-container' class="sidebar-container">
+          <div id="sidebar" class="sidebar">
+            <div id="handle-sidebar" class="resizer-sidebar"></div>
+            <div id='sidebar-actions' class="sidebar-actions">
 
-
-    <!-- Main Container -->
-    <div class="main-container">
-      <!-- Sidebar -->
-      <div class="sidebar" style='display: none;'>
-        <div class="sidebar-actions" style="padding: 0 0.5rem; padding-bottom: 0.5rem; padding-top: 8px; border-bottom: 1px solid var(--border-color);">
-          <button id="hide-sidebar" class="btn-icon sidebar-action-btn">
-            <img style='height: 20px; width: 20px; margin-right: 7px;' src="../assets/close-sidebar.png">Hide Sidebar
-          </button>
-          <button id="build-toggle-btn" class="btn-icon sidebar-action-btn" style="display: none" title="Toggle Build Panel">
-            <img style='height: 20px; width: 20px; margin-right: 7px;' src="../assets/build-icon.png">Build Project
-          </button>
-          <button class="btn-icon sidebar-action-btn" id="btn-settings" title="Settings" value="Settings">
-            <img style='height: 20px; width: 20px; margin-right: 7px;' src="../assets/settings.png">Settings
-          </button>
-        </div>
-        <div class="file-tree" id="file-tree">
-          <div class="empty-state">No workspace selected</div>
-        </div>
-      </div>
-
-      <div id="no-sidebar" style="display: none; padding: 0 0.5rem; padding-bottom: 0.5rem; padding-top: 8px">
-        <button id="show-sidebar" class="btn-icon sidebar-action-btn" title="Show sidebar" style="justify-content: center;">
-          <img style='height: 16px; width: 16px;' src="../assets/open-sidebar.png">
-        </button>
-      </div>
-
-
-      <!-- Content Area -->
-      <div class="content">
-        <!-- Tabs -->
-        <div class="tabs" id="tabs">
-          <div class="tab active" data-tab="chat">
-            <span>Chat</span>
-            <button id="btn-clear-chat" class="tab-close" title="Clear chat">
-            ×
+            <button id="open-workspace" class="btn-icon sidebar-action-btn">
+                <img style='height: 20px; width: 20px; margin-right: 7px;' src="../assets/folder.png">Open workspace
             </button>
+
+            <button id="hide-sidebar" class="btn-icon sidebar-action-btn">
+              <img style='height: 22px; width: 22px; margin-right: 7px;' src="../assets/close-sidebar.png">Hide Sidebar
+            </button>
+
+            <button id="show-sidebar" class="btn-icon sidebar-action-btn" title="Show sidebar" style="display: none">
+              <img style='height: 22px; width: 22px;' src="../assets/open-sidebar.png">
+            </button>
+
+            <button id="build-toggle-btn" class="btn-icon sidebar-action-btn" style="display: none" title="Toggle Build Panel">
+              <img style='height: 20px; width: 20px; margin-right: 7px;' src="../assets/build-icon.png">Build Project
+            </button>
+
+            <button id="btn-settings" class="btn-icon sidebar-action-btn" title="Settings" value="Settings">
+              <img style='height: 20px; width: 20px; margin-right: 7px;' src="../assets/settings.png">
+              <p id='settings-text'>Settings</p>
+            </button>
+
+            </div>
+            <div id="file-tree" class="file-tree">
+              <div id="sidebar-empty" class="empty-state">No workspace selected</div>
+            </div>
           </div>
-          <button id="btn-new-chat-tab" class="tab-new-btn" title="New Chat Tab">
-            <img style='height: 16px; width: 16px; align-item: self;' src="../assets/plus.png">
-          </button>
-          <button id='history' class='btn-icon'>
-            History <img style='height: 24px; width: 24px; align-item: self;' src="../assets/history.png">
-          </button>
+
         </div>
 
-
-        <!-- Tab Content -->
-        <div class="tab-contents">
-          <!-- Chat Panel -->
-          <div class="tab-panel active" id="chat-panel">
-            <div class="chat-messages" id="chat-messages">
-              <div id="welcome-hub" class="welcome-hub hidden">
-                <h2 id="hub-title">Ready to code?</h2>
-                <p id="hub-subtitle" class="hub-subtitle"></p>
-
-
-                  <div id="tips-hub-no-workspace" class="tips-hub-no-workspace" style="display: none">
-                    <button id='select-workspace-hub' class="hub-suggestion-btn">
-                      <span>📂</span> Open workspace folder
-                    </button>
-                    <button id="open-settings-hub" class="hub-suggestion-btn">
-                      <span>⚙️</span> Choose model
-                    </button>
-                  </div>
-
-                  <div id="tips-hub" class="tips-hub" style="display: none">
-                    <button id='review-arch' class="hub-suggestion-btn">
-                      <div class="suggestion-icon">🏗️</div>
-                      <div class="suggestion-content">
-                        <div class="suggestion-title">Architecture review</div>
-                        <div class="suggestion-desc">Analyze design patterns and structure</div>
-                      </div>
-                    </button>
-                    <button id="optimize-for-performance" class="hub-suggestion-btn">
-                      <div class="suggestion-icon">⚡</div>
-                      <div class="suggestion-content">
-                        <div class="suggestion-title">Optimize code</div>
-                        <div class="suggestion-desc">Identify bottlenecks and improve efficiency</div>
-                      </div>
-                    </button>
-                    <button id='security-audit' class="hub-suggestion-btn">
-                      <div class="suggestion-icon">🔒</div>
-                      <div class="suggestion-content">
-                        <div class="suggestion-title">Security check</div>
-                        <div class="suggestion-desc">Scan for vulnerabilities and best practices</div>
-                      </div>
-                    </button>
-                    <button id="gen-doc" class="hub-suggestion-btn">
-                      <div class="suggestion-icon">📝</div>
-                      <div class="suggestion-content">
-                        <div class="suggestion-title">Document code</div>
-                        <div class="suggestion-desc">Create README and inline documentation</div>
-                      </div>
-                    </button>
-                  </div>
-
-
-                <div class="hub-suggestions" id="hub-suggestions"></div>
-                <button class="btn-hide-hub" id="btn-hide-hub" title="Hide these suggestions">
-                  Dismiss
-                </button>
-              </div>
+        <div id='tabs-and-editor' class="content">
+          <div id="file-tabs" class="tabs">
+            <div class="tabRA active" style='display: none'>
+              <p id="main-file-tab-title"></p>
+              <button id="btn-close-file" class="tab-close" title="Close file">
+              x
+              </button>
             </div>
+          </div>
 
-            <div class="chat-input-container">
-              <textarea id="chat-input" class="chat-input" placeholder="Type a message" rows="3"></textarea>
-              <div class='data-actions'>
-                <button id='insert-file' class='btn-icon insert-file'>
-                  <img style='height: 24px; width: 24px; align-item: self;' src="../assets/plus.png">
-                </button>
-              </div>
-              <div class="input-actions">
-                </select>
-                <button id="btn-send" class="btn btn-primary send-btn">Send</button>
+          <div class="editor-container">
+            <div class='floating-buttons' style='display: none'>
+              <button id='explain-selection' class='floating-button-action explain'>
+                Explain selection
+              </button>
+              <p style='padding: 0px 0.35rem;'>|</p>
+              <button id='modify-with-ai' class='floating-button-action modify'>
+                Modify with AI
+              </button>
+            </div>
+          </div>
+
+          <div class='floating-window' style='display: none'>
+          </div>
+       </div>
+
+        <div id='ai-panel-and-tabs' class="editor-and-ai-panel-container">
+          <div id="tabs-section" class="content-chat">
+            <div id="chat-tabs" class="tabs">
+            <!-- Chat tabs are added dynamically via ChatPanel.js -->
+              <div>
+                <button id="new-chat-tab" class="btn-primary new-tab-button" title="New chat tab">+</button>
               </div>
             </div>
           </div>
 
-          <!-- Editor Panels will be added dynamically -->
-          <div id="editor-container" class="editor-container">
-          </div>
+          <div class="ai-panel-container">
+            <div id="ai-panel" class="ai-panel">
+              <div id="handle" class="resizer"></div>
+                <div id="chat-content" class="chat-history">
+                  <div id='panel-msg' class='panel-msg'>
+                    <p class='panel-text'>Your chats will appear here</p><br>
+                    <p class='panel-text'>This panel has access to all your project files</p>
+                    </div>
+                </div>
 
-        </div>
+                <div id="chat-input-area" class="chat-input-area">
+                  <div id="handle-chat" class="resizer-chat"></div>
 
-      </div>
-    </div>
+                  <div class="chat-file-container" style='display: none'>
+                    <!-- Created dynamically via JS -->
+                  </div>
 
-    <div id="history-modal" class="modal hidden">
-    <div class="modal-content history-modal-content">
-      <div class="modal-header">
-        <h2>Chat History</h2>
-        <button id="btn-close-history" class="btn-primary btn-close">X</button>
-      </div>
-      <div class="modal-body">
-        <button id="btn-new-chat" class="btn-primary btn-icon" style="margin-bottom: 1rem; width: 100%;">
-          + New Chat
-        </button>
-        <div id="history-list" class="history-list">
-          <!-- History items populated here -->
-        </div>
-      </div>
-    </div>
-  </div>
+                  <textarea
+                    id="user-prompt"
+                    class="chat-input"
+                    spellcheck="false"
+                    type="text"
+                    placeholder="Ask AI..."
+                  ></textarea>
 
-  <!-- Settings Modal -->
-  <div id="settings-modal" class="modal hidden">
-    <div class="modal-content small">
-        <h2>Settings</h2>
-        <div class="settings-section">
-            <div class="model-selection">
-              <label>
-              <input type="radio" name="settings-model" value="o4" ${this.currentModel === 'o4' ? 'checked' : ''}>
-              OpenAI
-              <p style="margin-top: 8px; color: #B0BCCD">OpenAI is an AI research and deployment company that builds advanced machine-learning models and tools (e.g., the GPT and DALL·E families)</p>
-              <div id="input-openai-api-container">
-                <br>
-                <h3>Enter your OpenAI API key<h3>
-                <input id="input-openai-api" class="input" style="margin-bottom: 0" placeholder="sk-proj-..."></input>
+                  <!-- Send chat/attach files -->
+                  <div class="chat-action-container">
+                    <!-- Attach file to prompt button -->
+                    <button id="attach-file" class="chat-action attach-file-action" data-tooltip='Attach a file'>
+                      <img style='height: 16px; width: 16px;' src='../assets/add-file.png'></img>
+                    </button>
+                    <p class='action-separator'> | </p>
+                    <!-- Attach opened file to prompt button -->
+                    <button
+                      id="attach-opened-file"
+                      class="chat-action attach-opened-file-action"
+                      data-tooltip='Open a file through sidebar to attach a file to chat'
+                      disabled>
+                    @
+                    </button>
+                    <!-- Send prompt button -->
+                    <button id="send-chat" class="chat-action send-action">
+                      <img style='height: 16px; width: 16px;' src='../assets/send.png'></img>
+                    </button>
+                  </div>
+                </div>
+
               </div>
-              <button id="delete-openai-key" class="btn download-ollama-btn" style="z-index: 25; width: 100%;">Delete API Key</button>
-
-              </label>
-              <label>
-                <input type="radio" name="settings-model" value="ollama" ${this.currentModel === 'ollama' ? 'checked' : ''}>
-                Ollama
-                <p style="margin-top: 8px; color: #B0BCCD">Full-powered local/cloud open-source AI models</p>
-              </label>
+            </div>
           </div>
-        </div>
 
-        <div id='current-model'>
-          <p>Current model:</p>
-          <select id="ollama-model-selector" class="hidden"></select>
-        </div>
+            <div id="no-ai-panel">
+              <button id="show-panel" class="btn-icon sidebar-action-btn" title="HIde ai chat panel" style="justify-content: center;">
+                <img style='height: 16px; width: 16px;' src="../assets/open-sidebar.png">
+              </button>
+            </div>
 
-        <div class="settings-section">
-            <h3>Interface</h3>
-            <label class="checkbox-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin-bottom: 0.5rem;">
-              <input type="checkbox" id="setting-show-hub" ${this.showWelcomeHub ? 'checked' : ''}>
-              <span>Show contextual suggestions in empty chat</span>
-            </label>
-            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-left: 1.5rem; margin-bottom: 1rem;">
-              Display AI assistance suggestions based on your experience level and workspace state
-            </p>
-        </div>
+            <div id="show-ai-panel" style='display: none'>
+              <button id="hide-panel" class="btn-icon sidebar-action-btn" title="Show ai chat panel" style="justify-content: center;">
+                <img style='height: 16px; width: 16px;' src="../assets/close-sidebar.png">
+              </button>
+            </div>
 
-        <div class="modal-actions">
-            <button class="btn btn-secondary" id="close-settings">Cancel</button>
-            <button class="btn btn-primary" id="save-settings">Save Changes</button>
-        </div>
-    </div>
-  </div>
-
-  <div id="build-panel">
-    <div id='build-empty' class="build-empty" style='display: none;'>
-      <button class="btn-icon no-workspace-close" title="Close build panel" style="margin-left: auto; ">
-        ✕
-      </button>
-      <div id="workspace-icon" class="icon">📂</div>
-      <div class="message">No Workspace Selected</div>
-      <div id='no-workspace-other-msg' class="subtitle">
-        Open a project folder to detect build configuration and start building
-      </div>
-      <button id='build-select-workspace' class="action-btn">Select Workspace</button>
-    </div>
-
-    <div id="build-header" class="build-header" style='display: none;'>
-      <div class="build-project-info">
-          <div class="build-lang-icon"></div>
-          <div class="build-details">
-              <div class="build-lang"></div>
-              <div class="build-system"></div>
-          </div>
-      </div>
-      <button id='close-build-panel' class="btn-icon" title="Close build panel" style="margin-left: auto; ">✕</button>
-    </div>
-
-    <div id="build-actions" class="build-actions" style='display: none;'>
-        <button id="build-btn" class="build-btn" title="Build project">Build</button>
-        <button id="install-deps-btn" class="build-btn" title="Install dependencies">Install</button>
-        <button id="test-btn" class="build-btn" title="Run tests">Test</button>
-        <button id="run-btn" class="build-btn" title="Run start script">Run</button>
-    </div>
-
-    <div class="build-output" style='display: none;'>
-      <div class="build-output-header">
-        <span>Output</span>
-        <button id='clear-build-output' class="btn-icon" title="Clear output">Clear</button>
-      </div>
-      <div id="build-output-content" class="build-output-content">
-        <div class="build-starting">Ready to build...</div>
-      </div>
-    </div>
-
-    <div class="build-history" style='display: none;'>
-      <div class="build-section-title">Recent Builds</div>
-      <div id="build-history-list" class="build-history-list">
-        <div class="build-history-item">
-          <div class="build-history-info">
-            <span class="build-history-command"></span>
-            <span class="build-history-time"></span>
-          </div>
-          <div class="build-history-meta">
-            <span class="build-history-duration"></span>
-            <span class="build-history-status"></span>
           </div>
         </div>
       </div>
     </div>
-  </div>
-
-<div id="update-available-modal" class="modal hidden">
-  <div class="modal-content small">
-    <div class="modal-header">
-      <h1>New Update Available!</h2>
-      <button class="btn-icon" id="close-update" style="background: none; border: none;">✕</button>
-    </div>
-    <div class="update-info">
-
-      <p id="update-version" class="update-version">Version 1.0.0</p>
-      <p id="update-remote-version" class="update-version"> Version 1.0.0</p>
-      <div class="update-release-notes" id="update-release-notes">
-        <div id="update-release-notes"></div>
-        <!-- Release notes will be inserted here -->
-      </div>
-      <!-- Progress Bar -->
-      <div class="progress-container" id="'progress-container">
-        <div id="update-progress-fill" class="progress-fill" style="width: 0%">
-          <p id="update-progress-text" class="progress-text">0%</p>
-        </div>
-      </div>
-    </div>
-    <div class="modal-actions">
-      <button id="btn-later-update" class="btn btn-secondary">Later</button>
-      <button id="btn-download-update" class="btn btn-primary">Download Update</button>
-    </div>
-  </div>
-</div>
 
 
 
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-  <!-- Monaco Editor -->
-  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
-  <!-- Renderer -->
-  <script src="./renderer.js"></script>
-</body>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- Monaco Editor -->
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+    <!-- Renderer -->
+    <script type="module" src="./renderer.js"></script>
+  </body>
 </html>
