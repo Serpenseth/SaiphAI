@@ -17,16 +17,17 @@ async function getManager(userDataPath) {
   return new DiskIndexManager(storagePath);
 }
 
+async function indexAllFiles(manager, directoryPath) {
+  const files = fsSync.readdirSync(directoryPath);
+
+  for (const file of files) {
+    const fullPath = path.join(directoryPath, file);
+    await manager.indexFile(fullPath);
+  }
+}
+
 async function indexWorkspace(workspacePath, userDataPath) {
   const manager = await getManager(userDataPath);
-
-  async function indexAllFiles(manager, directoryPath) {
-    const files = fsSync.readdirSync(directoryPath);
-    for (const file of files) {
-      const fullPath = path.join(directoryPath, file);
-      await manager.indexFile(fullPath);
-    }
-  }
 
   const chunksDir = path.join(userDataPath, 'ai_memory', 'chunks');
 
