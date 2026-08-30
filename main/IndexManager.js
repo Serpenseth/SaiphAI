@@ -126,7 +126,7 @@ class SmartChunker {
 }
 
 class DiskIndexManager {
-  constructor(workspaceName, storageDir) {
+  constructor(storageDir) {
     this.indexDir = path.join(storageDir, 'index');
     this.dataDir = path.join(storageDir, 'chunks');
     this.vectorDir = path.join(storageDir, 'vectors');
