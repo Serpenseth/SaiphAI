@@ -41,7 +41,8 @@ async function indexWorkspace(workspacePath, userDataPath) {
 
 async function searchIndex(searchQuery, userDataPath) {
   try {
-    const manager = await getManager(userDataPath);
+    const manager = new DiskIndexManager(userDataPath);
+    // await getManager(userDataPath);
     console.log(`Querying: ${searchQuery}`);
     const relevantChunks = await manager.query(searchQuery);
     console.log('Number of relevent chunks found:', relevantChunks.length);
