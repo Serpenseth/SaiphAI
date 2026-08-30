@@ -126,11 +126,11 @@ class SmartChunker {
 }
 
 class DiskIndexManager {
-  constructor(storageDir) {
-    this.storageDir = storageDir;
+  constructor(workspaceName, storageDir) {
     this.indexDir = path.join(storageDir, 'index');
     this.dataDir = path.join(storageDir, 'chunks');
     this.vectorDir = path.join(storageDir, 'vectors');
+
     this.metaFile = path.join(storageDir, 'metadata.bin');
     this.metaIndexFile = path.join(storageDir, 'metadata.idx');
 
