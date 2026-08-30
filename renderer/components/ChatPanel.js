@@ -819,9 +819,6 @@ class ChatPanelUI {
         closeBtn.textContent = "x";
         closeBtn.classList.add('chat-action');
         closeBtn.classList.add('preview-file-close');
-        closeBtn.textContent = 'x';
-        closeBtn.style.zIndex = '12345';
-        closeBtn.style.marginBottom = '12px';
 
         // Prevent the hover preview from triggering when hovering over closeBtn
         closeBtn.addEventListener('mouseenter', (e) => {
@@ -917,9 +914,7 @@ class ChatPanelUI {
       const closeBtn = DomQuery.createButton();
       closeBtn.textContent = "x";
       closeBtn.classList.add('chat-action');
-      closeBtn.classList.add('file-clear-button');
-      closeBtn.textContent = 'x';
-      closeBtn.style.zIndex = '12345';
+      closeBtn.classList.add('preview-file-close');
 
       // Prevent the hover preview from triggering when hovering over closeBtn
       closeBtn.addEventListener('mouseenter', (e) => {

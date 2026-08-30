@@ -2088,13 +2088,16 @@ select > option {
 }
 
 .preview-file-close  {
+  display: flex;
   margin-left: 8px;
+  margin-top: -2px;
   padding: 0.1rem 0.3rem;
   width: auto;
   height: auto;
   transition: all 0.5s;
   border-radius: 50%;
   background: transparent;
+  z-index: 12345;
 }
 
 .preview-file-close:hover {
