@@ -150,7 +150,7 @@ function createMainWindow() {
   });
 }
 
-// Ollama IPCs BEGIN
+// Ollama
 const {
   downloadOllamaModel,
   chatOllama,
@@ -164,11 +164,8 @@ ipcMain.handle('chat-ollama', chatOllama);
 ipcMain.handle('check-ollama', checkOllama);
 ipcMain.handle('get-ollama-models', getOllamaModels);
 ipcMain.handle('abort-ollama-model-dl', abortModelDownload);
-// Ollama IPCs END
 
-// ============= //
-
-// OpenAI IPCs BEGIN
+// OpenAI
 const {
   isOpenAiApiKeyValid,
   getAllOpenAiModels,
@@ -176,11 +173,8 @@ const {
 
 ipcMain.handle('is-openai-api-key-valid', isOpenAiApiKeyValid);
 ipcMain.handle('get-all-openai-models', getAllOpenAiModels);
-// OpenAI IPCs END
 
-// ============= //
-
-// config IPCs BEGIN
+// config
 const {
   createConfigFile,
   readConfigFile,
@@ -190,11 +184,8 @@ const {
 ipcMain.handle('create-config-file', createConfigFile);
 ipcMain.handle('read-config-file', readConfigFile);
 ipcMain.handle('write-to-config-file', writeToConfigFile);
-// config IPCs END
 
-// ============= //
-
-// file IPCs BEGIN
+// files
 const {
   readFile,
   scanFolder,
@@ -210,11 +201,8 @@ ipcMain.handle('dialog:openFile', showFileDialog);
 ipcMain.handle('dialog:openFolder', showFolderDialog);
 ipcMain.handle('clean-image',  cleanImage);
 ipcMain.handle('is-image',  isImage);
-// file IPCs END
 
-// ============= //
-
-// workspace ICPs BEGIN
+// workspace
 const {
   indexWorkspace,
   searchWorkspace,
@@ -222,7 +210,6 @@ const {
 
 ipcMain.handle('index-workspace', indexWorkspace);
 ipcMain.handle('search-workspace', searchWorkspace);
-// workspace IPCs END
 
 
 /**
