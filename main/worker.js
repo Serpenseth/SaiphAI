@@ -12,8 +12,10 @@ const { TextSummarization } = require('./TextSummarization.js');
 const { DiskIndexManager } = require('./IndexManager');
 
 
-async function getManager(userDataPath) {
-  const storagePath = path.join(userDataPath, 'ai_memory');
+async function getManager(workspacePath, userDataPath) {
+  const baseName = path.basename(workspacePath);
+  const storagePath = path.join(userDataPath, `${baseName}_index`);
+
   return new DiskIndexManager(storagePath);
 }
 
@@ -27,9 +29,9 @@ async function indexAllFiles(manager, directoryPath) {
 }
 
 async function indexWorkspace(workspacePath, userDataPath) {
-  const manager = await getManager(userDataPath);
-
-  const chunksDir = path.join(userDataPath, 'ai_memory', 'chunks');
+  const manager = await getManager(workspacePath, userDataPath);
+  const baseName = path.basename(workspacePath);
+  const chunksDir = path.join(userDataPath, `${baseName}_index`, 'chunks');
 
   if (fsSync.readdirSync(chunksDir).length === 0) {
     console.log('Indexing workspace...');
