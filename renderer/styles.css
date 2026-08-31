@@ -46,6 +46,7 @@ ol, li, ul {
 
 p {
   color: var(--text-primary);
+  text-overflow: ellipsis;
 }
 
 .secondary-text {
@@ -1882,6 +1883,11 @@ select > option {
   border: 2px solid rgba(236, 235, 234, 0.5);
   border-top: 7px solid #3498db;
   border-radius: 50%;
+
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
   animation: spin 1.2s linear infinite;
 }
 
@@ -1897,8 +1903,8 @@ select > option {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg) }
-  100% { transform: rotate(360deg) }
+  from { transform: rotate(0deg) }
+  to { transform: rotate(360deg) }
 }
 
 @keyframes fadeOut {
@@ -2595,7 +2601,7 @@ select > option {
   border-radius: 16px;
   padding: 1rem;
   height: 40%;
-  width: 35%;
+  width: 45%;
   border: 1.5px solid rgba(229, 229, 225, 0.2);
   -webkit-user-select: none; /* Safari */
   -ms-user-select: none; /* IE 10 and IE 11 */
