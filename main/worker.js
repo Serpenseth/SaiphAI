@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs').promises;
 const fsSync = require('fs');
+const { parentPort } = require('worker_threads');
 
 const Ollama = require('./Ollama.js');
 const ollama = new Ollama();
@@ -11,6 +12,12 @@ const openAi = new OpenAi();
 const { TextSummarization } = require('./TextSummarization.js');
 const { DiskIndexManager } = require('./IndexManager');
 
+// Helper to send progress back to main thread via Piscina's parentPort
+function sendProgress(filePath) {
+  if (parentPort) {
+    parentPort.postMessage({ type: 'indexing-progress', filePath });
+  }
+}
 
 async function getManager(workspacePath, userDataPath) {
   const baseName = path.basename(workspacePath);
@@ -24,7 +31,7 @@ async function indexAllFiles(manager, directoryPath) {
 
   for (const file of files) {
     const fullPath = path.join(directoryPath, file);
-    await manager.indexFile(fullPath);
+    await manager.indexFile(fullPath, sendProgress);
   }
 }
 
@@ -81,7 +88,7 @@ module.exports = async ({ taskName, payload }) => {
       break;
 
     case 'indexWorkspace':
-      return await indexWorkspace(payload.workspace, payload.userDataPath);
+      return await indexWorkspace(payload.workspace, payload.userDataPath, payload.event);
       break;
 
     case 'searchWorkspace':

@@ -35,6 +35,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Indexing
   indexWorkspace: (path) => ipcRenderer.invoke('index-workspace', path),
   searchWorkspace: (manager, query) => ipcRenderer.invoke('search-workspace', manager, query),
+  onIndexingProgress: (callback) => {
+    ipcRenderer.on('indexing-progress', (event, data) => callback(data));
+  },
 
+  // Summarize text
   summarizeText: (text, includeText) => ipcRenderer.invoke('summarize-text', text, includeText),
 });

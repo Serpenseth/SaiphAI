@@ -252,7 +252,10 @@ class DiskIndexManager {
     return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
   }
 
-  async indexFile(filePath) {
+  async indexFile(filePath, onProgressCallback) {
+    if (onProgressCallback)
+      onProgressCallback(filePath);
+
     const baseName = path.basename(filePath).toLowerCase();
     const stats = await fs.stat(filePath);
 
@@ -278,7 +281,7 @@ class DiskIndexManager {
       const entries = await fs.readdir(filePath, { withFileTypes: true });
 
       for (const entry of entries) {
-        await this.indexFile(path.join(filePath, entry.name));
+        await this.indexFile(path.join(filePath, entry.name), onProgressCallback);
       }
       return;
     }

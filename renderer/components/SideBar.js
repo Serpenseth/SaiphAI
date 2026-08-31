@@ -112,6 +112,19 @@ const DomQuery = {
   },
 }
 
+const PathUtils = {
+  getFileName(path) {
+    if (path) {
+      const normalized = path.replaceAll('\\', '/').trim();
+      return normalized.substring(normalized.lastIndexOf('/') + 1);
+    }
+    else
+      return path;
+
+    return 'Untitled';
+  },
+}
+
 class ResizeManager {
   constructor(ui) {
     this.startMouseX = 0;
@@ -339,13 +352,11 @@ class EventHandler {
 
         this.coordinator.workspaceModal.show();
         this.coordinator.indexWorkspace(workspace)
-          .then(name => {
-            console.log(name);
-            DomQuery
-              .getElement('indexing-text')
-              .textContent = `Indexing ${name}`;
-        });
       }
+    });
+
+    window.electronAPI.onIndexingProgress((filePath) => {
+      DomQuery.getElement('indexing-text').textContent = `${filePath}`;
     });
   }
 }

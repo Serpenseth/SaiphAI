@@ -2,13 +2,22 @@ const { app } = require('electron');
 const { piscina } = require('./piscina_instance.js');
 
 const indexWorkspace = async (event, workspace) => {
-  await piscina.run({
+  const sendProgress = (filePath) => {
+    event.sender.send('indexing-progress', filePath);
+  };
+
+  piscina.on('message', (message) => {
+    if (message?.type === 'indexing-progress')
+      sendProgress(message.filePath);
+  });
+
+   piscina.run({
     taskName: 'indexWorkspace',
     payload: {
       workspace: workspace,
-      userDataPath: app.getPath('userData')
+      userDataPath: app.getPath('userData'),
     }
-  })
+  });
 }
 
 const searchWorkspace = async (event, searchQuery) => {
