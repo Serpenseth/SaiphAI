@@ -40,12 +40,14 @@ class OllamaSuccessUI {
     }
   }
 
-  show(status) {
+  show(status, aiProvider) {
     this._showModal(this.successModal);
+
+    const provider = aiProvider === 'openAI' ? 'OpenAI' : 'Ollama';
 
     if (status === 'success') {
       this.createStatusSVG('success');
-      this.modalTitle.textContent = "Ollama is set. You are eady to go!";
+      this.modalTitle.textContent = `${provider} is set. You are ready to go!`;
       this.remove();
     }
 
@@ -115,19 +117,21 @@ class OllamaSuccess {
   constructor(
     ui,
     state,
+    aiProvider = null,
     eventHandler = null,
     prevModal=null,
     navigationHandler=null
   ) {
     this.ui = ui;
     this.state = state;
+    this.aiProvider = aiProvider;
     this.eventHandler = null;
     this.prevModal = prevModal;
     this.navigation = navigationHandler;
   }
 
   async show() {
-    this.ui.show(this.state);
+    this.ui.show(this.state, this.aiProvider);
 
     if (this.state === 'success') {
       let wait = () => new Promise(resolve => setTimeout(resolve, 200));
@@ -163,7 +167,7 @@ class OllamaSuccess {
   }
 }
 
-export function createSuccessScreen(state, prevModal=null) {
+export function createSuccessScreen(state, aiProvider=null, prevModal=null) {
   const ui = new OllamaSuccessUI();
   let ollamaSuccess = null;
 
@@ -171,6 +175,7 @@ export function createSuccessScreen(state, prevModal=null) {
     ollamaSuccess = new OllamaSuccess(
       ui,
       state,
+      aiProvider,
       null, // eventHandler
       prevModal, // The modal to go back to
       NavigationHandler
@@ -182,7 +187,7 @@ export function createSuccessScreen(state, prevModal=null) {
   }
 
   else
-    ollamaSuccess = new OllamaSuccess(ui, state);
+    ollamaSuccess = new OllamaSuccess(ui, state, aiProvider);
 
   return ollamaSuccess;
 }
