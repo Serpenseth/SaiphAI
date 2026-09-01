@@ -199,12 +199,12 @@ class OllamaDetectedUI {
 
 const NavigationHandler = {
   completeSetup() {
-    const successModal = createSuccessScreen('success');
+    const successModal = createSuccessScreen('success', 'Ollama');
     successModal.show();
   },
 
   showFailed(prevModal) {
-    const failed = createSuccessScreen('failed', prevModal);
+    const failed = createSuccessScreen('failed', null, prevModal);
     failed.show();
   },
 
