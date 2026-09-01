@@ -336,3 +336,24 @@
   pointer-events: none;
 }
 
+/* Inputs */
+.input {
+  width: 40%;
+  height: 24px;
+  padding: 1rem;
+/*   border: 1.5px solid #545F6C; */
+  border-radius: 8px;
+/*   background: rgba(55, 61, 71); */
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  margin-bottom: 0;
+  background: rgba(236, 235, 234, 0.25);
+  border: 1px solid rgba(196, 217, 220, 0.25);
+}
+
+.input:focus {
+  filter: brightness(1.2);
+  outline: none;
+  box-shadow: 0 0px 4px rgba(236, 235, 234, 0.3);
+}
+
