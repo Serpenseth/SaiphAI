@@ -60,6 +60,197 @@
   text-align: center;
 }
 
+.model-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.model-card {
+  background: rgba(26, 116, 158, 0.02);
+  border: 1.5px solid rgba(96, 170, 206, 0.3);
+  border-radius: 18px;
+  padding: 2.5rem 1rem;
+  cursor: pointer;
+  transition: all 0.1s ease-in-out;
+  position: relative;
+}
+
+.model-card:hover,
+.model-card-active {
+  border-color: var(--accent-color);
+  transform: translateY(-3px);
+  background: rgba(26, 116, 158, 0.08);
+  border: 1.5px solid rgba(96, 170, 206, 0.6);
+  box-shadow: 0 0px 8px rgba(26, 116, 158, 0.4);
+}
+
+
+.model-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.model-card .btn {
+  width: 100%;
+}
+
+.hint {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+#no-models {
+  flex-direction: column;
+}
+
+#ollama-model-to-pull {
+  margin-left: 4px;
+}
+
+.model-login {
+  display: flex;
+  flex-direction: row;
+  margin-top: -2em;
+  justify-content: center;
+  text-align: center;
+  align-items: center;
+  min-height: 180px;
+  border-radius: 8px;
+  gap: 0.61rem;
+  width: 75%;
+  white-space: nowrap;
+}
+
+.ollama-download-card {
+  display: flex;
+  justify-content: center;
+  text-align: center;
+  align-items: center;
+  flex-direction: column;
+  width: 64px;
+  height: 64px;
+  padding: 4.5em;
+}
+
+.sub-msg {
+  text-align: center;
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+}
+
+#install-cmd {
+  width: 40%;
+  height: 32px;
+}
+
+#copy-cmd {
+  background: transparent;
+  border: none;
+  margin-left: 2px;
+}
+
+#copy-cmd:hover {
+  filter: brightness(1.3);
+}
+
+.checkmark-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2em;
+}
+
+.checkmark-svg {
+  width: 128px;
+  height: 128px;
+}
+
+.checkmark-circle {
+  stroke: #22c55e;
+  stroke-width: 2;
+  stroke-dasharray: 166; /* Circumference of circle (2 * pi * 26) */
+  stroke-dashoffset: 166;
+  animation: stroke 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.checkmark-check {
+  stroke: #22c55e;
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  /* Delay the checkmark until the circle is partially drawn */
+  animation: stroke 0.3s cubic-bezier(0.4, 0, 0.2, 1) 0.6s forwards;
+}
+
+@keyframes stroke {
+  to {
+  stroke-dashoffset: 0;
+  }
+}
+
+.x-svg {
+  width: 128px;
+  height: 128px;
+}
+
+.x-circle {
+  stroke: #ef4444;
+  stroke-width: 2;
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  animation: stroke 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.x-line {
+  stroke: #ef4444;
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 42.4;
+  stroke-dashoffset: 42.4;
+}
+
+.line-1 {
+  animation: stroke 0.3s cubic-bezier(0.4, 0, 0.2, 1) 0.6s forwards;
+}
+
+.line-2 {
+  animation: stroke 0.3s cubic-bezier(0.4, 0, 0.2, 1) 0.9s forwards;
+}
+
+.download-error {
+  color: #F84E4E;
+  border: 2.5px solid rgba(248, 78, 78, 0.5);
+  border-radius: 8px;
+  transition: all 0.2s ease-in-out;
+  width: 85%;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 8px;
+  z-index: 1220
+  white-space: nowrap;
+}
+
+.login-openai {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  align-items: center;
+}
+
+#api-key-container,
+#openai-stats-container {
+  all: inherit;
+}
+
 #settings-modal h2 {
   text-align: center;
   margin-bottom: 0.5rem;
