@@ -357,3 +357,12 @@
   box-shadow: 0 0px 4px rgba(236, 235, 234, 0.3);
 }
 
+.intro-text {
+  display: block;
+  justify-content: center;
+  text-align: center;
+  color: var(--text-secondary);
+  margin: 1rem 0;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
