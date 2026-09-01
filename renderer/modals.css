@@ -251,6 +251,14 @@
   all: inherit;
 }
 
+#install-cmd {
+  pointer-events: none;
+}
+
+#verify-openai-key {
+  width: 100%;
+}
+
 #settings-modal h2 {
   text-align: center;
   margin-bottom: 0.5rem;
