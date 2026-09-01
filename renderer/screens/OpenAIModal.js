@@ -138,7 +138,7 @@ class OpenAiModalUI {
 
 const NavigationHandler = {
   async completeSetup() {
-    const successModal = createSuccessScreen('success');
+    const successModal = createSuccessScreen('success', 'openAI');
     successModal.show();
   },
 
