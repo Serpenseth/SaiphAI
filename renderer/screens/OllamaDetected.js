@@ -52,6 +52,7 @@ class OllamaDetectedUI {
     modal.style.contentVisibility = '';
     modal.style.opacity = 1;
     modal.style.visibility = "visible";
+    modal.style.display = 'flex';
   }
 
   updateProgress(text) {
