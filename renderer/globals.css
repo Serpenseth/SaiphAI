@@ -200,3 +200,8 @@ select > option {
   }
 }
 
+.main-container {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
