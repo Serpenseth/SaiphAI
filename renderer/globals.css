@@ -209,6 +209,8 @@ select > option {
 .content {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  overflow: hidden;
   background: var(--bg-primary);
   z-index: 40;
   margin-left: 2px;
