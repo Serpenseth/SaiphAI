@@ -39,6 +39,10 @@
   border-right: 1px solid var(--border);
 }
 
+.sidebar-actions {
+  padding: 8px 5px 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
 
 .sidebar-action-btn {
   display: flex;
