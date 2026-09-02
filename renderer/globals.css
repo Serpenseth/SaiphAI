@@ -205,3 +205,13 @@ select > option {
   display: flex;
   overflow: hidden;
 }
+
+.content {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  z-index: 40;
+  margin-left: 2px;
+  width: 100%;
+  flex-wrap: nowrap;
+}
