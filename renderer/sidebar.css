@@ -1,3 +1,25 @@
+.btn-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 32px;
+  font-size: 1rem;
+  margin-top: 0.5em;
+}
+
+.btn-icon:hover {
+  filter: brightness(1.2);
+}
+
+.btn-icon:focus {
+  outline: none;
+}
+
 .sidebar-container {
   height: 100vh;
   width: var(--sidebar-width);
