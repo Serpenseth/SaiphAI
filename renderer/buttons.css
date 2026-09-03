@@ -236,7 +236,6 @@
   transition: all 0.5s;
   border-radius: 50%;
   background: transparent;
-  z-index: 12345;
 }
 
 .preview-file-close:hover {
