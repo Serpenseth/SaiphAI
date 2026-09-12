@@ -86,12 +86,12 @@ let NavigationHandler = {
   }
 }
 
-let abortController= new AbortController();
+let abortController = new AbortController();
 
 let IntroEventHandler = {
   addListener(element, event, handler) {
     element.addEventListener(event, handler, {
-      signal: abortControllercontroller.signal,
+      signal: abortController.signal,
     });
   },
 
@@ -104,8 +104,8 @@ let IntroEventHandler = {
   },
 
   cleanup() {
-    abortControllercontroller.abort();
-    abortController= null;
+    abortController.abort();
+    abortController = null;
   }
 }
 
