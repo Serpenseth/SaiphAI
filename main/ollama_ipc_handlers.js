@@ -1,7 +1,7 @@
 const { piscina } = require('./piscina_instance.js');
 
-const Ollama = require('./Ollama.js');
-const ollama = new Ollama();
+const { OllamaManager } = require('./Ollama.js');
+const ollama = OllamaManager;
 
 /**
  *  Downloads Ollama model.

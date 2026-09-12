@@ -3,8 +3,8 @@ const fs = require('fs').promises;
 const fsSync = require('fs');
 const { parentPort } = require('worker_threads');
 
-const Ollama = require('./Ollama.js');
-const ollama = new Ollama();
+const { OllamaManager } = require('./Ollama.js');
+const ollama = OllamaManager;
 
 const OpenAi = require('./OpenAI.js');
 const openAi = new OpenAi();

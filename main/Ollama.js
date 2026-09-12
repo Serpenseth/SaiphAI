@@ -48,16 +48,13 @@ class OllamaRequestsManager {
   }
 }
 
-class OllamaClass  {
-  constructor() {
-    this.baseUrl = 'http://localhost:11434';
-    this.controller = null;
-    this.requests = new OllamaRequestsManager();
-  }
+let abortController = null;
+const baseUrl = 'http://localhost:11434';
 
+const OllamaManager = {
   async checkConnection() {
     try {
-      const req = await fetch(`${this.baseUrl}/api/tags`);
+      const req = await fetch(`${baseUrl}/api/tags`);
 
       if (req.ok)
         return true;
@@ -65,14 +62,13 @@ class OllamaClass  {
       return false;
     }
     catch(e) {
-      //throw e;
       return false;
     }
-  }
+  },
 
   async isModelInstalled(event, modelName) {
     try {
-      const response = await fetch(`${this.baseUrl}api/tags`);
+      const response = await fetch(`${baseUrl}api/tags`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -86,11 +82,11 @@ class OllamaClass  {
     catch (error) {
       return false;
     }
-  }
+  },
 
   async getInstalledModels() {
     return new Promise((resolve, reject) => {
-      const req = http.get(`${this.baseUrl}/api/tags`, (res) => {
+      const req = http.get(`${baseUrl}/api/tags`, (res) => {
         let data = '';
         res.on('data', chunk => data += chunk);
         res.on('end', () => {
@@ -109,23 +105,22 @@ class OllamaClass  {
         reject(new Error('Timeout'));
       });
     });
-  }
+  },
 
   abortDownload() {
-    this.controller.abort();
-    this.controller = null;
-  }
+    abortController.abort();
+    abortController = null;
+  },
 
-  // Download model
   async pullModel(event, modelName, onProgress) {
-    this.controller = new AbortController();
+    abortController = new AbortController();
 
     try {
-      const response = await fetch(`${this.baseUrl}/api/pull`, {
+      const response = await fetch(`${baseUrl}/api/pull`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: modelName }),
-        signal: this.controller.signal
+        signal: abortController.signal
       });
 
       if (response.status === 400) {
@@ -209,9 +204,9 @@ class OllamaClass  {
         throw err;
       }
     }
-  }
+  },
 
-  /**
+   /**
  * Sends a chat request to the local Ollama API.
  *
  * @param {string} model - The model identifier.
@@ -256,42 +251,7 @@ class OllamaClass  {
     }
 
     return response.json();
-
-/*
-    return new Promise((resolve, reject) => {
-      const postData = JSON.stringify({
-        model,
-        messages: formattedMsg,
-        stream: false
-      });
-
-      const options = {
-        hostname: 'localhost',
-        port: 11434,
-        path: '/api/chat',
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(postData)
-        }
-      };
-
-      const req = http.request(options, (res) => {
-        let data = '';
-        res.on('data', chunk => data += chunk);
-        res.on('end', () => {
-          try {
-            const parsed = JSON.parse(data);
-            resolve(parsed);
-          } catch (e) { reject(e); }
-        });
-      });
-      req.on('error', reject);
-      req.write(postData);
-      req.end();
-    });
-    */
   }
 }
 
-module.exports = OllamaClass;
+module.exports = { OllamaManager };
