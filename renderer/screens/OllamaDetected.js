@@ -1,6 +1,6 @@
 import { createSuccessScreen } from './OllamaSuccess.js';
 
-const Backend = {
+let Backend = {
   async checkConnection() {
     return await window.electronAPI.checkOllama();
   },
@@ -23,13 +23,147 @@ const Backend = {
   }
 }
 
-class OllamaDetectedUI {
-  constructor() {
-    this.introModal = document.getElementById('intro-model-instructions');
-    this.ollamaDetectedModal = document.getElementById("ollama-detected");
-    this.noModelsDiv = document.getElementById("no-models");
+let OllamaDetectedElems = {
+  introModal: null,
+  ollamaDetectedModal: null,
+  noModelsDiv: null,
+  progressText: null,
+  modelInput: null,
+  downloadButton: null,
+  abortButton: null,
+  completeButton: null,
+  connectionLi: null,
+  modelSelectLi: null,
+  modelCountLi: null,
+  chooseFrameworkButton: null,
+  downloadText: null,
+  downloadError: null,
+  pressDownloadMsg: null,
+  statsContainer: null,
+  continueButton: null,
+  closeOllamaDetails: null,
+}
 
-    this.elements = {
+let DownloadProgressHandler = {
+  updateProgress(text) {
+    if (OllamaDetectedElems.progressText)
+      OllamaDetectedElems.progressText.textContent = text;
+  },
+
+  hideProgress() {
+    if (OllamaDetectedElems.progressText)
+      OllamaDetectedElems.progressText.style.display = 'none';
+  },
+
+  downloadProgress(data) {
+    if (data.percent !== 100)
+      OllamaDetectedUI.updateProgress(`${data.percent}%`);
+
+    else
+      OllamaDetectedUI.updateProgress("Verifying SHA digest...");
+  },
+}
+
+function OllamaDetectedUI() {
+  const div = document.createElement('div');
+  div.id = 'ollama-detected';
+  div.className = 'intro-text';
+  div.style.contentVisibility = 'hidden';
+  div.innerHTML = `
+    <!-- Select default model -->
+    <div id="ollama-stats-container" class="intro-text" style="content-visibility: hidden;">
+      <h1> Ollama Setup</h1>
+      <p>Ollama is installed. Below is a brief breakdown of Ollama status:</p><br>
+
+      <ul class="details">
+        <li id="ollama-connection">Connection:</li>
+        <li id="model-count">Total Models Found:</li>
+        <li id="models-installed">Default Model:
+          <select id="details-modal-select" class="details-modal-select">
+            <option></option>
+            </select>
+        </li>
+      </ul>
+      <br>
+      <p class="secondary-text">The Default model can be changed at any time via settings</p>
+
+      <div class="btn-bottom-container">
+        <button id="close-ollama-details" class="btn btn-secondary modal-nav-button">Choose another AI framework</button>
+        <button id="ollama-detected-complete" class="btn btn-primary modal-nav-button">Complete setup</button>
+      </div>
+    </div>
+
+    <!-- No models found -->
+    <div id="no-models" class="intro-text" style="content-visibility: hidden">
+      <h1> Ollama Setup</h1>
+      <h3 style="margin-bottom: -0.5rem;">Ollama is installed, but no models were found</h3>
+      <div style="margin-bottom: 16px; padding: 1.25em; margin-top: 0.5rem;">
+        <p style="color: #eff1f3; padding-bottom: 1.5em;">To install an Ollama model, follow the steps below:</p>
+        <ol type="1">
+          <li>Select a model from the
+            <a id="ollama-link" href="https://ollama.com/library?sort=newest" target="_blank" style="margin-left: 2px;">Ollama models page</a>
+          </li>
+          <li>Paste the model's name:
+            <input id="ollama-model-to-pull" class="input model-pull" placeholder="example: mistral-medium-3.5:latest"></input>
+          </li>
+          <li id='press-download-to-start' style='display: none;'>Press the "Download Model" button below to start the download</li>
+        </ol>
+
+        <p id="download-error" class="download-error" style="display: none; margin-top: 0.5rem; margin-bottom: 0.5rem;"></p>
+
+        <button id="dl-ollama-model" class="btn btn-secondary" style="display: none">Download Model</button>
+        <div style='margin-top: 1.5em;'>
+          <p id="dl-text" style="display: none; padding-top: 0; color: #eff1f3; font-size: 1.2rem;"><strong>Downloading...</strong></p>
+          <p id="ollama-dl-progress-text"></p>
+        </div>
+        <button id='abort-ollama-model-dl' class="btn btn-secondary modal-nav-button" style='display: none;'>
+          Cancel download
+        </button>
+      </div>
+
+      <div class="btn-bottom-container">
+        <button id="close-ollama-model-dl" class="btn btn-primary modal-nav-button">Choose another AI framework</button>
+        <button id="verify-ollama-after-model-dl" class="btn btn-primary modal-nav-button" style="display: none">Continue</button>
+      </div>
+    </div>
+  `;
+
+  return div;
+}
+
+let OllamaDetectedModal = {
+  show() {
+    const { introModal, ollamaDetectedModal } = OllamaDetectedElems;
+
+    introModal.style.contentVisibility = '';
+    introModal.style.opacity = 1;
+    introModal.style.visibility = "visible";
+
+    ollamaDetectedModal.style.contentVisibility = '';
+    ollamaDetectedModal.style.opacity = 1;
+    ollamaDetectedModal.style.visibility = "visible";
+  },
+
+  hide() {
+    const { ollamaDetectedModal } = OllamaDetectedElems;
+    ollamaDetectedModal.style.contentVisibility = 'hidden';
+  },
+
+  remove() {
+    const { ollamaDetectedModal } = OllamaDetectedElems;
+    ollamaDetectedModal.remove();
+  },
+
+  build() {
+    const ui = OllamaDetectedUI();
+    document.getElementById('modal-content').appendChild(ui);
+  },
+
+  initElements() {
+    OllamaDetectedElems = {
+      introModal: document.getElementById('intro-model-instructions'),
+      ollamaDetectedModal: document.getElementById("ollama-detected"),
+      noModelsDiv: document.getElementById("no-models"),
       progressText: document.getElementById('ollama-dl-progress-text'),
       modelInput: document.getElementById("ollama-model-to-pull"),
       downloadButton: document.getElementById("dl-ollama-model"),
@@ -46,47 +180,37 @@ class OllamaDetectedUI {
       continueButton: document.getElementById("ollama-detected-complete"),
       closeOllamaDetails: document.getElementById("close-ollama-details"),
     }
-  }
-
-  _showModal(modal) {
-    modal.style.contentVisibility = '';
-    modal.style.opacity = 1;
-    modal.style.visibility = "visible";
-  }
-
-  updateProgress(text) {
-    if (this.elements.progressText)
-      this.elements.progressText.textContent = text;
-  }
-
-  hideProgress() {
-    if (this.elements.progressText)
-      this.elements.progressText.style.display = 'none';
-  }
-
-  downloadProgress(data) {
-    if (data.percent !== 100)
-      this.updateProgress(`${data.percent}%`);
-
-    else
-      this.updateProgress("Verifying SHA digest...");
-  }
+  },
 
   async showErrorMessage(error) {
     let wait = () => new Promise(resolve => setTimeout(resolve, 2000));
 
-    this.elements.modelInput.style.border = '2px solid #F84E4E';
-    this.elements.downloadError.textContent = error;
-    this.elements.downloadError.style.display = 'block';
-    this.elements.downloadButton.style.display = 'none';
+    const { modelInput, downloadError, downloadButton } = OllamaDetectedElems;
+
+    modelInput.style.border = '2px solid #F84E4E';
+    downloadError.textContent = error;
+    downloadError.style.display = 'block';
+    downloadButton.style.display = 'none';
 
     await wait();
-    this.elements.modelInput.style.border = 'none';
-    this.elements.downloadError.style.display = 'none';
-    this.elements.downloadButton.removeAttribute("style");
+    modelInput.style.border = 'none';
+    downloadError.style.display = 'none';
+    downloadButton.removeAttribute("style");
 
     wait = null;
-  }
+  },
+
+  updateProgress(text) {
+    DownloadProgressHandler.updateProgress(text);
+  },
+
+  hideProgress() {
+    DownloadProgressHandler.hideProgress();
+  },
+
+  downloadProgress(data) {
+    DownloadProgressHandler.downloadProgress(data);
+  },
 
   setDownloadUIState(state, data={}) {
     const {
@@ -96,10 +220,10 @@ class OllamaDetectedUI {
       chooseFrameworkButton,
       downloadError,
       completeButton
-    } = this.elements;
+    } = OllamaDetectedElems;
 
     if (state === 'downloading') {
-      this.updateProgress('0%');
+      OllamaDetectedUI.updateProgress('0%');
 
       downloadText.style.display = 'block';
       downloadButton.style.display = 'none';
@@ -107,15 +231,15 @@ class OllamaDetectedUI {
       chooseFrameworkButton.style.display = 'none';
     }
     else if (state === 'error') {
-      this.hideProgress();
-      this.showErrorMessage(data.error);
+      OllamaDetectedUI.hideProgress();
+      OllamaDetectedUI.showErrorMessage(data.error);
 
       downloadText.style.display = 'none'
       chooseFrameworkButton.style = '';
       abortButton.style.display = 'none';
     }
     else if (state === 'aborted') {
-      this.hideProgress();
+      OllamaDetectedUI.hideProgress();
 
       downloadText.style.display = 'none';
       downloadButton.style.display = 'block';
@@ -125,7 +249,7 @@ class OllamaDetectedUI {
     }
 
     else if (state === 'success') {
-      this.elements.progressText.remove();
+      OllamaDetectedElems.progressText.remove();
 
       downloadText.textContent = "Download complete";
       completeButton.style = 'block';
@@ -134,10 +258,10 @@ class OllamaDetectedUI {
       downloadError.remove();
       chooseFrameworkButton.remove();
     }
-  }
+  },
 
   setDownloadButtonVisibility(isVisible) {
-    const { downloadButton, pressDownloadMsg } = this.elements;
+    const { downloadButton, pressDownloadMsg } = OllamaDetectedElems;
 
     if (!isVisible) {
       downloadButton.style.display = 'none';
@@ -150,7 +274,7 @@ class OllamaDetectedUI {
       pressDownloadMsg.style.display = '';
       pressDownloadMsg.textContent = msg;
     }
-  }
+  },
 
   showOllamaStats(modelCount, models, selectedModel) {
     const {
@@ -158,7 +282,7 @@ class OllamaDetectedUI {
       connectionLi,
       modelCountLi,
       modelSelectLi
-    } = this.elements;
+    } = OllamaDetectedElems;
 
     const connected = "Connection: ✔️ Connected to http://localhost:11434";
 
@@ -177,27 +301,15 @@ class OllamaDetectedUI {
       return s;
     });
     modelSelectLi.replaceChildren(...options);
-  }
+  },
 
   showNoModels() {
-    this.noModelsDiv.style.contentVisibility = '';
-  }
-
-  show() {
-    this._showModal(this.introModal);
-    this._showModal(this.ollamaDetectedModal);
-  }
-
-  hide() {
-    this.ollamaDetectedModal.style.contentVisibility = 'hidden';
-  }
-
-  remove() {
-    this.ollamaDetectedModal.remove();
-  }
+    const { noModelsDiv } = OllamaDetectedElems;
+    noModelsDiv.style.contentVisibility = '';
+  },
 }
 
-const NavigationHandler = {
+let NavigationHandler = {
   completeSetup() {
     const successModal = createSuccessScreen('success', 'Ollama');
     successModal.show();
@@ -215,236 +327,216 @@ const NavigationHandler = {
   },
 }
 
-class EventHandler {
-  constructor(ui, coordinator) {
-    this.ui = ui;
-    this.coordinator = coordinator;
-    this.controller = new AbortController();
-    this.progressHandler = null;
-    this.isAlreadyInit = false;
-  }
+let Controller = {
+  controller: new AbortController()
+}
 
+let EventHandlerVariables = {
+  isAlreadyInit: false,
+  progressHandler: null,
+}
+
+let EventHandler = {
   addListener(element, event, handler) {
-    element.addEventListener(event, handler, { signal: this.controller.signal });
-  }
+    element.addEventListener(event, handler, { signal: Controller.controller.signal });
+  },
 
   init(hasModels) {
+    const {
+      modelInput,
+      downloadButton,
+      abortButton,
+      completeButton,
+      continueButton,
+      closeOllamaDetails,
+    } = OllamaDetectedElems;
+
+    const { progressHandler } = EventHandlerVariables;
+
     if (!hasModels) {
-      this.progressHandler = (data) => {
+      progressHandler = (data) => {
         this.coordinator.downloadProgress(data);
       }
 
-      window.electronAPI.onDLModelProgress(this.progressHandler);
+      window.electronAPI.onDLModelProgress(progressHandler);
 
       // Show download model button when input isn't empty
-      this.addListener(this.ui.elements.modelInput, 'input', (e) => {
+      EventHandler.addListener(modelInput, 'input', (e) => {
         this.coordinator.showPressDownloadButton(e.target.value);
       });
 
       // Download Ollama model button
-      this.addListener(this.ui.elements.downloadButton, 'click', () => {
-        this.coordinator.downloadModel(this.ui.elements.modelInput.value);
+      this.addListener(downloadButton, 'click', () => {
+        this.coordinator.downloadModel(modelInput.value);
       });
 
       // Abort Ollama download
-      this.addListener(this.ui.elements.abortButton, 'click', () => {
+      this.addListener(abortButton, 'click', () => {
         this.coordinator.abortDownload();
       });
 
       // Complete setup
-      this.addListener(this.ui.elements.completeButton, 'click', () => {
+      this.addListener(completeButton, 'click', () => {
         this.coordinator.verify();
       });
     }
 
     // Return to AI framework selection
-    this.addListener(this.ui.elements.continueButton, 'click', () => {
+    this.addListener(continueButton, 'click', () => {
       this.coordinator.verify();
     });
 
     // Complete setup
-    this.addListener(this.ui.elements.closeOllamaDetails, 'click', () => {
+    this.addListener(closeOllamaDetails, 'click', () => {
       this.coordinator.showModelSelector();
     });
-  }
+  },
 
   cleanup() {
-    if (this.progressHandler) {
-      window.electronAPI.removeDownloadProgress(this.progressHandler);
+    const { isAlreadyInit, progressHandler} = EventHandlerVariables;
+
+    if (progressHandler) {
+      window.electronAPI.removeDownloadProgress(progressHandler);
     }
 
-    this.isAlreadyInit = false;
-    this.controller.abort();
+    isAlreadyInit = false;
+    Controller.controller.abort();
   }
 }
 
-class ModelDownloadManager {
-  constructor(backend, ui) {
-    this.ui = ui;
-    this.service = backend;
-  }
-
+let ModelDownloadManager = {
   async downloadModel(modelName) {
     try {
-      const isRunning = await this.service.checkConnection();
+      const isRunning = await Backend.checkConnection();
 
       if (!isRunning) {
-        this.ui.setDownloadUIState('error', { error: "Error: Ollama isn't running." });
+        OllamaDetectedModal.setDownloadUIState('error', {
+          error: "Error: Ollama isn't running."
+        });
         return;
       }
 
-      this.ui.setDownloadUIState('downloading');
+      OllamaDetectedModal.setDownloadUIState('downloading');
 
-      const result = await this.service.downloadModel(modelName);
+      const result = await Backend.downloadModel(modelName);
 
       if (result.success) {
-        this.ui.setDownloadUIState('success');
+        OllamaDetectedModal.setDownloadUIState('success');
       }
       else {
-        this.ui.setDownloadUIState('error', { error: result.error });
+        OllamaDetectedModal.setDownloadUIState('error', {
+          error: result.error
+        });
       }
     }
     catch (e) {
-      this.ui.setDownloadUIState('error', { error: e.message });
+      OllamaDetectedModal.setDownloadUIState('error', { error: e.message });
     }
-  }
+  },
 
   abortDownload() {
-    this.service.abortDownload();
-    this.ui.setDownloadUIState('aborted');
-  }
+    Backend.abortDownload();
+    OllamaDetectedModal.setDownloadUIState('aborted');
+  },
 
   downloadProgress(data) {
-    this.ui.downloadProgress(data);
+    OllamaDetectedModal.downloadProgress(data);
   }
 }
 
-class OllamaDetected {
-  constructor(
-    backend,
-    ui,
-    navigationHandler,
-    eventHandler,
-    modelDownloadManager,
-    models
-  ) {
-    this.service = backend;
-    this.ui = ui;
-    this.navigation = navigationHandler;
-    this.eventHandler = eventHandler;
-    this.downloadManager = modelDownloadManager;
-    this.models = models;
-  }
+let ollamaModels = null;
 
-  show() {
-    this.ui.show();
+export let OllamaDetected = {
+  show(models) {
+    ollamaModels = models;
+    OllamaDetectedModal.build();
+    OllamaDetectedModal.initElements();
+    OllamaDetectedModal.show();
 
-    const hasModels = this.models && this.models.length > 0;
+    const hasModels = models && models.length > 0;
 
-    if (!this.eventHandler.isAlreadyInit) {
-      this.eventHandler.init(hasModels);
-      this.eventHandler.isAlreadyInit = true;
+    if (!EventHandlerVariables.isAlreadyInit) {
+      EventHandler.init(hasModels);
+      EventHandlerVariables.isAlreadyInit = true;
     }
 
     if (hasModels) {
-      this.ui.showOllamaStats(
-          this.models.length,
-          this.models,
-          this.models[0].name
+      OllamaDetectedModal.showOllamaStats(
+          models.length,
+          models,
+          models[0].name
         );
     }
     else {
-      this.ui.showNoModels();
+      OllamaDetectedModal.showNoModels();
     }
-  }
+  },
 
   destroy() {
-    this.eventHandler.cleanup();
+    EventHandler.cleanup();
 
-    this.service = null;
-    this.ui = null;
-    this.navigation = null;
-    this.eventHandler = null;
-    this.downloadManager = null;
-  }
+    Backend = null;
+    OllamaDetectedModal = null;
+    NavigationHandler = null;
+    EventHandler = null;
+    modelDownloadManager = null;
+  },
 
   showPressDownloadButton(inputValue) {
     const shouldShow = inputValue.trim() !== '';
-    this.ui.setDownloadButtonVisibility(shouldShow);
-  }
+    OllamaDetectedModal.setDownloadButtonVisibility(shouldShow);
+  },
 
   async downloadModel(modelName) {
-    this.downloadManager.downloadModel(modelName);
-  }
+    modelDownloadManager.downloadModel(modelName);
+  },
 
   abortDownload() {
-    this.downloadManager.abortDownload();
-  }
+    modelDownloadManager.abortDownload();
+  },
 
   downloadProgress(data) {
-    this.downloadManager.downloadProgresss(data);
-  }
+    modelDownloadManager.downloadProgresss(data);
+  },
 
   async completeSetup() {
-    //this.service.saveModel(this.ui.elements.modelSelectLi.value);
-    await this.service.saveToConfig({
-      selectedModel: this.ui.elements.modelSelectLi.value,
-      ollamaModelCount: this.models.length,
+    const { modelSelectLi } = OllamaDetectedElems;
+    await Backend.saveToConfig({
+      selectedModel: modelSelectLi.value,
+      ollamaModelCount: ollamaModels.length,
     });
 
-    this.ui.remove();
-    this.navigation.completeSetup();
-    this.destroy();
-  }
+    OllamaDetectedModal.remove();
+    NavigationHandler.completeSetup();
+    OllamaDetected.destroy();
+  },
 
   verify() {
-    this.service.checkConnection().then(isConnected => {
+    Backend.checkConnection().then(isConnected => {
       if(!isConnected) {
-        this.navigation.showFailed(this);
-        this.ui.hide();
+        NavigationHandler.showFailed(this);
+        OllamaDetectedModal.hide();
       }
       else
-        this.completeSetup();
+        OllamaDetected.completeSetup();
     });
-  }
+  },
 
-  completeModelDownloadSetup() {
-    /*
-    this.service.saveModel(this.ui.elements.modelInput.value);
-    this.service.saveOllamaAsFramework();
-    */
-    this.service.saveToConfig({
-      selectedModel: this.ui.elements.modelInput.value,
+  async completeModelDownloadSetup() {
+    const { modelSelectLi } = OllamaDetectedElems;
+    await Backend.saveToConfig({
+      selectedModel: modelSelectLi.value,
       ollamaModelCount: 1,
     });
 
-    this.ui.remove();
-    this.navigation.completeSetup();
-    this.destroy();
-  }
+    OllamaDetectedModal.remove();
+    NavigationHandler.completeSetup();
+    OllamaDetected.destroy();
+  },
 
   showModelSelector() {
-    this.ui.hide();
-    this.navigation.frameworkSelection();
-    this.destroy();
+    OllamaDetectedModal.hide();
+    NavigationHandler.frameworkSelection();
+    OllamaDetected.destroy();
   }
-}
-
-export function createOllamaScreen(models) {
-  const ui = new OllamaDetectedUI();
-  const eventHandler = new EventHandler(ui, null);
-  const modelDownloadManager = new ModelDownloadManager(Backend, ui);
-
-  const ollamaScreen = new OllamaDetected(
-    Backend,
-    ui,
-    NavigationHandler,
-    eventHandler,
-    modelDownloadManager,
-    models
-  );
-
-  eventHandler.coordinator = ollamaScreen;
-
-  return ollamaScreen;
 }
