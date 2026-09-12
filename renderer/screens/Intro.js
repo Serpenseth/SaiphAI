@@ -14,7 +14,6 @@ function introUI() {
   const div = document.createElement('div');
   div.id = 'welcome-modal';
   div.className = 'modal';
-  div.style.contentVisibility = 'hidden';
   div.innerHTML = `
     <div class="modal-content">
       <h1>Welcome to SaiphAI!</h1>
@@ -35,12 +34,7 @@ function introUI() {
 
 let IntroModal = {
   show() {
-    const introModal = IntroElements.introModal;
     const welcomeModal = IntroElements.welcomeModal;
-
-    introModal.style.contentVisibility = '';
-    introModal.style.opacity = 1;
-    introModal.style.visibility = "visible";
 
     welcomeModal.style.contentVisibility = '';
     welcomeModal.style.opacity = 1;
