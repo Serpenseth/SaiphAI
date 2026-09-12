@@ -8,10 +8,8 @@
 import { OllamaDetected } from './OllamaDetected.js';
 //import { createOllamaInstructionsScreen } from './OllamaInstructions.js';
 
-let OllamaBackend = {
-  async getModels() {
-    return await window.electronAPI.getOllamaModels();
-  }
+async getModels() {
+  return await window.electronAPI.getOllamaModels();
 }
 
 let IntroElements = {
@@ -112,7 +110,7 @@ let IntroEventHandler = {
 }
 
 async function getStarted() {
-  const ollamaStatus = await OllamaBackend.getModels();
+  const ollamaStatus = await getModels();
   NavigationHandler.handleIntroCompletion(ollamaStatus);
   Intro.destroy();
 }
