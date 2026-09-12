@@ -128,7 +128,6 @@ export let Intro = {
     IntroEventHandler.cleanup();
 
     IntroElements = null;
-    OllamaBackend = null;
     IntroModal = null;
     NavigationHandler = null;
     IntroEventHandler = null;
