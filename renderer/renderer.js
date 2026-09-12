@@ -1,12 +1,11 @@
-import { createIntroScreen } from './screens/Intro.js';
+import { Intro } from './screens/Intro.js';
 import { createMainWindow } from './screens/MainWindow.js';
 
 async function initApp() {
   const config = await window.electronAPI.readConfigFile();
 
   if (!config) {
-    let intro = createIntroScreen();
-    intro.show();
+    Intro.show();
 
     let observer = new MutationObserver((mutationsList) => {
       for (const mutation of mutationsList) {
@@ -14,8 +13,6 @@ async function initApp() {
           mutation.removedNodes.forEach((node) => {
             if (node.id === 'ollama-success') {
               setTimeout(() => {
-                //intro.destroy();
-
                 window.electronAPI.readConfigFile()
                   .then(config => {
                     document.getElementById('intro-model-instructions').remove();
@@ -25,7 +22,7 @@ async function initApp() {
 
                     observer.disconnect();
                     observer = null;
-                    intro = null;
+                    Intro.destroy();
                   });
               }, 200);
             }
@@ -39,7 +36,7 @@ async function initApp() {
 
   else {
     // Remove the intro-related modals, as they are not needed
-    document.getElementById("welcome-modal").remove();
+    //document.getElementById("welcome-modal").remove();
     document.getElementById("intro-model-instructions").remove();
 
     const mainWindow = createMainWindow(config);
