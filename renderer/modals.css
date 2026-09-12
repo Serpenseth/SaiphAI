@@ -11,6 +11,13 @@
   transition: opacity 0.05s;
 }
 
+.subtitle-intro {
+  display: flex;
+  justify-content: center;
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
 #ollama-detected,
 #model-selection,
 #login-openai,
