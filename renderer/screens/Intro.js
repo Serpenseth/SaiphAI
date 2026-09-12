@@ -8,7 +8,7 @@
 import { OllamaDetected } from './OllamaDetected.js';
 //import { createOllamaInstructionsScreen } from './OllamaInstructions.js';
 
-async getModels() {
+async function getModels() {
   return await window.electronAPI.getOllamaModels();
 }
 
