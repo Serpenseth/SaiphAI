@@ -383,12 +383,12 @@ let EventHandler = {
 
     // Return to AI framework selection
     this.addListener(continueButton, 'click', () => {
-      this.coordinator.verify();
+      OllamaDetected.verify();
     });
 
     // Complete setup
     this.addListener(closeOllamaDetails, 'click', () => {
-      this.coordinator.showModelSelector();
+      OllamaDetected.showModelSelector();
     });
   },
 
