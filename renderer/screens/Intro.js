@@ -1,12 +1,4 @@
-//import { OllamaSuccess } from './OllamaSuccess.js';
-//import { NoModels } from './NoModels.js';
-
-//import { OllamaDetected } from './OllamaDetected.js';
-//import { FrameworkSelection } from './FrameworkSelection.js';
-//import { OllamaInstructions } from './OllamaInstructions.js';
-
 import { OllamaDetected } from './OllamaDetected.js';
-//import { createOllamaInstructionsScreen } from './OllamaInstructions.js';
 
 async function getModels() {
   return await window.electronAPI.getOllamaModels();
