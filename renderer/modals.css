@@ -45,6 +45,13 @@
   width: 100%;
 }
 
+.details-modal-select {
+  padding: 0.3rem;
+}
+
+.details-modal-select > option {
+  background-color: #121212
+}
 
 #ollama-detected,
 #model-selection,
