@@ -18,67 +18,7 @@
 
   <body>
     <div id='intro-model-instructions' class="modal" style="content-visibility: hidden">
-      <div class="modal-content">
-
-        <div id="ollama-detected" class="intro-text" style="content-visibility: hidden">
-          <!-- Select default model -->
-          <div id="ollama-stats-container" class="intro-text" style="content-visibility: hidden;">
-            <h1> Ollama Setup</h1>
-            <p>Ollama is installed. Below is a brief breakdown of Ollama status:</p><br>
-
-            <ul class="details">
-              <li id="ollama-connection">Connection:</li>
-              <li id="model-count">Total Models Found:</li>
-              <li id="models-installed">Default Model:
-                <select id="details-modal-select" class="details-modal-select">
-                  <option></option>
-                  </select>
-              </li>
-            </ul>
-            <br>
-            <p class="secondary-text">The Default model can be changed at any time via settings</p>
-
-            <div class="btn-bottom-container">
-              <button id="close-ollama-details" class="btn btn-secondary modal-nav-button">Choose another AI framework</button>
-              <button id="ollama-detected-complete" class="btn btn-primary modal-nav-button">Complete setup</button>
-            </div>
-          </div>
-
-          <!-- No models found -->
-          <div id="no-models" class="intro-text" style="content-visibility: hidden">
-            <h1> Ollama Setup</h1>
-            <h3 style="margin-bottom: -0.5rem;">Ollama is installed, but no models were found</h3>
-            <div style="margin-bottom: 16px; padding: 1.25em; margin-top: 0.5rem;">
-              <p style="color: #eff1f3; padding-bottom: 1.5em;">To install an Ollama model, follow the steps below:</p>
-              <ol type="1">
-                <li>Select a model from the
-                  <a id="ollama-link" href="https://ollama.com/library?sort=newest" target="_blank" style="margin-left: 2px;">Ollama models page</a>
-                </li>
-                <li>Paste the model's name:
-                  <input id="ollama-model-to-pull" class="input model-pull" placeholder="example: mistral-medium-3.5:latest"></input>
-                </li>
-                <li id='press-download-to-start' style='display: none;'>Press the "Download Model" button below to start the download</li>
-              </ol>
-
-              <p id="download-error" class="download-error" style="display: none; margin-top: 0.5rem; margin-bottom: 0.5rem;"></p>
-
-              <button id="dl-ollama-model" class="btn btn-secondary" style="display: none">Download Model</button>
-              <div style='margin-top: 1.5em;'>
-                <p id="dl-text" style="display: none; padding-top: 0; color: #eff1f3; font-size: 1.2rem;"><strong>Downloading...</strong></p>
-                <p id="ollama-dl-progress-text"></p>
-              </div>
-              <button id='abort-ollama-model-dl' class="btn btn-secondary modal-nav-button" style='display: none;'>
-                Cancel download
-              </button>
-            </div>
-
-            <div class="btn-bottom-container">
-              <button id="close-ollama-model-dl" class="btn btn-primary modal-nav-button">Choose another AI framework</button>
-              <button id="verify-ollama-after-model-dl" class="btn btn-primary modal-nav-button" style="display: none">Continue</button>
-            </div>
-          </div>
-
-        </div>
+      <div id='modal-content' class="modal-content">
 
         <div id="model-selection" class="intro-text" style="content-visibility: hidden">
           <h1>AI preference</h1>
