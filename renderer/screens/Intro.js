@@ -5,8 +5,8 @@
 //import { FrameworkSelection } from './FrameworkSelection.js';
 //import { OllamaInstructions } from './OllamaInstructions.js';
 
-import { createOllamaScreen } from './OllamaDetected.js';
-import { createOllamaInstructionsScreen } from './OllamaInstructions.js';
+import { OllamaDetected } from './OllamaDetected.js';
+//import { createOllamaInstructionsScreen } from './OllamaInstructions.js';
 
 let OllamaBackend = {
   async getModels() {
@@ -64,7 +64,9 @@ let IntroModal = {
   build() {
     const ui = introUI();
     document.body.prepend(ui);
+  },
 
+  initElements() {
     // create the variables
     IntroElements.introModal = document.getElementById('intro-model-instructions');
     IntroElements.welcomeModal = document.getElementById('welcome-modal');
@@ -76,8 +78,7 @@ let NavigationHandler = {
   async handleIntroCompletion(ollamaStatus) {
     if (ollamaStatus.success) {
       const { models } = ollamaStatus;
-      const ollamaDetected = createOllamaScreen(models);
-      ollamaDetected.show();
+      OllamaDetected.show(models);
     }
     else {
       const { createFrameworkSelect } = await import('./FrameworkSelection.js');
@@ -102,7 +103,7 @@ let IntroEventHandler = {
     const { getStartedButton } = IntroElements;
 
     IntroEventHandler.addListener(getStartedButton, 'click', () => {
-      Intro.getStarted();
+      getStarted();
     });
   },
 
@@ -112,9 +113,16 @@ let IntroEventHandler = {
   }
 }
 
-export const Intro = {
+async function getStarted() {
+  const ollamaStatus = await OllamaBackend.getModels();
+  NavigationHandler.handleIntroCompletion(ollamaStatus);
+  Intro.destroy();
+}
+
+export let Intro = {
   show() {
     IntroModal.build();
+    IntroModal.initElements();
     IntroModal.show();
     IntroEventHandler.init();
   },
@@ -128,11 +136,5 @@ export const Intro = {
     IntroModal = null;
     NavigationHandler = null;
     IntroEventHandler = null;
-  },
-
-  async getStarted() {
-    const ollamaStatus = await OllamaBackend.getModels();
-    NavigationHandler.handleIntroCompletion(ollamaStatus);
-    Intro.destroy();
   },
 }
