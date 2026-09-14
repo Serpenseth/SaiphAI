@@ -1,4 +1,4 @@
-class OpenAI {
+const OpenAI = {
   async isApiKeyValid(apiKey) {
     try {
       const result = await fetch("https://api.openai.com/v1/models", {
@@ -17,7 +17,7 @@ class OpenAI {
     catch(e) {
       return { valid: false, message: e.message };
     }
-  }
+  },
 
   async getAllModels(apiKey) {
     try {
@@ -33,7 +33,7 @@ class OpenAI {
       throw e;
       return [];
     }
-  }
+  },
 }
 
-module.exports = OpenAI;
+module.exports = { OpenAI };

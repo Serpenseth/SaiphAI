@@ -1,7 +1,7 @@
 const { piscina } = require('./piscina_instance.js');
 
-const OpenAi = require('./OpenAI.js');
-const openAi = new OpenAi();
+const { OpenAi } = require('./OpenAI.js');
+const openAi = OpenAi;
 
 /**
  *  Informs if OpenAI api key is valid or not.
