@@ -1,4 +1,5 @@
-import { createSuccessScreen } from './OllamaSuccess.js';
+// import { createSuccessScreen } from './OllamaSuccess.js';
+import { OllamaSuccess } from './OllamaSuccess.js';
 
 let Backend = {
   async checkConnection() {
@@ -311,13 +312,15 @@ let OllamaDetectedModal = {
 
 let NavigationHandler = {
   completeSetup() {
-    const successModal = createSuccessScreen('success', 'Ollama');
-    successModal.show();
+    // const successModal = createSuccessScreen('success', 'Ollama');
+    // successModal.show();
+    OllamaSuccess.show('success', 'Ollama');
   },
 
   showFailed(prevModal) {
-    const failed = createSuccessScreen('failed', null, prevModal);
-    failed.show();
+    //const failed = createSuccessScreen('failed', null, prevModal);
+    //failed.show();
+    OllamaSuccess.show('failed', null);
   },
 
   async frameworkSelection() {
@@ -399,7 +402,7 @@ let EventHandler = {
       window.electronAPI.removeDownloadProgress(progressHandler);
     }
 
-    isAlreadyInit = false;
+    EventHandlerVariables.isAlreadyInit = false;
     Controller.controller.abort();
   }
 }
@@ -479,7 +482,7 @@ export let OllamaDetected = {
     OllamaDetectedModal = null;
     NavigationHandler = null;
     EventHandler = null;
-    modelDownloadManager = null;
+    ModelDownloadManager = null;
   },
 
   showPressDownloadButton(inputValue) {
@@ -488,15 +491,15 @@ export let OllamaDetected = {
   },
 
   async downloadModel(modelName) {
-    modelDownloadManager.downloadModel(modelName);
+    ModelDownloadManager.downloadModel(modelName);
   },
 
   abortDownload() {
-    modelDownloadManager.abortDownload();
+    ModelDownloadManager.abortDownload();
   },
 
   downloadProgress(data) {
-    modelDownloadManager.downloadProgresss(data);
+    ModelDownloadManager.downloadProgresss(data);
   },
 
   async completeSetup() {
