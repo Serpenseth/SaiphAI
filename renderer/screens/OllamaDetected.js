@@ -356,29 +356,29 @@ let EventHandler = {
 
     if (!hasModels) {
       progressHandler = (data) => {
-        this.coordinator.downloadProgress(data);
+        OllamaDetected.downloadProgress(data);
       }
 
       window.electronAPI.onDLModelProgress(progressHandler);
 
       // Show download model button when input isn't empty
       EventHandler.addListener(modelInput, 'input', (e) => {
-        this.coordinator.showPressDownloadButton(e.target.value);
+        OllamaDetected.showPressDownloadButton(e.target.value);
       });
 
       // Download Ollama model button
       this.addListener(downloadButton, 'click', () => {
-        this.coordinator.downloadModel(modelInput.value);
+        OllamaDetected.downloadModel(modelInput.value);
       });
 
       // Abort Ollama download
       this.addListener(abortButton, 'click', () => {
-        this.coordinator.abortDownload();
+        OllamaDetected.abortDownload();
       });
 
       // Complete setup
       this.addListener(completeButton, 'click', () => {
-        this.coordinator.verify();
+       OllamaDetected.verify();
       });
     }
 
@@ -401,7 +401,7 @@ let EventHandler = {
     }
 
     EventHandlerVariables.isAlreadyInit = false;
-    Controller.controller.abort();
+    abortController.abort();
   }
 }
 
