@@ -24,26 +24,7 @@ let Backend = {
   }
 }
 
-let OllamaDetectedElems = {
-  introModal: null,
-  ollamaDetectedModal: null,
-  noModelsDiv: null,
-  progressText: null,
-  modelInput: null,
-  downloadButton: null,
-  abortButton: null,
-  completeButton: null,
-  connectionLi: null,
-  modelSelectLi: null,
-  modelCountLi: null,
-  chooseFrameworkButton: null,
-  downloadText: null,
-  downloadError: null,
-  pressDownloadMsg: null,
-  statsContainer: null,
-  continueButton: null,
-  closeOllamaDetails: null,
-}
+let OllamaDetectedElems;
 
 let DownloadProgressHandler = {
   updateProgress(text) {
