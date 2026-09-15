@@ -330,9 +330,7 @@ let NavigationHandler = {
   },
 }
 
-let Controller = {
-  controller: new AbortController()
-}
+let abortController = new AbortController();
 
 let EventHandlerVariables = {
   isAlreadyInit: false,
@@ -341,7 +339,7 @@ let EventHandlerVariables = {
 
 let EventHandler = {
   addListener(element, event, handler) {
-    element.addEventListener(event, handler, { signal: Controller.controller.signal });
+    element.addEventListener(event, handler, { signal: abortController.signal });
   },
 
   init(hasModels) {
