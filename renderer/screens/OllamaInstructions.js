@@ -1,35 +1,191 @@
-import { createOllamaScreen } from './OllamaDetected.js';
-import { createSuccessScreen } from './OllamaSuccess.js';
+import { OllamaDetected } from './OllamaDetected.js';
+import { OllamaSuccess } from './OllamaSuccess.js';
 
-const Backend = {
-  async checkConnection() {
-    return await window.electronAPI.checkOllama();
-  },
+const OllamaConnection = {
+  check() {
+    return window.electronAPI.checkOllama();
+  }
+};
 
-  async openDownloadLink() {
-    const userPlatform = await window.electronAPI.getPlatform();
-    const downloadUrl = 'https://ollama.com/download/';
+const OllamaDownloadLink = {
+  async open() {
+    const platform = await window.electronAPI.getPlatform();
 
-    switch (userPlatform) {
-      case 'win32':
-        window.open(`${downloadUrl}/OllamaSetup.exe`);
-        break;
+    const urls = {
+      win32: 'https://ollama.com/download/OllamaSetup.exe',
+      darwin: 'https://ollama.com/download/Ollama.dmg'
+    };
 
-      case 'darwin':
-        window.open(`${downloadUrl}/Ollama.dmg`);
-        break;
-    }
-  },
+    const url = urls[platform];
 
-  pasteToClipboard(text) {
-    navigator.clipboard.writeText(text);
+    if (url)
+      window.open(url);
+  }
+};
+
+const Clipboard = {
+  write(text) {
+    return navigator.clipboard.writeText(text);
+  }
+};
+
+function OllamaInstructionsUI() {
+  return `
+    <div id="dl-ollama-instructions" style="content-visibility: hidden">
+      <h1>Install Ollama<h1>
+      <p class="secondary-text" style="font-size: 1rem;">Click on your operating system to see download/install instructions</p>
+
+      <div>
+        <div id="os-selected" class="intro-text" style="gap: 3em; display: flex; flex-direction: row; margin-top: 2em;">
+          <div id="option-macOS" class="model-card ollama-download-card">
+            <img
+              src="https://logos-world.net/wp-content/uploads/2020/04/Apple-Logo.png"
+              style="height: 32px; width: 32px; align-item: self; margin-bottom: 4px;"
+            >
+            <p style="margin-bottom: 0;">MacOS</p>
+          </div>
+
+          <div id="option-windows" class="model-card ollama-download-card" >
+            <img
+              src="https://logos-world.net/wp-content/uploads/2020/12/Windows-New-Logo.png"
+              style="height: 32px; width: 32px; align-item: self; margin-bottom: 4px;"
+            >
+            <p style="margin-bottom: 0;">Windows</p>
+          </div>
+
+          <div id="option-linux" class="model-card ollama-download-card">
+            <img
+              src="https://logos-world.net/wp-content/uploads/2020/09/Linux-Logo.png"
+              style="height: 32px; width: 32px; align-item: self; margin-bottom: 4px;"
+            >
+            <p style="margin-bottom: 0;">Linux</p>
+          </div>
+        </div>
+
+        <div id="os-specific-download" class="intro-text" style="flex-direction: column; margin-top: 0.5em;">
+          <!-- Complete sentence dynamically based on OS -->
+          <p id="paste-into" class='secondary-text' style="margin-top: 0.5rem; margin-bottom: 0.5rem;" ></p>
+          <div style="flex-direction: row;">
+            <input id="install-cmd" class="input" readonly="true">
+            <button id="copy-cmd">
+              <img src="../assets/copy.png" style="display: flex; width: 16px; height: 16px;"></img>
+            </button>
+          </div>
+          <p class='secondary-text' style="font-size: 0.8rem; margin-top: 0.5rem">
+            or press the button below to download Ollama
+          </p>
+          <button id="download-ollama-btn" class="btn btn-secondary" style="margin: 1rem 0;">Download</button>
+          <p id="requires-msg"></p>
+        </div>
+        <br>
+      </div>
+      <br>
+      <div class="btn-bottom-container">
+        <button id="return-instructions-btn" class="btn btn-secondary modal-nav-button">
+          Select AI framework
+        </button>
+        <button id="complete-instructions-btn" class="btn btn-primary modal-nav-button">Continue</button>
+      </div>
+    </div>
+  `;
+}
+
+function setRequiredMessage(message) {
+  OllamaInstructionsElems.requiredMessage.textContent = message;
+}
+
+async function wait() {
+  return new Promise(resolve => setTimeout(resolve, 2000));
+}
+
+async function showCopiedMessage() {
+  const { installCmdInput } = OllamaInstructionsElems;
+  const oldValue = installCmdInput.value.trim();
+
+  if (oldValue.includes('copied!') || oldValue.length === 0)
+    return;
+
+  installCmdInput.style.border = "1.5px solid rgba(96, 170, 206, 0.6)";
+  installCmdInput.value = "Install command copied!";
+
+  await wait();
+  installCmdInput.style.border = '';
+  installCmdInput.value = oldValue;
+}
+
+function setPasteText(text) {
+  OllamaInstructionsElems.pasteText.textContent = text;
+}
+
+let selectedCard = null;
+
+let Card = {
+  select(card) {
+    if (selectedCard === card)
+      return;
+
+    card.classList.add('model-card-active');
+
+    if (selectedCard)
+      selectedCard.classList.remove('model-card-active');
+
+    selectedCard = card;
   }
 }
 
-class OllamaInstructionsUI {
-  constructor() {
-    this.dlOllamaModal = document.getElementById('dl-ollama-instructions');
-    this.elements = {
+const installConfigs = {
+  macOS: {
+    card: () => OllamaInstructionsElems?.macOSOption,
+    shell: 'Terminal',
+    command: 'curl -fsSL https://ollama.com/install.sh | sh',
+    requirement: 'Requires macOS 14 Sonoma or later'
+  },
+  windows: {
+    card: () => OllamaInstructionsElems?.windowsOption,
+    shell: 'PowerShell',
+    command: 'irm https://ollama.com/install.ps1 | iex',
+    requirement: 'Requires Windows 10 or later'
+  },
+  linux: {
+    card: () => OllamaInstructionsElems?.linuxOption,
+    shell: 'Terminal',
+    command: 'curl -fsSL https://ollama.com/install.sh | sh',
+    requirement: ''
+  }
+};
+
+function showInstall(platform) {
+  const config = installConfigs[platform];
+  OllamaInstructionsElems.installCmdInput.value = config.command;
+
+  Card.select(config.card());
+  setPasteText(`Paste the code below into ${config.shell}`);
+  setRequiredMessage(config.requirement);
+}
+
+let NavigationHandler = {
+  goToModelDownload() {
+    OllamaDetected.show([]);
+  },
+
+  ollamaInstallFailed(prevModal) {
+    OllamaSuccess.show('failed', prevModal);
+  },
+
+  /*
+  async frameworkSelection() {
+    const { createFrameworkSelect } = await import('./FrameworkSelection.js');
+    const result = createFrameworkSelect();
+    result.show();
+  },
+  */
+}
+
+let OllamaInstructionsElems = {
+  init() {
+    return {
+      introModal: document.getElementById('intro-model-instructions'),
+      dlOllamaModal: document.getElementById('dl-ollama-instructions'),
       macOSOption: document.getElementById("option-macOS"),
       windowsOption: document.getElementById("option-windows"),
       linuxOption: document.getElementById("option-linux"),
@@ -40,270 +196,149 @@ class OllamaInstructionsUI {
       frameworkSelection: document.getElementById("return-instructions-btn"),
       completeButton: document.getElementById("complete-instructions-btn"),
       requiredMessage: document.getElementById("requires-msg"),
-    }
+    };
   }
+}
 
- _showModal(modal) {
-    modal.style.contentVisibility = '';
-    modal.style.opacity = 1;
-    modal.style.visibility = "visible";
- }
-
+let OllamaInstructionsModal = {
   show() {
-    this._showModal(this.dlOllamaModal);
-  }
+    const { introModal, dlOllamaModal } = OllamaInstructionsElems;
+
+    introModal.style.contentVisibility = '';
+    introModal.style.opacity = 1;
+    introModal.style.visibility = "visible";
+
+    dlOllamaModal.style.contentVisibility = '';
+    dlOllamaModal.style.opacity = 1;
+    dlOllamaModal.style.visibility = "visible";
+  },
 
   hide() {
-    this.dlOllamaModal.style.contentVisibility = 'hidden';
-  }
+    const { dlOllamaModal } = OllamaInstructionsElems;
+    dlOllamaModal.style.contentVisibility = 'hidden';
+  },
 
   remove() {
-    this.dlOllamaModal.remove();
-  }
-
-  setCardStyle(card) {
-    card.classList.add('model-card-active');
-  }
-
-  resetCardStyle(card) {
-    card.classList.remove('model-card-active');
-  }
-
-  setRequiredMessage(message) {
-    this.elements.requiredMessage.textContent = message;
-  }
-
-  async showCopiedMessage() {
-    let wait = () => new Promise(resolve => setTimeout(resolve, 2000));
-
-    const { installCmdInput } = this.elements;
-    const oldValue = installCmdInput.value.trim();
-
-    if (oldValue.includes('copied!') || oldValue.length === 0)
-      return;
-
-    installCmdInput.style.border = "1.5px solid rgba(96, 170, 206, 0.6)";
-    installCmdInput.value = "Install command copied!";
-
-    await wait();
-    installCmdInput.style.border = '';
-    installCmdInput.value = oldValue;
-  }
-
-  setPasteText(text) {
-    this.elements.pasteText.textContent = text;
-  }
-
-  showMacInstall() {
-    const {
-      pasteText,
-      installCmdInput,
-      macOSOption,
-      linuxOption,
-      windowsOption,
-    } = this.elements;
-
-    pasteText.textContent =  "Paste the code below into Terminal";
-    installCmdInput.value = "curl -fsSL https://ollama.com/install.sh | sh";
-
-    this.setCardStyle(macOSOption);
-    this.resetCardStyle(windowsOption);
-    this.resetCardStyle(linuxOption);
-    this.setRequiredMessage("Requires macOS 14 Sonoma or later");
-  }
-
-  showWindowsInstall() {
-    const {
-      pasteText,
-      installCmdInput,
-      macOSOption,
-      linuxOption,
-      windowsOption,
-    } = this.elements;
-
-    pasteText.textContent =  "Paste the code below into PowerShell";
-    installCmdInput.value = "irm https://ollama.com/install.ps1 | iex";
-
-    this.setCardStyle(windowsOption);
-    this.resetCardStyle(linuxOption);
-    this.resetCardStyle(macOSOption);
-    this.setRequiredMessage("Requires Windows 10 or later");
-  }
-
-  showLinuxInstall() {
-    const {
-      pasteText,
-      installCmdInput,
-      macOSOption,
-      linuxOption,
-      windowsOption,
-    } = this.elements;
-
-    pasteText.textContent =  "Paste the code below into Terminal";
-    installCmdInput.value = "curl -fsSL https://ollama.com/install.sh | sh";
-
-    this.setCardStyle(linuxOption);
-    this.resetCardStyle(windowsOption);
-    this.resetCardStyle(macOSOption);
-    this.setRequiredMessage('');
-  }
-}
-
-const NavigationHandler = {
-  goToModelDownload() {
-    const ollamaDetected = createOllamaScreen([]);
-    ollamaDetected.show();
+    const { dlOllamaModal } = OllamaInstructionsElems;
+    dlOllamaModal.remove();
   },
 
-  ollamaInstallFailed(prevModal) {
-    const failed = createSuccessScreen('failed', prevModal);
-    failed.show();
-  },
-
-  async frameworkSelection() {
-    const { createFrameworkSelect } = await import('./FrameworkSelection.js');
-    const result = createFrameworkSelect();
-    result.show();
+  build() {
+    const ui = OllamaInstructionsUI();
+    document
+      .getElementById('modal-content')
+      .insertAdjacentHTML('beforeend', ui);
   },
 }
 
-class EventHandler {
-  constructor(ui, coordinator) {
-    this.ui = ui;
-    this.coordinator = coordinator;
-    this.controller = new AbortController();
-    this.isAlreadyInit = false;
-  }
+function copyInstallCmd() {
+  const { installCmdInput } = OllamaInstructionsElems;
+  const installCmd = installCmdInput.value;
 
+  if (installCmd.includes('copied!'))
+    return;
+
+  Clipboard.write(installCmd);
+  OllamaInstructionsModal.showCopiedMessage();
+}
+
+let abortController = new AbortController();
+let isAlreadyInit = false;
+
+let EventHandler = {
   addListener(element, event, handler) {
-    element.addEventListener(event, handler, { signal: this.controller.signal });
-  }
+    element.addEventListener(event, handler, { signal: abortController.signal });
+  },
 
   init() {
-    this.addListener(this.ui.elements.macOSOption, 'click', () => {
-      this.coordinator.showMacInstall();
+    const {
+      macOSOption,
+      linuxOption,
+      windowsOption,
+      copyCmdButton,
+      downloadOllamaButton,
+      frameworkSelection,
+      completeButton
+    } = OllamaInstructionsElems
+
+    this.addListener(macOSOption, 'click', () => {
+      showInstall('macOS');
     });
 
-    this.addListener(this.ui.elements.windowsOption, 'click', () => {
-      this.coordinator.showWindowsInstall();
+    this.addListener(windowsOption, 'click', () => {
+      showInstall('windows');
     });
 
-    this.addListener(this.ui.elements.linuxOption, 'click', () => {
-      this.coordinator.showLinuxInstall();
+    this.addListener(linuxOption, 'click', () => {
+      showInstall('linux');
     });
 
-    this.addListener(this.ui.elements.copyCmdButton, 'click', () => {
-      this.coordinator.copyInstallCmd();
+    this.addListener(copyCmdButton, 'click', () => {
+      copyInstallCmd();
     });
 
-    this.addListener(this.ui.elements.downloadOllamaButton, 'click', () => {
-      this.coordinator.downloadOllama();
+    this.addListener(downloadOllamaButton, 'click', () => {
+      OllamaInstructions.downloadOllama();
     });
 
-    this.addListener(this.ui.elements.frameworkSelection, 'click', () => {
-      this.coordinator.frameworkSelection();
+    this.addListener(frameworkSelection, 'click', () => {
+     OllamaInstructions.frameworkSelection();
     });
 
-    this.addListener(this.ui.elements.completeButton, 'click', () => {
-      this.coordinator.goToModelDownload();
+    this.addListener(completeButton, 'click', () => {
+      OllamaInstructions.goToModelDownload();
     });
-  }
+  },
 
   cleanup() {
-    this.isAlreadyInit = false;
-    this.controller.abort();
+    isAlreadyInit = false;
+    abortController.abort();
   }
 }
 
-class OllamaInstructions {
-  constructor(backend, ui, navigationHandler, eventHandler) {
-    this.service = backend;
-    this.ui = ui;
-    this.navigation = navigationHandler;
-    this.eventHandler = eventHandler;
-  }
-
+export const OllamaInstructions = {
   show() {
-    this.ui.show();
+    OllamaInstructionsModal.build();
+    OllamaInstructionsElems = OllamaInstructionsElems.init();
 
-    if (!this.eventHandler.isAlreadyInit) {
-      this.eventHandler.init();
-      this.eventHandler.isAlreadyInit = true;
+    if (!isAlreadyInit) {
+      EventHandler.init();
+      isAlreadyInit = true;
     }
-  }
+
+    OllamaInstructionsModal.show();
+  },
 
   destroy() {
-    this.eventHandler.cleanup();
+    EventHandler.cleanup();
 
-    this.service = null;
-    this.ui = null;
-    this.navigation = null;
-    this.eventHandler = null;
-  }
-
-  showMacInstall() {
-    this.ui.showMacInstall();
-  }
-
-  showWindowsInstall() {
-    this.ui.showWindowsInstall();
-  }
-
-  showLinuxInstall() {
-    this.ui.showLinuxInstall();
-  }
-
-  copyInstallCmd() {
-    const { installCmdInput } = this.ui.elements;
-    const installCmd = installCmdInput.value;
-
-    if (installCmd.includes('copied!'))
-      return;
-
-    this.service.pasteToClipboard(installCmd);
-    this.ui.showCopiedMessage();
-  }
+    OllamaInstructionsModal = null;
+    NavigationHandler = null;
+    EventHandler = null;
+  },
 
   async downloadOllama() {
-    await this.service.openDownloadLink();
-  }
+    await OllamaDownloadLink.open();
+  },
 
   async goToModelDownload() {
-    const isConnected = await this.service.checkConnection();
+    const isConnected = await OllamaConnection.check();
 
     if (isConnected)
-      this.navigation.goToModelDownload();
+      NavigationHandler.goToModelDownload();
 
     else {
-      this.navigation.ollamaInstallFailed(this);
-      this.ui.hide();
-      // Return early to prevent wiping the above instance
-      return;
+      NavigationHandler.ollamaInstallFailed(OllamaInstructionsModal);
+      OllamaInstructionsModal.hide();
     }
 
-    this.ui.remove();
-    this.destroy();
-  }
+    OllamaInstructionsModal.remove();
+    OllamaInstructions.destroy();
+  },
 
   frameworkSelection() {
-    this.ui.hide();
-    this.navigation.frameworkSelection();
-    this.destroy();
-  }
-}
-
-export function createOllamaInstructionsScreen() {
-  const ui = new OllamaInstructionsUI();
-  const eventHandler = new EventHandler(ui, null);
-
-  const ollamaInstructions = new OllamaInstructions(
-    Backend,
-    ui,
-    NavigationHandler,
-    eventHandler,
-  );
-
-  eventHandler.coordinator = ollamaInstructions;
-
-  return ollamaInstructions;
+    OllamaInstructionsModal.hide();
+    NavigationHandler.frameworkSelection();
+    OllamaInstructions.destroy();
+  },
 }
