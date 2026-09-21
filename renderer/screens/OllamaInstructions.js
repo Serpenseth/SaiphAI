@@ -91,7 +91,7 @@ const DomQuery = {
     const el = this.getElement(id);
     if (el)
       el.remove();
-  }
+  },
 
   insertHTML(containerId, html) {
     const container = this.getElement(containerId);
@@ -133,26 +133,16 @@ const DomQuery = {
   }
 };
 
-const OllamaConnection = {
-  check() {
+const WindowApi = {
+  async checkConnection() {
     return window.electronAPI.checkOllama();
   },
-}
 
-const Platform = {
-  async getPlatform() {
+  getPlatform() {
     return window.electronAPI.getPlatform();
   },
-}
 
-const Clipboard = {
-  write(text) {
-    return navigator.clipboard.writeText(text);
-  }
-};
-
-const ApiService = {
-  async openUrl(url) {
+  openUrl(url) {
     if (url)
       window.open(url);
   }
@@ -221,10 +211,16 @@ const ClipboardManager = {
     Clipboard.write(data);
   },
 
-  showCopiedMessageInInputField(inputField) {
+  showCopiedMessageInInputField(inputFieldElement) {
+    const inputField = DomQuery.getElement(inputFieldElement);
     const originalValue = inputField.value;
     inputField.value = "Install command copied!";
     setTimeout(() => { inputField.value = originalValue; }, 2000);
+  },
+
+  handleCopy(fromElement) {
+    const inputField = DomQuery.getElement(fromElement)
+    ClipboardManager.write(inputField.value);
   }
 }
 
@@ -232,7 +228,7 @@ const OllamaInstructionsManager = {
   showUI() {
     UiHandler.loadUI('modal-content', OllamaInstructionsModal.ui());
     UiHandler.showUI('intro-model-instructions', 'dl-ollama-instructions');
-  }
+  },
 
   destroyUI() {
     EventHandler.abortController.abort();
@@ -265,9 +261,8 @@ let OllamaInstructions = {
   },
 
   handleCopy() {
-    const inputField = DomQuery.getElement('install-cmd')
-    ClipboardManager.write(inputField.value);
-    this.triggerCopyFeedback(inputField);
+    ClipboardManager.handleCopy('install-cmd');
+    this.triggerCopyFeedback('install-cmd');
   },
 
   triggerCopyFeedback(inputField) {
@@ -278,11 +273,11 @@ let OllamaInstructions = {
     const config = INSTALL_CONFIGS[this.activePlatform];
 
     if (config)
-      await ApiService.openUrl(config.downloadUrl);
+      await WindowApi.openUrl(config.downloadUrl);
   },
 
   async handleContinue() {
-    const isConnectionSuccessful = await OllamaConnection.check();
+    const isConnectionSuccessful = await WindowApi.checkConnection();
     NavigationHandler.navigate(isConnectionSuccessful, this);
     this.destroy();
   },
