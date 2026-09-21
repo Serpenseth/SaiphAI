@@ -129,7 +129,7 @@ const DomQuery = {
 
   toggleButton(id, isVisible) {
     const el = this.getElement(id);
-    el.style.display = isVisible ? 'none' : '';
+    el.style.display = isVisible ? '' : 'none';
   }
 };
 
