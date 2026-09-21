@@ -59,6 +59,7 @@
 #dl-ollama-instructions,
 #ollama-success,
 #openai-stats-container {
+  text-align: center;
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.05s;
