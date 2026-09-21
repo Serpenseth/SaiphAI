@@ -208,7 +208,7 @@ const PlatformManager = {
 
 const ClipboardManager = {
   write(data) {
-    Clipboard.write(data);
+    navigator.clipboard.writeText(data);
   },
 
   showCopiedMessageInInputField(inputFieldElement) {
