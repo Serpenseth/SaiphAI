@@ -267,7 +267,7 @@ let OllamaInstructions = {
 
     const genericEvents = [
       { id: 'copy-cmd', fn: () => this.handleCopy() },
-      { id: 'download-ollama-btn', fn: () => this.handleDownload() },
+      { id: 'download-ollama-btn', fn: () => this.handleDownload(platform) },
       { id: 'complete-instructions-btn', fn: () => this.handleContinue() },
       { id: 'return-instructions-btn', fn: () => this.handleReturn() },
     ];
@@ -294,8 +294,8 @@ let OllamaInstructions = {
     ClipboardManager.showCopiedMessageInInputField(inputField);
   },
 
-  async handleDownload() {
-    const config = INSTALL_CONFIGS[this.activePlatform];
+  async handleDownload(platform) {
+    const config = INSTALL_CONFIGS[platform];
 
     if (config)
       await WindowApi.openUrl(config.downloadUrl);
@@ -314,7 +314,6 @@ let OllamaInstructions = {
 
   destroy() {
     OllamaInstructionsManager.destroyUI();
-    OllamaInstructions = null;
   }
 };
 
