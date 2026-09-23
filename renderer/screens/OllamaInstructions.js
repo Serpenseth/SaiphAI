@@ -12,7 +12,7 @@ const INSTALL_CONFIGS = {
     shell: 'PowerShell',
     command: 'irm https://ollama.com/install.ps1 | iex',
     requirement: 'Requires Windows 10 or later',
-    downloadUrl: 'https://ollama.com/download/OllamaSetup.exe'
+    downloadUrl: 'https://github.com/ollama/ollama/releases/latest/download/OllamaSetup.exe'
   },
   linux: {
     shell: 'Terminal',
