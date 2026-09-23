@@ -52,10 +52,5 @@ export const DomQuery = {
     const el = this.getElement(id);
     el.style.display = isVisible ? '' : 'none';
   },
-
-  hideCard(id) {
-    const card = this.getElement(id);
-    card.style.display = 'none';
-  }
 };
 
