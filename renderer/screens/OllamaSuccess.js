@@ -1,5 +1,7 @@
 import { createMainWindow } from './MainWindow.js';
 
+import { DomQuery } from '../utility/utilities.js';
+
 const AnimatedSvg = {
   show(status) {
     if (status === "success") {
@@ -69,44 +71,6 @@ const OllamaSuccessModal = {
       : '';
   },
 }
-
-const DomQuery = {
-  getElement: (id) => document.getElementById(id),
-
-  removeElement(id) {
-    const el = this.getElement(id);
-    if (el)
-      el.remove();
-  },
-
-  insertHTML(containerId, html) {
-    const container = this.getElement(containerId);
-
-    if (container)
-      container.insertAdjacentHTML('beforeend', html);
-  },
-
-  updateText(id, text) {
-    const el = this.getElement(id);
-    if (el)
-      el.textContent = text;
-  },
-
-  toggleVisibility(id, isVisible) {
-    const el = this.getElement(id);
-
-    el.style.contentVisibility = isVisible ? '' : 'hidden';
-    el.style.opacity = isVisible ? 1 : 0;
-    el.style.visibility = isVisible ? 'visible' : 'hidden';
-  },
-
-  setElementClass(id, className, add = true) {
-    const el = this.getElement(id);
-
-    if (el)
-      el.classList[add ? 'add' : 'remove'](className);
-  },
-};
 
 const NavigationHandler = {
   goBack(prevModal) {
