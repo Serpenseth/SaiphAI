@@ -245,6 +245,10 @@ const OllamaInstructionsManager = {
   destroyUI() {
     EventHandler.abortController.abort();
     DomQuery.removeElement('dl-ollama-instructions');
+  },
+
+  hideUI() {
+    DomQuery.toggleVisibility('dl-ollama-instructions', false);
   }
 }
 
@@ -303,7 +307,8 @@ let OllamaInstructions = {
   async handleContinue() {
     const isConnectionSuccessful = await WindowApi.checkConnection();
     NavigationHandler.navigate(isConnectionSuccessful, this);
-    this.destroy();
+
+    isConnectionSuccessful ? this.destroy() : this.hide();
   },
 
   handleReturn() {
@@ -313,6 +318,10 @@ let OllamaInstructions = {
 
   destroy() {
     OllamaInstructionsManager.destroyUI();
+  },
+
+  hide() {
+    OllamaInstructionsManager.hideUI();
   }
 };
 
