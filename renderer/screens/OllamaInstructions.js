@@ -156,7 +156,7 @@ const NavigationHandler = {
   navigate(goodToGo, prevModal) {
     goodToGo
       ? OllamaDetected.show([])
-      : OllamaSuccess.show('failed', prevModal);
+      : OllamaSuccess.show('failed', null, prevModal);
   }
 }
 
