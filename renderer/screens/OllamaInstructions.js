@@ -294,11 +294,7 @@ let OllamaInstructions = {
 
   handleCopy() {
     ClipboardManager.handleCopy('install-cmd');
-    this.triggerCopyFeedback('install-cmd');
-  },
-
-  triggerCopyFeedback(inputField) {
-    ClipboardManager.showCopiedMessageInInputField(inputField);
+    ClipboardManager.showCopiedMessageInInputField('install-cmd');
   },
 
   async handleDownload(platform) {
