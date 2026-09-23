@@ -1,6 +1,21 @@
 [![Build and Release Electron App](https://github.com/Serpenseth/SaiphAI/actions/workflows/main.yml/badge.svg)](https://github.com/Serpenseth/SaiphAI/actions/workflows/main.yml)
 [![Github All Releases](https://img.shields.io/github/downloads/serpenseth/SaiphAI/total.svg)](https://github.com/serpenseth/SaiphAI/releases)
 
+[!IMPORTANT]
+
+**Current Refactoring Effort**:
+SaiphAI is currently being restructured to improve [Maintainability/Performance].
+
+**Key Changes**:
+*   **Architecture:** Moving from Monolith classes to Modular objects, while also separating responsibilities.
+*   **Chunking/Indexing:** Moving to embedding model and a smarter indexing system.
+
+Many new features are being developped as well!
+
+**Contribution Guide during Refactor**:
+*   **Do not** submit PRs or issues to `main` during the refactoring.
+*   Target all new contributions to the `refactor/saiphai` branch.
+
 SaiphAI is a desktop AI coding assistant built on Electron, designed for flexible operation via integration with OpenAI and local AI instances. The application provides integrated codebase indexing, persistent chat history, and a built-in code editor with context-aware retrieval.
 
 # Core Capabilities
@@ -103,10 +118,10 @@ C/C++ | `CMakeLists.txt`, `Makefile` | `make`, `cmake`
 
 The build system implements strict security controls:
 
-- **Command Whitelisting**: Only approved build tools (npm, cargo, make, etc.) can execute.
-- **Pattern Blocking**: Prevents shell injection attacks by blocking dangerous patterns (`rm -rf`, `curl | sh`, path traversal attempts).
-- **Workspace Validation**: Builds are restricted to the selected workspace directory.
-- **Safe Execution**: Uses `execFile` instead of shell execution to prevent injection attacks.
+*   **Command Whitelisting**: Only approved build tools (npm, cargo, make, etc.) can execute.
+*   **Pattern Blocking**: Prevents shell injection attacks by blocking dangerous patterns (`rm -rf`, `curl | sh`, path traversal attempts).
+*   **Workspace Validation**: Builds are restricted to the selected workspace directory.
+*   **Safe Execution**: Uses `execFile` instead of shell execution to prevent injection attacks.
 
 ## Usage
 
@@ -122,18 +137,18 @@ Builds can be triggered from the integrated build panel in the UI:
 
 The system maintains a history of recent builds:
 
-- View duration, status, and exit codes of previous builds.
-- Re-run previous builds with one click.
-- Automatic cleanup of old build records.
-- Persistent across application restarts.
+*   View duration, status, and exit codes of previous builds.
+*   Re-run previous builds with one click.
+*   Automatic cleanup of old build records.
+*   Persistent across application restarts.
 
 ## Build Configuration
 
 Build settings are automatically inferred from project files:
 
-- **JavaScript/TypeScript**: Detects available npm scripts and TypeScript configuration.
-- **Python**: Identifies build backends (setuptools, poetry, etc.).
-- **Multi-language projects**: Scans file extensions to determine dominant language when no config files are present.
+*   **JavaScript/TypeScript**: Detects available npm scripts and TypeScript configuration.
+*   **Python**: Identifies build backends (setuptools, poetry, etc.).
+*   **Multi-language projects**: Scans file extensions to determine dominant language when no config files are present.
 
 Build output is limited to 10MB per build to prevent memory issues, with a default timeout of 5 minutes.
 
