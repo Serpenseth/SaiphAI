@@ -162,17 +162,21 @@ const NavigationHandler = {
 
 const EventHandler = {
   abortController: new AbortController(),
+  isInit: false,
 
   setupEvents(elems) {
-    elems.forEach(({ id, fn }) => {
-      const elem = DomQuery.getElement(id);
+    if (!this.isInit) {
+      elems.forEach(({ id, fn }) => {
+        const elem = DomQuery.getElement(id);
 
-      if (elem) {
-        elem.addEventListener('click', fn, {
-          signal: this.abortController.signal
-        });
-      }
-    });
+        if (elem) {
+          elem.addEventListener('click', fn, {
+            signal: this.abortController.signal
+          });
+        }
+      });
+      this.isInit = true;
+    }
   },
 }
 
