@@ -27,7 +27,6 @@ const OllamaInstructionsModal = {
     return `
       <div id="dl-ollama-instructions" style="content-visibility: hidden">
         <h1>Install Ollama</h1>
-        <p class="secondary-text" style="font-size: 1rem;">Click on your operating system to see download/install instructions</p>
 
         <div>
           <div id="os-selected" class="intro-text" style="gap: 3em; display: flex; flex-direction: row; margin-top: 2em;">
