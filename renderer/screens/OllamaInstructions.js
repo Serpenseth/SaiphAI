@@ -6,7 +6,7 @@ const INSTALL_CONFIGS = {
     shell: 'Terminal',
     command: 'curl -fsSL https://ollama.com/install.sh | sh',
     requirement: 'Requires macOS 14 Sonoma or later',
-    downloadUrl: 'https://ollama.com/download/Ollama.dmg'
+    downloadUrl: 'https://github.com/ollama/ollama/releases/latest/download/OllamaSetup.dmg'
   },
   windows: {
     shell: 'PowerShell',
