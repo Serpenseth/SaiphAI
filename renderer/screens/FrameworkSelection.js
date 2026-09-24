@@ -125,6 +125,7 @@ const FrameworkSelection = {
 
   show() {
     Ui.load('modal-content', FrameworkSelectionModal.ui());
+    Ui.show('intro-model-instructions');
     Ui.show('model-selection');
     this.registerEventListeners();
   },
