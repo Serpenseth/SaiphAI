@@ -134,7 +134,7 @@ const EventHandler = {
 let OllamaSuccess = {
   registerEventListeners(state, lastModal) {
     if (state === 'success') {
-      setTimeout(() => { this.remove(); }, 3000);
+      setTimeout(() => { this.destroy(); }, 3000);
       NavigationHandler.completeSetup();
     }
 
@@ -152,9 +152,11 @@ let OllamaSuccess = {
     this.registerEventListeners(state, lastModal);
   },
 
-  remove() {
+  destroy() {
     Ui.destroy('ollama-success');
+    EventHandler.destroy();
   }
 }
 
 export { OllamaSuccess };
+
