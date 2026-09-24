@@ -90,27 +90,31 @@ const Ui = {
   },
 }
 
-const EventHandler = {
+const Controller = {
   abortController: new AbortController(),
+
+  abort() {
+    this.abortController.abort();
+  },
+}
+
+const EventHandler = {
   isInit: false,
 
-  setupEvents(elems) {
+  setupEvents(elems, abortSignal) {
     if (!this.isInit) {
       elems.forEach(({ id, fn }) => {
         const elem = DomQuery.getElement(id);
 
-        if (elem) {
-          elem.addEventListener('click', fn, {
-            signal: this.abortController.signal
-          });
-        }
+        if (elem)
+          elem.addEventListener('click', fn, { signal: abortSignal });
       });
       this.isInit = true;
     }
   },
 
-  destroy() {
-    this.abortController.abort();
+  destroy(abortSignal) {
+    abortSignal.abort();
     this.isInit = false;
   }
 }
@@ -120,7 +124,7 @@ const FrameworkSelection = {
     EventHandler.setupEvents([
       { id: 'option-ollama', fn: () => this.ollamaOption() },
       { id: 'option-openai', fn: () => this.openaiOption() },
-    ]);
+    ], Controller.abortController.signal);
   },
 
   show() {
@@ -136,6 +140,7 @@ const FrameworkSelection = {
 
   destroy() {
     Ui.destroy('model-selection');
+    EventHandler.destroy(Controller.abortController);
   },
 
   ollamaOption() {
