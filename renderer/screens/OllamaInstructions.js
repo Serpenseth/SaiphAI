@@ -267,7 +267,8 @@ let OllamaInstructions = {
 
   handleReturn() {
     DomQuery.toggleVisibility('dl-ollama-instructions', false);
-    this.destroy();
+    FrameworkSelection.show();
+    this.hide();
   },
 
   destroy() {
