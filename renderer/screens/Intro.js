@@ -1,4 +1,5 @@
 import { OllamaDetected } from './OllamaDetected.js';
+import { FrameworkSelection } from './FrameworkSelection.js';
 
 async function getModels() {
   return await window.electronAPI.getOllamaModels();
@@ -64,11 +65,9 @@ let NavigationHandler = {
       const { models } = ollamaStatus;
       OllamaDetected.show(models);
     }
-    else {
-      const { createFrameworkSelect } = await import('./FrameworkSelection.js');
-      const result = createFrameworkSelect();
-      result.show();
-    }
+
+    else
+      FrameworkSelection.show();
   }
 }
 
