@@ -1,5 +1,6 @@
 import { OllamaDetected } from './OllamaDetected.js';
 import { OllamaSuccess } from './OllamaSuccess.js';
+import { FrameworkSelection } from './FrameworkSelection.js';
 
 import { DomQuery } from '../utility/utilities.js';
 
