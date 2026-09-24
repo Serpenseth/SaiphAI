@@ -1,120 +1,108 @@
 import { OllamaDetected } from './OllamaDetected.js';
 import { FrameworkSelection } from './FrameworkSelection.js';
 
-async function getModels() {
-  return await window.electronAPI.getOllamaModels();
+import { DomQuery } from '../utility/utilities.js';
+
+const OllamaBackend = {
+  async getModels() {
+    return window.electronAPI.getOllamaModels();
+  }
 }
 
-let IntroElements = {
-  introModal: null,
-  welcomeModal: null,
-  getStartedButton: null,
-}
-
-function introUI() {
-  const div = document.createElement('div');
-  div.id = 'welcome-modal';
-  div.className = 'modal';
-  div.innerHTML = `
-    <div class="modal-content">
-      <h1>Welcome to SaiphAI!</h1>
-      <p class="subtitle-intro">Your Coding Workspace... Smarter</p>
-        <div class="intro-text">
-          SaiphAI helps you work with your code. It can read your projects, find bugs, build applications, and more!
-          <div class="btn-bottom-container">
-            <button id="btn-get-started" class="btn btn-primary modal-nav-button">
-              Get Started
-            </button>
+const IntroModal = {
+  ui() {
+    return `
+      <div id="welcome-modal" class="modal">
+        <div class="modal-content">
+          <h1>Welcome to SaiphAI!</h1>
+          <p class="subtitle-intro">Your Coding Workspace... Smarter</p>
+            <div class="intro-text">
+              SaiphAI helps you work with your code. It can read your projects, find bugs, build applications, and more!
+              <div class="btn-bottom-container">
+                <button id="btn-get-started" class="btn btn-primary modal-nav-button">
+                  Get Started
+                </button>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-`;
-
-  return div;
-}
-
-let IntroModal = {
-  show() {
-    const welcomeModal = IntroElements.welcomeModal;
-
-    welcomeModal.style.contentVisibility = '';
-    welcomeModal.style.opacity = 1;
-    welcomeModal.style.visibility = "visible";
-  },
-
-  remove() {
-    IntroElements.welcomeModal.remove();
-  },
-
-  build() {
-    const ui = introUI();
-    document.body.prepend(ui);
-  },
-
-  initElements() {
-    // create the variables
-    IntroElements.introModal = document.getElementById('intro-model-instructions');
-    IntroElements.welcomeModal = document.getElementById('welcome-modal');
-    IntroElements.getStartedButton = document.getElementById('btn-get-started');
+      </div>`;
   }
 }
 
-let NavigationHandler = {
-  async handleIntroCompletion(ollamaStatus) {
-    if (ollamaStatus.success) {
-      const { models } = ollamaStatus;
-      OllamaDetected.show(models);
+const NavigationHandler = {
+  handleContinue(ollamaStatus) {
+    ollamaStatus.success
+      ?  OllamaDetected.show(ollamaStatus.models)
+      : FrameworkSelection.show();
+  },
+}
+
+const Ui = {
+  load(htmlContent) {
+    DomQuery.insertHTML(document.body, htmlContent);
+  },
+
+  show(introModal) {
+    DomQuery.toggleVisibility(introModal, true);
+  },
+
+  hide(introModal) {
+    DomQuery.toggleVisibility(introModal, false);
+  },
+
+  destroy(introModal) {
+    DomQuery.removeElement(introModal);
+  },
+}
+
+const Controller = {
+  abortController: new AbortController(),
+
+  abort() {
+    this.abortController.abort();
+  },
+}
+
+const EventHandler = {
+  setupEvent(element, fn, abortSignal) {
+    const el = DomQuery.getElement(element);
+
+    if (el) {
+      el.addEventListener('click', fn, { signal: abortSignal });
     }
-
-    else
-      FrameworkSelection.show();
-  }
-}
-
-let abortController = new AbortController();
-
-let IntroEventHandler = {
-  addListener(element, event, handler) {
-    element.addEventListener(event, handler, {
-      signal: abortController.signal,
-    });
   },
 
-  init() {
-    const { getStartedButton } = IntroElements;
+  destroy(abortSignal) {
+    abortSignal.abort();
+  },
+}
 
-    IntroEventHandler.addListener(getStartedButton, 'click', () => {
-      getStarted();
-    });
+const Intro = {
+  registerEventListener() {
+    EventHandler.setupEvent(
+      'option-ollama',
+      () => this.getStarted(),
+      Controller.abortController.signal
+    )
   },
 
-  cleanup() {
-    abortController.abort();
-    abortController = null;
-  }
-}
-
-async function getStarted() {
-  const ollamaStatus = await getModels();
-  NavigationHandler.handleIntroCompletion(ollamaStatus);
-  Intro.destroy();
-}
-
-export let Intro = {
   show() {
-    IntroModal.build();
-    IntroModal.initElements();
-    IntroModal.show();
-    IntroEventHandler.init();
+    Ui.load(IntroModal.ui());
+    Ui.show('welcome-modal');
+    this.registerEventListener();
   },
 
   destroy() {
-    IntroModal.remove();
-    IntroEventHandler.cleanup();
-
-    IntroElements = null;
-    IntroModal = null;
-    NavigationHandler = null;
-    IntroEventHandler = null;
+    Ui.destroy('welcome-modal');
+    EventHandler.destroy(Controller.abortController);
   },
+
+  async getStarted() {
+    const ollamaStatus = await getModels();
+    NavigationHandler.handleIntroCompletion(ollamaStatus);
+    this.destroy();
+  }
 }
+
+export { Intro };
+
