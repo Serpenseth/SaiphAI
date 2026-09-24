@@ -83,8 +83,6 @@ const NavigationHandler = {
 }
 
 const Ui = {
-  elements: null,
-
   load(uiElem, htmlContent) {
     // Check if HTML has already been inserted
     if (DomQuery.getElement('ollama-success')) {
