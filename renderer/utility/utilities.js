@@ -53,7 +53,7 @@ export const DomQuery = {
       el.classList[add ? 'add' : 'remove'](className);
   },
 
-  toggleButton(id, isVisible) {
+  showElement(id, isVisible) {
     const el = this.getElement(id);
     el.style.display = isVisible ? '' : 'none';
   },

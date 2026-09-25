@@ -152,8 +152,8 @@ function hideCard(id) {
 const PlatformManager = {
   handlePlatformSelect(platform) {
     platform === 'linux'
-      ? DomQuery.toggleButton('download-ollama-btn', false)
-      : DomQuery.toggleButton('download-ollama-btn', true);
+      ? DomQuery.showElement('download-ollama-btn', false)
+      : DomQuery.showElement('download-ollama-btn', true);
 
     const config = INSTALL_CONFIGS[platform];
     const dom = DomQuery;
