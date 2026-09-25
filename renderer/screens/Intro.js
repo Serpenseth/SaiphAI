@@ -80,7 +80,7 @@ const EventHandler = {
 const Intro = {
   registerEventListener() {
     EventHandler.setupEvent(
-      'option-ollama',
+      'btn-get-started',
       () => this.getStarted(),
       Controller.abortController.signal
     )
