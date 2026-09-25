@@ -98,7 +98,7 @@ const Intro = {
   },
 
   async getStarted() {
-    const ollamaStatus = await getModels();
+    const ollamaStatus = await OllamaBackend.getModels();
     NavigationHandler.handleIntroCompletion(ollamaStatus);
     this.destroy();
   }
