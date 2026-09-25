@@ -15,10 +15,15 @@ export const DomQuery = {
   },
 
   insertHTML(containerId, html) {
-    const container = this.getElement(containerId);
+    if (containerId === document.body)
+      containerId.insertAdjacentHTML('beforeend', html);
 
-    if (container)
-      container.insertAdjacentHTML('beforeend', html);
+    else {
+      const container = this.getElement(containerId);
+
+      if (container)
+        container.insertAdjacentHTML('beforeend', html);
+    }
   },
 
   updateText(id, text) {
