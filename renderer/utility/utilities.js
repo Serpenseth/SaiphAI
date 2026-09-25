@@ -16,7 +16,7 @@ export const DomQuery = {
 
   insertHTML(containerId, html) {
     if (containerId === document.body)
-      containerId.insertAdjacentHTML('beforeend', html);
+      containerId.insertAdjacentHTML('beforebegin', html);
 
     else {
       const container = this.getElement(containerId);
