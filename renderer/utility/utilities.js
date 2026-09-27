@@ -57,5 +57,9 @@ export const DomQuery = {
     const el = this.getElement(id);
     el.style.display = isVisible ? '' : 'none';
   },
+
+  setBorder(element, style) {
+    element.style.border = style;
+  },
 };
 
