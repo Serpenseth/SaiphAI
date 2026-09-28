@@ -6,8 +6,8 @@ const { parentPort } = require('worker_threads');
 const { OllamaManager } = require('./Ollama.js');
 const ollama = OllamaManager;
 
-const { OpenAi } = require('./OpenAI.js');
-const openAi = OpenAi;
+const { OpenAI } = require('./OpenAI.js');
+const openAi = OpenAI;
 
 const { TextSummarization } = require('./TextSummarization.js');
 const { DiskIndexManager } = require('./IndexManager');
