@@ -173,8 +173,8 @@ const Ui = {
 
     const options = models
       .filter(m => {
-        !Models.excludedTags.some(e => m.id.toLowerCase().includes(e)));
-      }
+        !Models.excludedTags.some(e => m.id.toLowerCase().includes(e));
+      })
       .map(m => {
         const s = document.createElement('option');
         s.value = m.id;
