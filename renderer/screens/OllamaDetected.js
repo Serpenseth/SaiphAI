@@ -1,21 +1,28 @@
-// import { createSuccessScreen } from './OllamaSuccess.js';
 import { OllamaSuccess } from './OllamaSuccess.js';
+import { FrameworkSelection } from './FrameworkSelection.js';
 
-let Backend = {
+import { DomQuery } from '../utility/utilities.js';
+
+const OllamaBackend = {
   async checkConnection() {
-    return await window.electronAPI.checkOllama();
+    return window.electronAPI.checkOllama();
   },
 
   async downloadModel(modelName) {
-    return await window.electronAPI.downloadOllamaModel(modelName);
+    return window.electronAPI.downloadOllamaModel(modelName);
   },
 
   abortDownload() {
     window.electronAPI.abortModelDownload();
   },
+}
+
+const ConfigFile = {
+  async create() {
+    window.electronAPI.createConfigFile();
+  },
 
   async saveToConfig(data) {
-    await window.electronAPI.createConfigFile();
     await window.electronAPI.writeToConfigFile({
       selectedModel: data.selectedModel,
       ollamaModelCount: data.ollamaModelCount,
@@ -24,501 +31,411 @@ let Backend = {
   }
 }
 
-let OllamaDetectedElems;
+const OllamaDetectedModal = {
+  ui() {
+    return `
+      <div id="ollama-detected" class="intro-text" style="content-visibility: hidden;">
+        <!-- Select default model -->
+        <div id="ollama-stats-container" class="intro-text" style="content-visibility: hidden;">
+          <h1> Ollama Setup</h1>
+          <p>Ollama is installed. Below is a brief breakdown of Ollama status:</p><br>
 
-let DownloadProgressHandler = {
-  updateProgress(text) {
-    if (OllamaDetectedElems.progressText)
-      OllamaDetectedElems.progressText.textContent = text;
+          <ul class="details">
+            <li id="ollama-connection">Connection:</li>
+            <li id="model-count">Total Models Found:</li>
+            <li id="models-installed">Default Model:
+              <select id="details-modal-select" class="details-modal-select">
+                <option></option>
+                </select>
+            </li>
+          </ul>
+          <br>
+          <p class="secondary-text">The Default model can be changed at any time via settings</p>
+
+          <div class="btn-bottom-container">
+            <button id="close-ollama-details" class="btn btn-secondary modal-nav-button">Choose another AI framework</button>
+            <button id="ollama-detected-complete" class="btn btn-primary modal-nav-button">Complete setup</button>
+          </div>
+        </div>
+
+        <!-- No models found -->
+        <div id="no-models" class="intro-text" style="content-visibility: hidden">
+          <h1> Ollama Setup</h1>
+          <h3 style="margin-bottom: -0.5rem;">Ollama is installed, but no models were found</h3>
+          <div style="margin-bottom: 16px; padding: 1.25em; margin-top: 0.5rem;">
+            <p style="color: #eff1f3; padding-bottom: 1.5em;">To install an Ollama model, follow the steps below:</p>
+            <ol type="1">
+              <li>Select a model from the
+                <a id="ollama-link" href="https://ollama.com/library?sort=newest" target="_blank" style="margin-left: 2px;">Ollama models page</a>
+              </li>
+              <li>Paste the model's name:
+                <input id="ollama-model-to-pull" class="input model-pull" placeholder="example: mistral-medium-3.5:latest"></input>
+              </li>
+              <li id='press-download-to-start' style='display: none;'>Press the "Download Model" button below to start the download</li>
+            </ol>
+
+            <p id="download-error" class="download-error" style="display: none; margin-top: 0.5rem; margin-bottom: 0.5rem;"></p>
+
+            <button id="dl-ollama-model" class="btn btn-secondary" style="display: none">Download Model</button>
+            <div style='margin-top: 1.5em;'>
+              <p id="dl-text" style="display: none; padding-top: 0; color: #eff1f3; font-size: 1.2rem;"><strong>Downloading...</strong></p>
+              <p id="ollama-dl-progress-text"></p>
+            </div>
+            <button id='abort-ollama-model-dl' class="btn btn-secondary modal-nav-button" style='display: none;'>
+              Cancel download
+            </button>
+          </div>
+
+          <div class="btn-bottom-container">
+            <button id="close-ollama-model-dl" class="btn btn-primary modal-nav-button">Choose another AI framework</button>
+            <button id="verify-ollama-after-model-dl" class="btn btn-primary modal-nav-button" style="display: none">Continue</button>
+          </div>
+        </div>
+      </div>`
+  }
+};
+
+const NavigationHandler = {
+  completeSetup(isSuccess, prevModal) {
+    isSuccess
+      ? OllamaSuccess.show('success', 'Ollama')
+      : OllamaSuccess.show('failed', null, prevModal);
   },
 
-  hideProgress() {
-    if (OllamaDetectedElems.progressText)
-      OllamaDetectedElems.progressText.style.display = 'none';
+  frameworkSelection() {
+    FrameworkSelection.show();
+  },
+}
+
+const Models = {
+  selected: null,
+  count: 0,
+}
+
+const ModelSelector = {
+  populate(models, selectedModel) {
+    const options = models
+      .filter(m => {
+        return !m.name.toLowerCase().includes('embed');
+      })
+      .map(m => {
+        const s = document.createElement('option');
+        s.value = m.name;
+        s.textContent = m.name;
+
+        if (m.name === selectedModel)
+          s.selected = true;
+
+        return s;
+      });
+
+    DomQuery.getElement('details-modal-select').replaceChildren(...options);
+    Models.count = options.length;
+  },
+}
+
+const Ui = {
+  load(uiElem, htmlContent) {
+    // Check if HTML has already been inserted
+    if (DomQuery.getElement('ollama-detected')) {
+      return;
+    }
+
+    DomQuery.insertHTML(uiElem, htmlContent);
+  },
+
+  show(ollamaDetected) {
+    DomQuery.toggleVisibility(ollamaDetected, true);
+  },
+
+  hide(ollamaDetected) {
+    DomQuery.toggleVisibility(ollamaDetected, false);
+  },
+
+  showDownloadText(state) {
+    DomQuery.showElement('dl-text', state);
+  },
+
+  removeProgressText() {
+    DomQuery.removeElement('ollama-dl-progress-text');
+  },
+
+  updateProgressText(newText) {
+    DomQuery.updateText('ollama-dl-progress-text', newText);
+  },
+
+  showAbortButton(state) {
+    DomQuery.showElement('abort-ollama-model-dl', state);
+  },
+
+  showDownloadModelButton(state) {
+    DomQuery.showElement('dl-ollama-model', state);
+  },
+
+  showFrameworkSelectButton(state) {
+    DomQuery.showElement('close-ollama-model-dl', state);
+  },
+
+  showCompleteButton(state) {
+    DomQuery.showElement('verify-ollama-after-model-dl', state);
+  },
+
+  showOllamaStatsContainer() {
+    DomQuery.toggleVisibility('ollama-stats-container', true);
+  },
+
+  showNoModelsContainer() {
+    DomQuery.toggleVisibility('no-models', true);
+  },
+
+  showDownloadButton(inputData) {
+    const data = inputData.trim();
+
+    data.length !== 0
+      ? DomQuery.showElement('dl-ollama-model', true)
+      : DomQuery.showElement('dl-ollama-model', false);
+  },
+
+  showErrorMessage(error) {
+    const dlErr = 'download-error';
+    const modelInput = 'ollama-model-to-pull';
+    DomQuery.showElement(dlErr, true);
+    DomQuery.updateText(dlErr, error);
+    DomQuery.setBorder(modelInput, '3px solid #C63D3D');
+    //DomQuery.showElement('verify-openai-key', false);
+
+    setTimeout(() => {
+      DomQuery.showElement(dlErr, false);
+      DomQuery.setBorder(modelInput, '');
+      //DomQuery.showElement('verify-openai-key', true);
+    }, 2500);
+  },
+
+  updateProgressText(text) {
+    DomQuery.updateText('ollama-dl-progress-text', text);
+  },
+
+  hideProgressText() {
+    DomQuery.showElement('ollama-dl-progress-text', false);
+  },
+
+  updateSuccessText(modelCount) {
+    const connected = "Connection: ✔️ Connected to http://localhost:11434";
+    const modelCountText = `Total Models Found: ${modelCount}`;
+
+    DomQuery.updateText('ollama-connection', connected);
+    DomQuery.updateText('model-count', modelCountText);
+  },
+
+  removeDownloadElements(elements) {
+    elements.forEach(el => DomQuery.removeElement(el));
+  },
+
+  destroyModal(ollamaDetected) {
+    DomQuery.removeElement(ollamaDetected);
+  },
+}
+
+const DownloadProgressHandler = {
+  progressHandler: null,
+
+  setupHandler() {
+    this.progressHandler = (data) => {
+      this.downloadProgress(data);
+    }
+
+    window.electronAPI.onDLModelProgress(this.progressHandler);
   },
 
   downloadProgress(data) {
     if (data.percent !== 100)
-      OllamaDetectedUI.updateProgress(`${data.percent}%`);
+      Ui.updateProgressText(`${data.percent}%`);
 
     else
-      OllamaDetectedUI.updateProgress("Verifying SHA digest...");
+      Ui.updateProgressText("Verifying SHA digest...");
   },
 }
 
-function OllamaDetectedUI() {
-  const div = document.createElement('div');
-  div.id = 'ollama-detected';
-  div.className = 'intro-text';
-  div.style.contentVisibility = 'hidden';
-  div.innerHTML = `
-    <!-- Select default model -->
-    <div id="ollama-stats-container" class="intro-text" style="content-visibility: hidden;">
-      <h1> Ollama Setup</h1>
-      <p>Ollama is installed. Below is a brief breakdown of Ollama status:</p><br>
+const DownloadUiState = {
+  set(state, errorText=null) {
+    if (state === 'downloading') {
+      Ui.updateProgressText('0%');
+      Ui.showDownloadText(true);
+      Ui.showAbortButton(true);
+      Ui.showDownloadModelButton(false);
+      Ui.showFrameworkSelectButton(false);
+    }
 
-      <ul class="details">
-        <li id="ollama-connection">Connection:</li>
-        <li id="model-count">Total Models Found:</li>
-        <li id="models-installed">Default Model:
-          <select id="details-modal-select" class="details-modal-select">
-            <option></option>
-            </select>
-        </li>
-      </ul>
-      <br>
-      <p class="secondary-text">The Default model can be changed at any time via settings</p>
+    else if (state === 'error') {
+      Ui.hideProgressText();
+      Ui.showErrorMessage(errorText);
+      Ui.showDownloadText(false);
+      Ui.showAbortButton(false);
+      Ui.showDownloadModelButton(true);
+      Ui.showFrameworkSelectButton(true);
+    }
 
-      <div class="btn-bottom-container">
-        <button id="close-ollama-details" class="btn btn-secondary modal-nav-button">Choose another AI framework</button>
-        <button id="ollama-detected-complete" class="btn btn-primary modal-nav-button">Complete setup</button>
-      </div>
-    </div>
+    else if (state === 'aborted') {
+      Ui.hideProgress();
+      Ui.showDownloadText(true);
+      Ui.showAbortButton(true);
+      Ui.showDownloadModelButton(false);
+      Ui.showFrameworkSelectButton(false);
+    }
 
-    <!-- No models found -->
-    <div id="no-models" class="intro-text" style="content-visibility: hidden">
-      <h1> Ollama Setup</h1>
-      <h3 style="margin-bottom: -0.5rem;">Ollama is installed, but no models were found</h3>
-      <div style="margin-bottom: 16px; padding: 1.25em; margin-top: 0.5rem;">
-        <p style="color: #eff1f3; padding-bottom: 1.5em;">To install an Ollama model, follow the steps below:</p>
-        <ol type="1">
-          <li>Select a model from the
-            <a id="ollama-link" href="https://ollama.com/library?sort=newest" target="_blank" style="margin-left: 2px;">Ollama models page</a>
-          </li>
-          <li>Paste the model's name:
-            <input id="ollama-model-to-pull" class="input model-pull" placeholder="example: mistral-medium-3.5:latest"></input>
-          </li>
-          <li id='press-download-to-start' style='display: none;'>Press the "Download Model" button below to start the download</li>
-        </ol>
-
-        <p id="download-error" class="download-error" style="display: none; margin-top: 0.5rem; margin-bottom: 0.5rem;"></p>
-
-        <button id="dl-ollama-model" class="btn btn-secondary" style="display: none">Download Model</button>
-        <div style='margin-top: 1.5em;'>
-          <p id="dl-text" style="display: none; padding-top: 0; color: #eff1f3; font-size: 1.2rem;"><strong>Downloading...</strong></p>
-          <p id="ollama-dl-progress-text"></p>
-        </div>
-        <button id='abort-ollama-model-dl' class="btn btn-secondary modal-nav-button" style='display: none;'>
-          Cancel download
-        </button>
-      </div>
-
-      <div class="btn-bottom-container">
-        <button id="close-ollama-model-dl" class="btn btn-primary modal-nav-button">Choose another AI framework</button>
-        <button id="verify-ollama-after-model-dl" class="btn btn-primary modal-nav-button" style="display: none">Continue</button>
-      </div>
-    </div>
-  `;
-
-  return div;
+    else if (state === 'success') {
+      Ui.removeProgressText();
+      Ui.updateProgressText("Download complete");
+      Ui.showCompleteButton(true);
+      Ui.removeDownloadElements([
+        'dl-text',
+        'ollama-dl-progress-text',
+        'abort-ollama-model-dl',
+        'download-error',
+        'close-ollama-model-dl'
+      ]);
+    }
+  },
 }
 
-let OllamaDetectedModal = {
-  show() {
-    const { introModal, ollamaDetectedModal } = OllamaDetectedElems;
+const Controller = {
+  abortController: new AbortController(),
 
-    introModal.style.contentVisibility = '';
-    introModal.style.opacity = 1;
-    introModal.style.visibility = "visible";
-
-    ollamaDetectedModal.style.contentVisibility = '';
-    ollamaDetectedModal.style.opacity = 1;
-    ollamaDetectedModal.style.visibility = "visible";
+  abort() {
+    this.abortController.abort();
   },
+}
 
-  hide() {
-    const { ollamaDetectedModal } = OllamaDetectedElems;
-    ollamaDetectedModal.style.contentVisibility = 'hidden';
-  },
+const EventHandler = {
+  isInit: false,
 
-  remove() {
-    const { ollamaDetectedModal } = OllamaDetectedElems;
-    ollamaDetectedModal.remove();
-  },
+  setupEvents(elems, fn, abortSignal) {
+    if (!this.isInit) {
+      elems.forEach(({ id, fn }) => {
+        const elem = DomQuery.getElement(id);
 
-  build() {
-    const ui = OllamaDetectedUI();
-    document.getElementById('modal-content').appendChild(ui);
-  },
-
-  initElements() {
-    OllamaDetectedElems = {
-      introModal: document.getElementById('intro-model-instructions'),
-      ollamaDetectedModal: document.getElementById("ollama-detected"),
-      noModelsDiv: document.getElementById("no-models"),
-      progressText: document.getElementById('ollama-dl-progress-text'),
-      modelInput: document.getElementById("ollama-model-to-pull"),
-      downloadButton: document.getElementById("dl-ollama-model"),
-      abortButton: document.getElementById("abort-ollama-model-dl"),
-      completeButton: document.getElementById("verify-ollama-after-model-dl"),
-      connectionLi: document.getElementById("ollama-connection"),
-      modelSelectLi: document.getElementById("details-modal-select"),
-      modelCountLi: document.getElementById("model-count"),
-      chooseFrameworkButton: document.getElementById("close-ollama-model-dl"),
-      downloadText: document.getElementById("dl-text"),
-      downloadError: document.getElementById("download-error"),
-      pressDownloadMsg: document.getElementById("press-download-to-start"),
-      statsContainer: document.getElementById('ollama-stats-container'),
-      continueButton: document.getElementById("ollama-detected-complete"),
-      closeOllamaDetails: document.getElementById("close-ollama-details"),
+        if (elem)
+          elem.addEventListener('click', fn, { signal: abortSignal });
+      });
+      this.isInit = true;
     }
   },
 
-  async showErrorMessage(error) {
-    let wait = () => new Promise(resolve => setTimeout(resolve, 2000));
+  setupInputEvent(element, fn, abortSignal) {
+    if (!this.isInit) {
+      const el = DomQuery.getElement(element);
 
-    const { modelInput, downloadError, downloadButton } = OllamaDetectedElems;
-
-    modelInput.style.border = '2px solid #F84E4E';
-    downloadError.textContent = error;
-    downloadError.style.display = 'block';
-    downloadButton.style.display = 'none';
-
-    await wait();
-    modelInput.style.border = 'none';
-    downloadError.style.display = 'none';
-    downloadButton.removeAttribute("style");
-
-    wait = null;
+      if (el) {
+        el.addEventListener('input', fn, { signal: abortSignal });
+      }
+    }
   },
 
-  updateProgress(text) {
-    DownloadProgressHandler.updateProgress(text);
+  destroy(abortSignal) {
+    abortSignal.abort();
+    this.isInit = false;
+  }
+}
+
+const ModelDownloadManager = {
+  async downloadModel(modelName) {
+    try {
+      const isRunning = await OllamaBackend.checkConnection();
+
+      if (!isRunning) {
+        DownloadUiState.set('error', "Error: Ollama isn't running.");
+        return;
+      }
+
+      DownloadUiState.set('downloading');
+
+      const result = await OllamaBackend.downloadModel(modelName);
+      result.success
+        ? DownloadUiState.set('success')
+        : DownloadUiState.set('error', result.error);
+    }
+    catch (e) {
+      DownloadUiState.set('error', e.message);
+    }
   },
 
-  hideProgress() {
-    DownloadProgressHandler.hideProgress();
+  abort() {
+    OllamaBackend.abortDownload();
+    DownloadUiState.set('aborted');
   },
 
   downloadProgress(data) {
     DownloadProgressHandler.downloadProgress(data);
   },
-
-  setDownloadUIState(state, data={}) {
-    const {
-      downloadButton,
-      abortButton,
-      downloadText,
-      chooseFrameworkButton,
-      downloadError,
-      completeButton
-    } = OllamaDetectedElems;
-
-    if (state === 'downloading') {
-      OllamaDetectedUI.updateProgress('0%');
-
-      downloadText.style.display = 'block';
-      downloadButton.style.display = 'none';
-      abortButton.style.display = 'block';
-      chooseFrameworkButton.style.display = 'none';
-    }
-    else if (state === 'error') {
-      OllamaDetectedUI.hideProgress();
-      OllamaDetectedUI.showErrorMessage(data.error);
-
-      downloadText.style.display = 'none'
-      chooseFrameworkButton.style = '';
-      abortButton.style.display = 'none';
-    }
-    else if (state === 'aborted') {
-      OllamaDetectedUI.hideProgress();
-
-      downloadText.style.display = 'none';
-      downloadButton.style.display = 'block';
-      chooseFrameworkButton.style = '';
-      abortButton.style.display = 'none';
-      downloadButton.removeAttribute("style");
-    }
-
-    else if (state === 'success') {
-      OllamaDetectedElems.progressText.remove();
-
-      downloadText.textContent = "Download complete";
-      completeButton.style = 'block';
-
-      abortButton.remove();
-      downloadError.remove();
-      chooseFrameworkButton.remove();
-    }
-  },
-
-  setDownloadButtonVisibility(isVisible) {
-    const { downloadButton, pressDownloadMsg } = OllamaDetectedElems;
-
-    if (!isVisible) {
-      downloadButton.style.display = 'none';
-      pressDownloadMsg.style.display = 'none';
-    }
-    else {
-      const msg = "Press the Download Model button below to start the download";
-
-      downloadButton.style.display = '';
-      pressDownloadMsg.style.display = '';
-      pressDownloadMsg.textContent = msg;
-    }
-  },
-
-  showOllamaStats(modelCount, models, selectedModel) {
-    const {
-      statsContainer,
-      connectionLi,
-      modelCountLi,
-      modelSelectLi
-    } = OllamaDetectedElems;
-
-    const connected = "Connection: ✔️ Connected to http://localhost:11434";
-
-    statsContainer.style.contentVisibility = '';
-    connectionLi.textContent = connected;
-    modelCountLi.textContent = `Total Models Found: ${modelCount}`;
-
-    const options = models.map(m => {
-      const s = document.createElement('option');
-      s.value = m.name;
-      s.textContent = m.name;
-
-      if (m.name === selectedModel)
-        s.selected = true;
-
-      return s;
-    });
-    modelSelectLi.replaceChildren(...options);
-  },
-
-  showNoModels() {
-    const { noModelsDiv } = OllamaDetectedElems;
-    noModelsDiv.style.contentVisibility = '';
-  },
 }
 
-let NavigationHandler = {
-  completeSetup() {
-    // const successModal = createSuccessScreen('success', 'Ollama');
-    // successModal.show();
-    OllamaSuccess.show('success', 'Ollama');
+const OllamaDetected = {
+  registerEventListeners() {
+    const inputField = 'ollama-model-to-pull';
+
+    EventHandler.setupInputEvent(
+      inputField,
+      (e) => Ui.showDownloadButton(e.target.value),
+      Controller.abortController.signal
+    );
+
+    EventHandler.setupEvents([
+      { id: 'dl-ollama-model', fn: () =>
+        ModelDownloadManager
+          .downloadModel(DomQuery.getElement(inputField).value)
+      },
+      { id: 'abort-ollama-model-dl', fn: () => ModelDownloadManager.abort() },
+      { id: 'close-ollama-model-dl', fn: () => this.handleReturn() },
+      { id: 'verify-ollama-after-model-dl', fn: () => this.handleContinue() },
+      { id: 'ollama-detected-complete', fn: () => this.handleContinue() },
+    ], Controller.abortController.signal);
   },
 
-  showFailed(prevModal) {
-    //const failed = createSuccessScreen('failed', null, prevModal);
-    //failed.show();
-    OllamaSuccess.show('failed', null);
+  setup() {
+    Ui.load('modal-content', OllamaDetectedModal.ui());
+    Ui.show('intro-model-instructions');
+    Ui.show('ollama-detected');
+    this.registerEventListeners();
   },
 
-  async frameworkSelection() {
-    const { createFrameworkSelect } = await import('./FrameworkSelection.js');
-    const result = createFrameworkSelect();
-    result.show();
-  },
-}
-
-let abortController = new AbortController();
-
-let EventHandlerVariables = {
-  isAlreadyInit: false,
-  progressHandler: null,
-}
-
-let EventHandler = {
-  addListener(element, event, handler) {
-    element.addEventListener(event, handler, { signal: abortController.signal });
-  },
-
-  init(hasModels) {
-    const {
-      modelInput,
-      downloadButton,
-      abortButton,
-      completeButton,
-      continueButton,
-      closeOllamaDetails,
-    } = OllamaDetectedElems;
-
-    const { progressHandler } = EventHandlerVariables;
-
-    if (!hasModels) {
-      progressHandler = (data) => {
-        OllamaDetected.downloadProgress(data);
-      }
-
-      window.electronAPI.onDLModelProgress(progressHandler);
-
-      // Show download model button when input isn't empty
-      EventHandler.addListener(modelInput, 'input', (e) => {
-        OllamaDetected.showPressDownloadButton(e.target.value);
-      });
-
-      // Download Ollama model button
-      this.addListener(downloadButton, 'click', () => {
-        OllamaDetected.downloadModel(modelInput.value);
-      });
-
-      // Abort Ollama download
-      this.addListener(abortButton, 'click', () => {
-        OllamaDetected.abortDownload();
-      });
-
-      // Complete setup
-      this.addListener(completeButton, 'click', () => {
-       OllamaDetected.verify();
-      });
-    }
-
-    // Return to AI framework selection
-    this.addListener(continueButton, 'click', () => {
-      OllamaDetected.verify();
-    });
-
-    // Complete setup
-    this.addListener(closeOllamaDetails, 'click', () => {
-      OllamaDetected.showModelSelector();
-    });
-  },
-
-  cleanup() {
-    const { isAlreadyInit, progressHandler} = EventHandlerVariables;
-
-    if (progressHandler) {
-      window.electronAPI.removeDownloadProgress(progressHandler);
-    }
-
-    EventHandlerVariables.isAlreadyInit = false;
-    abortController.abort();
-  }
-}
-
-let ModelDownloadManager = {
-  async downloadModel(modelName) {
-    try {
-      const isRunning = await Backend.checkConnection();
-
-      if (!isRunning) {
-        OllamaDetectedModal.setDownloadUIState('error', {
-          error: "Error: Ollama isn't running."
-        });
-        return;
-      }
-
-      OllamaDetectedModal.setDownloadUIState('downloading');
-
-      const result = await Backend.downloadModel(modelName);
-
-      if (result.success) {
-        OllamaDetectedModal.setDownloadUIState('success');
-      }
-      else {
-        OllamaDetectedModal.setDownloadUIState('error', {
-          error: result.error
-        });
-      }
-    }
-    catch (e) {
-      OllamaDetectedModal.setDownloadUIState('error', { error: e.message });
-    }
-  },
-
-  abortDownload() {
-    Backend.abortDownload();
-    OllamaDetectedModal.setDownloadUIState('aborted');
-  },
-
-  downloadProgress(data) {
-    OllamaDetectedModal.downloadProgress(data);
-  }
-}
-
-let ollamaModels = null;
-
-export let OllamaDetected = {
   show(models) {
-    ollamaModels = models;
-    OllamaDetectedModal.build();
-    OllamaDetectedModal.initElements();
-    OllamaDetectedModal.show();
+    this.setup()
 
     const hasModels = models && models.length > 0;
 
-    if (!EventHandlerVariables.isAlreadyInit) {
-      EventHandler.init(hasModels);
-      EventHandlerVariables.isAlreadyInit = true;
-    }
-
     if (hasModels) {
-      OllamaDetectedModal.showOllamaStats(
-          models.length,
-          models,
-          models[0].name
-        );
+      ModelSelector.populate(models, models[0].name);
+      Ui.updateSuccessText(Models.count);
+      Ui.showOllamaStatsContainer();
     }
     else {
-      OllamaDetectedModal.showNoModels();
+      DownloadProgressHandler.setupHandler();
+      Ui.showNoModelsContainer();
     }
   },
 
   destroy() {
-    EventHandler.cleanup();
-
-    Backend = null;
-    OllamaDetectedModal = null;
-    NavigationHandler = null;
-    EventHandler = null;
-    ModelDownloadManager = null;
+    EventHandler.destroy(Controller.abortController);
+    Ui.destroyModal('ollama-detected');
   },
 
-  showPressDownloadButton(inputValue) {
-    const shouldShow = inputValue.trim() !== '';
-    OllamaDetectedModal.setDownloadButtonVisibility(shouldShow);
-  },
-
-  async downloadModel(modelName) {
-    ModelDownloadManager.downloadModel(modelName);
-  },
-
-  abortDownload() {
-    ModelDownloadManager.abortDownload();
-  },
-
-  downloadProgress(data) {
-    ModelDownloadManager.downloadProgresss(data);
-  },
-
-  async completeSetup() {
-    const { modelSelectLi } = OllamaDetectedElems;
-    await Backend.saveToConfig({
-      selectedModel: modelSelectLi.value,
-      ollamaModelCount: ollamaModels.length,
-    });
-
-    OllamaDetectedModal.remove();
-    NavigationHandler.completeSetup();
-    OllamaDetected.destroy();
-  },
-
-  verify() {
-    Backend.checkConnection().then(isConnected => {
-      if(!isConnected) {
-        NavigationHandler.showFailed(this);
-        OllamaDetectedModal.hide();
-      }
-      else
-        OllamaDetected.completeSetup();
-    });
-  },
-
-  async completeModelDownloadSetup() {
-    const { modelSelectLi } = OllamaDetectedElems;
-    await Backend.saveToConfig({
-      selectedModel: modelSelectLi.value,
-      ollamaModelCount: 1,
-    });
-
-    OllamaDetectedModal.remove();
-    NavigationHandler.completeSetup();
-    OllamaDetected.destroy();
-  },
-
-  showModelSelector() {
-    OllamaDetectedModal.hide();
+  handleReturn() {
+    this.destroy();
     NavigationHandler.frameworkSelection();
-    OllamaDetected.destroy();
-  }
+  },
+
+  async handleContinue() {
+    this.destroy();
+
+    await ConfigFile.create();
+    await ConfigFile.saveToConfig({
+      selectedModel: Models.selected,
+      ollamaModelCount: Models.count
+    });
+
+    const isConnected = await OllamaBackend.checkConnection();
+    NavigationHandler.completeSetup(isConnected, this);
+  },
 }
+
+export { OllamaDetected }
