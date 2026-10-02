@@ -198,7 +198,7 @@ const OllamaManager = {
     }
     catch (err) {
       if (err.name === 'AbortError') {
-        throw new Error('Download cancelled');
+        throw 'Download cancelled';
       }
       else {
         throw err;
