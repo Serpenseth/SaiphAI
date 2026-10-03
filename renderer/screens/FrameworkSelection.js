@@ -1,5 +1,6 @@
 import { OllamaDetected } from './OllamaDetected.js';
 import { OllamaInstructions } from './OllamaInstructions.js';
+import { OpenAiModaI } from './OpenAIModal.js';
 
 import { DomQuery } from '../utility/utilities.js';
 
@@ -58,10 +59,8 @@ const NavigationHandler = {
       : OllamaInstructions.show();
   },
 
-  async openaiOption() {
-    const { createOpenAiScreen } = await import('./OpenAIModal.js');
-    const result = createOpenAiScreen();
-    result.show();
+  openaiOption() {
+    OpenAiModaI.show();
   },
 }
 
