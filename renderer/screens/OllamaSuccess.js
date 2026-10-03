@@ -106,10 +106,15 @@ const Ui = {
 }
 
 const Controller = {
-  abortController: new AbortController(),
+  abortController: null,
+
+  init() {
+    this.abortController = new AbortController();
+  },
 
   abort() {
     this.abortController.abort();
+    this.abortController = null;
   },
 }
 
@@ -142,7 +147,7 @@ const OllamaSuccess = {
 
     else {
       EventHandler.setupEvent('go-back-btn', () => {
-        Ui.hide('ollama-success');
+        this.destroy('ollama-success');
         NavigationHandler.goBack(lastModal),
         Controller.abortController.signal
       });
@@ -152,12 +157,14 @@ const OllamaSuccess = {
   show(state, aiProvider, lastModal=null) {
     Ui.load('modal-content', OllamaSuccessModal.ui(state, aiProvider));
     Ui.show("ollama-success");
+
+    Controller.init();
     this.registerEventListeners(state, lastModal);
   },
 
   destroy() {
     Ui.destroy('ollama-success');
-    EventHandler.destroy();
+    EventHandler.destroy(Controller.abortController);
   }
 }
 
