@@ -105,31 +105,35 @@ const Ui = {
   },
 }
 
-const EventHandler = {
+const Controller = {
   abortController: new AbortController(),
+
+  abort() {
+    this.abortController.abort();
+  },
+}
+
+const EventHandler = {
   isInit: false,
 
-  setupEvent(element, fn) {
+  setupEvent(element, fn, abortSignal) {
     if (!this.isInit) {
       const el = DomQuery.getElement(element);
 
       if (el) {
-        el.addEventListener('click', fn, {
-          signal: this.abortController.signal
-        });
+        el.addEventListener('click', fn, { signal: abortSignal });
       }
-
       this.isInit = true;
     }
   },
 
-  destroy() {
-    this.abortController.abort();
+  destroy(abortSignal) {
+    abortSignal.abort();
     this.isInit = false;
   }
 }
 
-let OllamaSuccess = {
+const OllamaSuccess = {
   registerEventListeners(state, lastModal) {
     if (state === 'success') {
       setTimeout(() => { this.destroy(); }, 3000);
@@ -139,7 +143,8 @@ let OllamaSuccess = {
     else {
       EventHandler.setupEvent('go-back-btn', () => {
         Ui.hide('ollama-success');
-        NavigationHandler.goBack(lastModal);
+        NavigationHandler.goBack(lastModal),
+        Controller.abortController.signal
       });
     }
   },
