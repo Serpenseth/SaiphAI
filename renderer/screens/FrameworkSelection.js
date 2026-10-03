@@ -148,7 +148,7 @@ const FrameworkSelection = {
   },
 
   openaiOption() {
-    this.hide();
+    this.destroy();
     NavigationHandler.openaiOption();
   },
 }
