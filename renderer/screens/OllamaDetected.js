@@ -299,10 +299,10 @@ const DownloadUiState = {
 }
 
 const Controller = {
-  abortController: new AbortController(),
+  abortController: null,
 
-  abort() {
-    this.abortController.abort();
+  init() {
+    this.abortController = new AbortController();
   },
 }
 
@@ -396,11 +396,13 @@ const OllamaDetected = {
     Ui.load('modal-content', OllamaDetectedModal.ui());
     Ui.show('intro-model-instructions');
     Ui.show('ollama-detected');
+
+    Controller.init();
     this.registerEventListeners();
   },
 
   show(models) {
-    this.setup()
+    this.setup();
 
     const hasModels = models && models.length > 0;
 
