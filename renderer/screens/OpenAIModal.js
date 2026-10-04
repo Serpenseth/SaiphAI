@@ -199,10 +199,15 @@ const Ui = {
 }
 
 const Controller = {
-  abortController: new AbortController(),
+  abortController: null,
+
+  init() {
+    this.abortController = new AbortController();
+  },
 
   abort() {
     this.abortController.abort();
+    this.abortController = null;
   },
 }
 
@@ -308,6 +313,8 @@ const OpenAiModaI = {
   show() {
     Ui.load('modal-content', OpenAiModalDOM.ui());
     Ui.show('login-openai');
+
+    Controller.init();
     this.registerEventListeners();
   },
 
