@@ -88,10 +88,10 @@ const Ui = {
 }
 
 const Controller = {
-  abortController: new AbortController(),
+  abortController: null,
 
-  abort() {
-    this.abortController.abort();
+  init() {
+    this.abortController = new AbortController();
   },
 }
 
@@ -128,6 +128,8 @@ const FrameworkSelection = {
     Ui.load('modal-content', FrameworkSelectionModal.ui());
     Ui.show('intro-model-instructions');
     Ui.show('model-selection');
+
+    Controller.init();
     this.registerEventListeners();
   },
 
