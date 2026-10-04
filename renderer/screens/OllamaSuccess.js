@@ -111,11 +111,6 @@ const Controller = {
   init() {
     this.abortController = new AbortController();
   },
-
-  abort() {
-    this.abortController.abort();
-    this.abortController = null;
-  },
 }
 
 const EventHandler = {

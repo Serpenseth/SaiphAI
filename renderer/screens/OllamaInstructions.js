@@ -216,7 +216,7 @@ const OllamaInstructionsManager = {
   },
 
   destroyUI() {
-    EventHandler.abortController.abort();
+    EventHandler.destroy(Controller.abortController);
     DomQuery.removeElement('dl-ollama-instructions');
   },
 
@@ -248,7 +248,6 @@ let OllamaInstructions = {
       { id: 'return-instructions-btn', fn: () => this.handleReturn() },
     ];
 
-    Controller.init();
     EventHandler.setupEvents(
       genericEvents,
       Controller.abortController.signal
@@ -257,6 +256,7 @@ let OllamaInstructions = {
 
   show() {
     OllamaInstructionsManager.showUI();
+    Controller.init();
     this.registerEventListeners();
   },
 

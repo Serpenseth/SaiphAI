@@ -204,11 +204,6 @@ const Controller = {
   init() {
     this.abortController = new AbortController();
   },
-
-  abort() {
-    this.abortController.abort();
-    this.abortController = null;
-  },
 }
 
 const EventHandler = {
@@ -323,7 +318,7 @@ const OpenAiModaI = {
   },
 
   destroy() {
-    Controller.abort();
+    EventHandler.destroy(Controller.abortController);
     Ui.destroy('login-openai');
   },
 
