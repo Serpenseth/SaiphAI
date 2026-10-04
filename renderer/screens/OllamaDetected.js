@@ -385,6 +385,7 @@ const OllamaDetected = {
           .downloadModel(DomQuery.getElement(inputField).value)
       },
       { id: 'abort-ollama-model-dl', fn: () => ModelDownloadManager.abort() },
+      { id: 'close-ollama-details', fn: () => this.handleReturn() },
       { id: 'close-ollama-model-dl', fn: () => this.handleReturn() },
       { id: 'verify-ollama-after-model-dl', fn: () => this.handleContinue() },
       { id: 'ollama-detected-complete', fn: () => this.handleContinue() },
