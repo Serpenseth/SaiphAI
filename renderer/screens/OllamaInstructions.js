@@ -109,24 +109,39 @@ const NavigationHandler = {
   }
 }
 
+const Controller = {
+  abortController: null,
+
+  init() {
+    this.abortController = new AbortController();
+  },
+
+  abort() {
+    this.abortController.abort();
+    this.abortController = null;
+  },
+}
+
 const EventHandler = {
-  abortController: new AbortController(),
   isInit: false,
 
-  setupEvents(elems) {
+  setupEvents(elems, abortSignal) {
     if (!this.isInit) {
       elems.forEach(({ id, fn }) => {
         const elem = DomQuery.getElement(id);
 
-        if (elem) {
-          elem.addEventListener('click', fn, {
-            signal: this.abortController.signal
-          });
-        }
+        if (elem)
+          elem.addEventListener('click', fn, { signal: abortSignal });
       });
+
       this.isInit = true;
     }
   },
+
+  destroy(abortSignal) {
+    abortSignal.abort();
+    this.isInit = false;
+  }
 }
 
 const UiHandler = {
@@ -233,7 +248,11 @@ let OllamaInstructions = {
       { id: 'return-instructions-btn', fn: () => this.handleReturn() },
     ];
 
-    EventHandler.setupEvents(genericEvents);
+    Controller.init();
+    EventHandler.setupEvents(
+      genericEvents,
+      Controller.abortController.signal
+    );
   },
 
   show() {
