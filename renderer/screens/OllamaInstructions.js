@@ -261,14 +261,13 @@ let OllamaInstructions = {
   async handleContinue() {
     const isConnectionSuccessful = await WindowApi.checkConnection();
     NavigationHandler.navigate(isConnectionSuccessful, this);
-
-    isConnectionSuccessful ? this.destroy() : this.hide();
+    this.destroy();
   },
 
   handleReturn() {
     DomQuery.toggleVisibility('dl-ollama-instructions', false);
     FrameworkSelection.show();
-    this.hide();
+    this.destroy();
   },
 
   destroy() {
