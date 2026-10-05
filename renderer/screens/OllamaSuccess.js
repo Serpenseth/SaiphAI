@@ -2,6 +2,12 @@ import { createMainWindow } from './MainWindow.js';
 
 import { DomQuery } from '../utility/utilities.js';
 
+const Config = {
+  async read() {
+    return window.electronAPI.readConfigFile();
+  },
+}
+
 const AnimatedSvg = {
   show(status) {
     if (status === "success") {
@@ -78,7 +84,8 @@ const NavigationHandler = {
   },
 
   completeSetup() {
-    createMainWindow().show();
+    Config.read()
+      .then(config => createMainWindow(config).show());
   }
 }
 
