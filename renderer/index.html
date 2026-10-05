@@ -19,53 +19,7 @@
   <body>
     <div id='intro-model-instructions' class="modal" style="content-visibility: hidden">
       <div id='modal-content' class="modal-content">
-
-        <div id="login-openai" class="login-openai" style="content-visibility: hidden">
-          <h1>OpenAI setup</h1>
-          <div id='api-key-container'>
-            <p class="subtitle">Enter your OpenAI API key</p>
-            <p class="secondary-text" style="margin-top: -1rem">This key will be used to send prompts to OpenAI models</p>
-            <div class="model-login">
-              <p style="margin-bottom: 5px;"> API key:</p>
-              <input id="openai-acc" class="input model-pull" placeholder="sk-proj-..."></input>
-            </div>
-            <p id="openai-apikey-error" class="download-error" style=" display: none;  margin-top: -3em; margin-bottom: 4em"></p>
-
-            <div style="display: flex; flex-direction: column; margin-top: -3em; gap: 1rem;">
-              <button id="verify-openai-key" class="btn btn-secondary modal-action-btn" style="display: none;">Verify</button>
-              <p class="secondary-text" style="font-size: 0.85rem; margin-top: 0.25rem;">Can't find your OpenAI API key?</p>
-              <a href="https://platform.openai.com/api-keys" target="_blank" style="margin-left: 3px; margin-top: -0.75rem;">Click here</a>
-            </div>
-          </div>
-
-          <div id="loading-overlay-openai" class="loading-overlay" style="display: none;">
-            <h1>Verfiying API key. Please wait...</h1>
-            <p class="text-secondary">No api credits will be used</p>
-            <div class="spinner"></div>
-          </div>
-          <div id='openai-stats-container' style="content-visibility: hidden">
-            <p>OpenAI is ready to go. Below is a brief breakdown of OpenAI status:</p><br>
-            <ul class="details openai-details">
-              <li>✔️ Connected to OpenAI</li>
-              <li id="openai-model-count"></li>
-              <li>Default Model:
-                <select  id="openai-model-select" class="details-modal-select">
-                  <option></option>
-                  </select>
-              </li>
-            </ul>
-            <br>
-            <p class="secondary-text">The Default model can be changed at any time via settings</p>
-          </div>
-
-          <div class="btn-bottom-container">
-            <button id="close-openai-setup" class="btn btn-secondary modal-nav-button">Go back</button>
-            <button id="continue-openai-setup" class="btn btn-primary modal-nav-button" style="display: none;">
-              Continue
-            </button>
-          </div>
-        </div>
-
+        <!-- Intro modals are loaded dynamically -->
       </div>
     </div>
 
