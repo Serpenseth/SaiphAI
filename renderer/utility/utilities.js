@@ -5,6 +5,12 @@ export const StringUtils = {
   },
 }
 
+export const UuidGenerator = {
+  generate(length=8) {
+    return crypto.randomUUID().substring(0, length);
+  },
+}
+
 export const DomQuery = {
   getElement: (id) => document.getElementById(id),
 
