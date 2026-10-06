@@ -34,6 +34,42 @@ const OpenAI = {
       return [];
     }
   },
+
+  async sendChat(event, apiKey, message, selectedModel) {
+    try {
+      const result = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: selectedModel,
+          messages: [{
+            role: "system",
+            content: basePrompt
+          },
+          {
+            role: "user",
+            content: message
+          }]
+        })
+      });
+
+      const jsonResponse = await result.json();
+
+      if (!result.ok) {
+        const errMsg = jsonResponse.error.message;
+        throw new Error(`Failed to connect to OpenAI. \nReason: ${errMsg}`);
+      }
+
+      else
+        return jsonResponse;
+    }
+    catch(e) {
+      throw(e);
+    }
+  },
 }
 
 module.exports = { OpenAI };
