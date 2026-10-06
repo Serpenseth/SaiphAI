@@ -169,10 +169,12 @@ ipcMain.handle('abort-ollama-model-dl', abortModelDownload);
 const {
   isOpenAiApiKeyValid,
   getAllOpenAiModels,
+  sendChat,
 } = require('./openai_ipc_handlers');
 
 ipcMain.handle('is-openai-api-key-valid', isOpenAiApiKeyValid);
 ipcMain.handle('get-all-openai-models', getAllOpenAiModels);
+ipcMain.handle('chat-openai', sendChat);
 
 // config
 const {
