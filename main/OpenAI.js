@@ -1,3 +1,5 @@
+const { SYSTEM_PROMPT } = require('./system_prompt.js');
+
 const OpenAI = {
   async isApiKeyValid(apiKey) {
     try {
@@ -47,7 +49,7 @@ const OpenAI = {
           model: selectedModel,
           messages: [{
             role: "system",
-            content: basePrompt
+            content: SYSTEM_PROMPT,
           },
           {
             role: "user",
