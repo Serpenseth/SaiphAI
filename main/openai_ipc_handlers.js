@@ -38,7 +38,34 @@ const getAllOpenAiModels = async (event, key) => {
   }
 }
 
+/**
+ *  Sends prompt to an OpenAI model.
+ *
+ *  @param {string} apiKey - OpenAI API key.
+ *  @param {string} message - The message that the LLM will respond to.
+ *  @param {string} selectedModel - Selected OpenAI model to use.
+ *
+ *  @returns {Array < Object >} list of models, or empty list with error.
+*/
+const sendChat = async (event, apiKey, message, selectedModel) => {
+  try {
+    const response = await piscina.run({
+      taskName: 'chatOpenai',
+      payload: {
+        key: key,
+        message: message,
+        selectedModel: selectedModel,
+      }
+    });
+    return response;
+  }
+  catch(e) {
+    return { error: e.message };
+  }
+}
+
 module.exports = {
   isOpenAiApiKeyValid,
   getAllOpenAiModels,
+  sendChat,
 };

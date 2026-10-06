@@ -87,6 +87,11 @@ module.exports = async ({ taskName, payload }) => {
       return openAiModels;
       break;
 
+    case 'chatOpenai':
+      const result = await openAi.sendChat(payload.key, payload.message, payload.selectedModel);
+      return result;
+      break;
+
     case 'indexWorkspace':
       return await indexWorkspace(payload.workspace, payload.userDataPath, payload.event);
       break;
