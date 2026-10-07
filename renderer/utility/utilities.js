@@ -127,5 +127,10 @@ export const DomQuery = {
     const el = this.getElement(id);
     el.style.border = style;
   },
+
+  setWidth(id, newWidth) {
+    const el = this.getElement(id);
+    el.style.width = newWidth;
+  }
 };
 
