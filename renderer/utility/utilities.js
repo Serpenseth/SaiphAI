@@ -97,6 +97,12 @@ export const DomQuery = {
       el.textContent = text;
   },
 
+  updateInnerHTML(id, content) {
+    const el = this.getElement(id);
+    if (el)
+      el.innerHTML = content;
+  },
+
   updateInputValue(id, value) {
     const el = this.getElement(id);
     if (el)
