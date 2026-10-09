@@ -96,6 +96,23 @@ export const DomQuery = {
     }
   },
 
+  htmlTemplateToDOM(htmlString) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlString, 'text/html');
+    const body = doc.body;
+
+    const elements = Array.from(body.childNodes).filter(node =>
+      node.nodeType === Node.ELEMENT_NODE
+    );
+
+    const fragment = document.createDocumentFragment();
+    elements.forEach(el => fragment.appendChild(el));
+
+    console.log(fragment);
+
+    return fragment;
+  },
+
   updateText(id, text) {
     const el = this.getElement(id);
     if (el)
