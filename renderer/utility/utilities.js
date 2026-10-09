@@ -108,8 +108,6 @@ export const DomQuery = {
     const fragment = document.createDocumentFragment();
     elements.forEach(el => fragment.appendChild(el));
 
-    console.log(fragment);
-
     return fragment;
   },
 
