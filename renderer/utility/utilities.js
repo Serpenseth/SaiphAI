@@ -113,6 +113,12 @@ export const DomQuery = {
     return fragment;
   },
 
+  appendChild(parentElement, child) {
+    const parent = this.getElement(parentElement);
+    parent.appendChild(child);
+  },
+
+
   updateText(id, text) {
     const el = this.getElement(id);
     if (el)
