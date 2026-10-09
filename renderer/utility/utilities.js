@@ -72,7 +72,7 @@ export const UuidGenerator = {
 
 export const DomQuery = {
   getElement: (id) => {
-    if (id.includes('.') || id.includes('#'))
+    if (id?.includes('.') || id?.includes('#'))
       return document.querySelector(id)
 
     return document.getElementById(id);
