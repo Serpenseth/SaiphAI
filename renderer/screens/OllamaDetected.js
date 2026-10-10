@@ -123,8 +123,10 @@ const ModelSelector = {
         s.value = m.name;
         s.textContent = m.name;
 
-        if (m.name === selectedModel)
+        if (m.name === selectedModel) {
+          Models.selected = s.value;
           s.selected = true;
+        }
 
         return s;
       });
