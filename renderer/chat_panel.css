@@ -34,7 +34,7 @@
   align-items: end;
   margin-bottom: 1.5rem;
   max-width: 95%;
-  padding: 8px;
+  padding: 12px;
   overflow-y: auto;
   background: var(--user-chat-bubble);
   color: var(--text-primary);
