@@ -39,7 +39,7 @@
   background: var(--user-chat-bubble);
   color: var(--text-primary);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 7px;
 }
 
 
@@ -342,7 +342,7 @@
   padding: 16px;
   color: #F84E4E;
   border: 1px solid rgba(248, 78, 78, 0.5);
-  border-radius: 12px;
+  border-radius: 7px;
 }
 
 .panel-text {
