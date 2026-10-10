@@ -53,10 +53,10 @@
 .user-msg-bubble .hljs.inline,
 .ai-response code:not(pre code),
 .ai-response .hljs.inline {
-  background: #535357;
+  background: #4A4A4E;
   margin-left: 4px;
   margin-right: 4px;
-  padding: 0 0.2rem;
+  padding: 0.1rem 0.4rem;
   border-radius: 4px;
   font-family: var(--font-sans) !important;;
 }
