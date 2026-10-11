@@ -21,6 +21,7 @@ class ConfigManager {
   async createConfigFile() {
     await fs.writeFile(this.config, JSON.stringify({
       showSidebar: true,
+      showChatPanel: true,
       workspacePath: null,
       lastTab: null,
       lastFileTab: null,
