@@ -58,7 +58,7 @@
   margin-right: 4px;
   padding: 0.1rem 0.4rem;
   border-radius: 4px;
-  font-family: var(--font-sans) !important;;
+  font-family: var(--font-sans) !important;
 }
 
 
@@ -81,6 +81,7 @@
   display: flex;
   flex-direction: column;
   padding-bottom: 2.5rem;
+  transform: translateX(100);
 }
 
 .chat-history {
@@ -103,13 +104,13 @@
 }
 
 .chat-input {
-  min-height: 180px;
-  height: 100%;
+  min-height: 70px;
+  height: 180px;
   max-height: auto;
   width: 100%;
   resize: none;
   color: var(--text-primary);
-  background: linear-gradient(rgba(43, 44, 46, 0.5) 50%, rgba(212, 211, 209, 0.05) 50%);
+  background: rgba(43, 44, 46, 0.5);
   border: 1.5px solid rgba(67, 47, 91, 0.75);
   border-bottom: 0;
   border-radius: 8px 8px 0 0;
