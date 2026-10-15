@@ -424,3 +424,22 @@
   font-size: 0.95rem;
   line-height: 1.6;
 }
+
+.expanded-file-contents {
+  height: 512px;
+  width: 1024px;
+  padding: 0.5rem;
+  background: transparent;
+  pointer-events: auto;
+  overflow-y: auto;
+  white-space: pre;
+  user-select: text;
+}
+
+.expanded-image-contents {
+  height: 512px;
+  width: 512px;
+  background: transparent;
+  image-rendering: crisp-edges;
+  pointer-events: none;
+}
