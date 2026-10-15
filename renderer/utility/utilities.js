@@ -3,6 +3,17 @@ export const StringUtils = {
     const element = id.substring(id.lastIndexOf('-') + 1);
     return !element ? id.substring(id?.id.lastIndexOf('-') + 1) : element;
   },
+
+  getFileName(path) {
+    if (path) {
+      const normalized = path.replaceAll('\\', '/').trim();
+      return normalized.substring(normalized.lastIndexOf('/') + 1);
+    }
+    else
+      return path;
+
+    return 'Untitled';
+  },
 }
 
 export const MarkdownParser = {
