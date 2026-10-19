@@ -39,7 +39,7 @@ const OllamaManager = {
 
   async isModelInstalled(event, modelName) {
     try {
-      const response = await fetch(`${baseUrl}api/tags`);
+      const response = await fetch(`${baseUrl}/api/tags`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -52,6 +52,23 @@ const OllamaManager = {
     }
     catch (error) {
       return false;
+    }
+  },
+
+  async doesModelSupportImages(modelName) {
+    try {
+      const response = await fetch(`${baseUrl}/api/show`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: modelName })
+      });
+
+      const data = await response.json();
+      return data.capabilities.includes('vision');
+    }
+
+    catch(e) {
+      throw e;
     }
   },
 
@@ -198,6 +215,8 @@ const OllamaManager = {
       { role: 'system', content: SYSTEM_PROMPT },
       ...userMessages,
     ];
+
+    await this.doesModelSupportImages(model);
 
     const response = await fetch('http://localhost:11434/api/chat', {
       method: 'POST',

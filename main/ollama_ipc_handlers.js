@@ -56,6 +56,19 @@ const getOllamaModels = async () => {
 }
 
 /**
+ *  Checks if model has vision capability.
+ *
+ *  @param {string} modelName - The model name to check..
+ *  @returns {bool} True if model supports vision, false otherwise.
+*/
+const modelSupportsImages = async (event, modelName) => {
+  return await piscina.run({
+    taskName: 'doesModelSupportImages',
+    payload: { modelName: modelName }
+  });
+}
+
+/**
  *  Aborts model download.
  *
  *  @returns {null}
@@ -69,6 +82,7 @@ module.exports = {
   chatOllama,
   checkOllama,
   getOllamaModels,
+  modelSupportsImages,
   abortModelDownload,
 };
 

@@ -92,6 +92,10 @@ module.exports = async ({ taskName, payload }) => {
       return result;
       break;
 
+    case 'doesModelSupportImages':
+      return await ollama.doesModelSupportImages(payload.modelName);
+      break;
+
     case 'indexWorkspace':
       return await indexWorkspace(payload.workspace, payload.userDataPath, payload.event);
       break;

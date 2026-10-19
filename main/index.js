@@ -156,6 +156,7 @@ const {
   chatOllama,
   checkOllama,
   getOllamaModels,
+  modelSupportsImages,
   abortModelDownload,
 } = require('./ollama_ipc_handlers');
 
@@ -163,6 +164,7 @@ ipcMain.handle('download-ollama-model', downloadOllamaModel);
 ipcMain.handle('chat-ollama', chatOllama);
 ipcMain.handle('check-ollama', checkOllama);
 ipcMain.handle('get-ollama-models', getOllamaModels);
+ipcMain.handle('does-model-support-images', modelSupportsImages);
 ipcMain.handle('abort-ollama-model-dl', abortModelDownload);
 
 // OpenAI
