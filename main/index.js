@@ -189,6 +189,21 @@ ipcMain.handle('create-config-file', createConfigFile);
 ipcMain.handle('read-config-file', readConfigFile);
 ipcMain.handle('write-to-config-file', writeToConfigFile);
 
+// env
+const {
+  createEnvFile,
+  readEnvKey,
+  writeEnvKey,
+  removeEnvKey,
+  isKeyEmpty
+} = require('./env_ipc_handlers');
+
+ipcMain.handle('create-env-file', createEnvFile);
+ipcMain.handle('read-env-key', readEnvKey);
+ipcMain.handle('write-env-key' writeEnvKey);
+ipcMain.handle('remove-env-env', removeEnvKey);
+ipcMain.handle('is-env-key-empty', isKeyEmpty);
+
 // files
 const {
   readFile,
