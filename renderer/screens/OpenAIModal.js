@@ -337,15 +337,20 @@ const OpenAiModaI = {
     let key = DomQuery.getElement('openai-acc').value;
 
     try {
+      await Env.create();
       const result = await KeyHandler.verifyKey(key);
 
       if (result.success) {
+        await Env.write(key);
+
         const allModels = await OpenAiBackend.getModels(key);
-        Ui.populateModels(allModels, 'openai-model-select');
-        Ui.showModelCount('openai-model-count');
+        key = null;
+
         Ui.show('openai-stats-container');
         Ui.showContinueButton('continue-openai-setup');
         Ui.hideKeyInterface('api-key-container');
+        Ui.populateModels(allModels, 'openai-model-select');
+        Ui.showModelCount('openai-model-count');
         Ui.hideOverlay('loading-overlay-openai');
       }
       else {
