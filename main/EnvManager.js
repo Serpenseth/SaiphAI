@@ -39,7 +39,7 @@ const EnvManager = {
       }
     },
 
-    async writeKey(keyName) {
+    async writeKey(key) {
       const envContent = await fs.readFile(this.ENV_PATH, 'utf8');
       const lines = envContent.split('\n');
       const keyIndex = lines.findIndex(line => line.startsWith(`${key}=`));
