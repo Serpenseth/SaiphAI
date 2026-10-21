@@ -371,10 +371,9 @@ const OpenAiModaI = {
     this.hide();
   },
 
-  async completeOpenaiSetup() {
-    await ConfigFile.create();
-    await ConfigFile.saveModel(Models.selected);
-
+  completeOpenaiSetup() {
+    DomQuery.getElement('openai-acc').value = null;
+    ConfigFile.create().then(_ => ConfigFile.saveModel(Models.selected));
     NavigationHandler.completeSetup();
     this.destroy();
   },
