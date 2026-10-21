@@ -200,7 +200,7 @@ const {
 
 ipcMain.handle('create-env-file', createEnvFile);
 ipcMain.handle('read-env-key', readEnvKey);
-ipcMain.handle('write-env-key' writeEnvKey);
+ipcMain.handle('write-env-key', writeEnvKey);
 ipcMain.handle('remove-env-env', removeEnvKey);
 ipcMain.handle('is-env-key-empty', isKeyEmpty);
 
