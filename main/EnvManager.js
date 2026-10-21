@@ -7,17 +7,12 @@ const EnvManager = {
 
   async create() {
     await fs.writeFile(this.ENV_PATH, "OPENAI_KEY=", 'utf8');
+    dotenv.config({ path: this.ENV_PATH, override: true });
   },
 
   readKey(keyName) {
-    if (!fsSync.existsSync(this.ENV_PATH))
-      return {
-        success: false,
-        error: "env file doesn't exist yet",
-        keyName: null,
-      }
-
-    dotenv.config({ path: this.ENV_PATH });
+    // Refresh dotenv
+    dotenv.config({ path: this.ENV_PATH, override: true });
 
     // TODO: implement api keys for other frameworks such as anthropic
     switch (keyName) {
