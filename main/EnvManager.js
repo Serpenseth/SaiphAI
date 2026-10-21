@@ -1,10 +1,9 @@
-const path = require('path');
 const dotenv = require('dotenv');
 const fs = require('fs').promises;
 const fsSync = require('fs');
 
 const EnvManager = {
-  ENV_PATH: path.join(app.getPath('userData'), '.env'),
+  ENV_PATH: null,
 
   async create() {
     await fs.writeFile(this.ENV_PATH, "OPENAI_KEY=", 'utf8');
@@ -39,16 +38,16 @@ const EnvManager = {
       }
     },
 
-    async writeKey(key) {
+    async writeKey(keyName, key) {
       const envContent = await fs.readFile(this.ENV_PATH, 'utf8');
       const lines = envContent.split('\n');
-      const keyIndex = lines.findIndex(line => line.startsWith(`${key}=`));
+      const keyIndex = lines.findIndex(line => line.startsWith(`${keyName}=`));
 
       if (keyIndex >= 0) {
-        lines[keyIndex] = `${key}=${content}`;
+        lines[keyIndex] = `${keyName}=${key}`;
       }
       else {
-        lines.push(`${key}=${content}`);
+        lines.push(`${keyName}=${key}`);
       }
 
       await fs.writeFile(this.ENV_PATH, lines.join('\n'), 'utf8');

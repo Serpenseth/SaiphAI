@@ -13,8 +13,11 @@ const dotenv = require('dotenv');
 const os = require('os');
 
 const { piscina } = require('./piscina_instance.js');
+const { EnvManager } = require('./EnvManager.js');
 
-const ENV_PATH = path.join(app.getPath('userData'), '.env');
+EnvManager.ENV_PATH = path.join(app.getPath('userData'), '.env');
+
+// const ENV_PATH = path.join(app.getPath('userData'), '.env');
 
 /*
 const SETTINGS_FILE = path.join(app.getPath('userData'), 'settings.json');
