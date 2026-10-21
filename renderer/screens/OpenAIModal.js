@@ -26,6 +26,16 @@ const ConfigFile = {
   },
 }
 
+const Env = {
+  async create() {
+    window.electronAPI.createEnvFile();
+  },
+
+  async write(key) {
+    await window.electronAPI.writeEnvKey('OPENAI_KEY', key);
+  },
+};
+
 const HashUtil = {
   async createHash(input) {
     return window.electronAPI.createHash(input);
