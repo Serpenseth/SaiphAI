@@ -22,8 +22,8 @@ const readEnvKey = (event, keyName) => {
  *  @param {string} keyName - Key to write.
  *  @returns {null}
 */
-const writeEnvKey = async (event, keyName) => {
-  await EnvManager.writeKey(keyName);
+const writeEnvKey = async (event, keyName, key) => {
+  await EnvManager.writeKey(keyName, key);
 }
 
 /**

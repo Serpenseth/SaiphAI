@@ -10,7 +10,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Env
   createEnvFile: () => ipcRenderer.invoke('create-env-file'),
   readEnvKey: (key) => ipcRenderer.invoke('read-env-key', key),
-  writeEnvKey: (key) => ipcRenderer.invoke('write-env-key' key),
+  writeEnvKey: (keyName, key) => ipcRenderer.invoke('write-env-key', keyName, key),
   removeEnvKey: (key) => ipcRenderer.invoke('remove-env-env', key),
   isKeyEmpty: (key) => ipcRenderer.invoke('is-env-key-empty', key),
 
