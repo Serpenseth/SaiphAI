@@ -1,4 +1,11 @@
 const { SYSTEM_PROMPT } = require('./system_prompt.js');
+const { EnvManager } = require('./EnvManager.js');
+
+const KeyHandler = {
+  async getKey() {
+    return await EnvManager.readKey('OPENAI_KEY');
+  },
+}
 
 const OpenAI = {
   async isApiKeyValid(apiKey) {
