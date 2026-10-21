@@ -7,6 +7,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   createConfigFile: () => ipcRenderer.invoke('create-config-file'),
   writeToConfigFile: (data) => ipcRenderer.invoke('write-to-config-file', data),
 
+  // Env
+  createEnvFile: () => ipcRenderer.invoke('create-env-file'),
+  readEnvKey: (key) => ipcRenderer.invoke('read-env-key', key),
+  writeEnvKey: (key) => ipcRenderer.invoke('write-env-key' key),
+  removeEnvKey: (key) => ipcRenderer.invoke('remove-env-env', key),
+  isKeyEmpty: (key) => ipcRenderer.invoke('is-env-key-empty', key),
+
   // Files
   readFile: (fileToRead) => ipcRenderer.invoke('file-to-read', fileToRead),
   scanFolder: (folder) => ipcRenderer.invoke('scan-folder', folder),
