@@ -1,5 +1,6 @@
 const { piscina } = require('./piscina_instance.js');
 
+const { EnvManager } = require('./EnvManager.js');
 const { OpenAi } = require('./OpenAI.js');
 const openAi = OpenAi;
 
@@ -26,16 +27,11 @@ const isOpenAiApiKeyValid = async (event, key) => {
  *  @returns {Array < Object >} list of models, or empty list with error.
 */
 const getAllOpenAiModels = async (event, key) => {
-  try {
-    const models = await piscina.run({
-      taskName: 'getAllOpenAiModels',
-      payload: { key: key }
-    });
-    return models;
-  }
-  catch(e) {
-    return { models: [], error: e.message };
-  }
+  const models = await piscina.run({
+    taskName: 'getAllOpenAiModels',
+    payload: { key: key }
+  });
+  return models;
 }
 
 /**
@@ -48,20 +44,15 @@ const getAllOpenAiModels = async (event, key) => {
  *  @returns {Array < Object >} list of models, or empty list with error.
 */
 const sendChat = async (event, apiKey, message, selectedModel) => {
-  try {
-    const response = await piscina.run({
-      taskName: 'chatOpenai',
-      payload: {
-        key: key,
-        message: message,
-        selectedModel: selectedModel,
-      }
-    });
-    return response;
-  }
-  catch(e) {
-    return { error: e.message };
-  }
+  const response = await piscina.run({
+    taskName: 'chatOpenai',
+    payload: {
+      key: key,
+      message: message,
+      selectedModel: selectedModel,
+    }
+  });
+  return response;
 }
 
 module.exports = {
