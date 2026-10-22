@@ -119,54 +119,6 @@
           </div>
 
           <div class="ai-panel-container">
-            <div id="ai-panel" class="ai-panel">
-              <div id="handle" class="resizer"></div>
-                <div id="chat-content" class="chat-history">
-                  <div id='panel-msg' class='panel-msg'>
-                    <p class='panel-text'>Your chats will appear here</p><br>
-                    <p class='panel-text'>This panel has access to all your project files</p>
-                    </div>
-                </div>
-
-                <div id="chat-input-area" class="chat-input-area">
-                  <div id="handle-chat" class="resizer-chat"></div>
-
-                  <div class="chat-file-container" style='display: none'>
-                    <!-- Created dynamically via JS -->
-                  </div>
-
-                  <textarea
-                    id="user-prompt"
-                    class="chat-input"
-                    spellcheck="false"
-                    type="text"
-                    placeholder="Ask AI..."
-                  ></textarea>
-
-                  <!-- Send chat/attach files -->
-                  <div class="chat-action-container">
-                    <!-- Attach file to prompt button -->
-                    <button id="attach-file" class="chat-action attach-file-action" data-tooltip='Attach a file'>
-                      <img style='height: 16px; width: 16px;' src='../assets/add-file.png'></img>
-                    </button>
-                    <p class='action-separator'> | </p>
-                    <!-- Attach opened file to prompt button -->
-                    <button
-                      id="attach-opened-file"
-                      class="chat-action attach-opened-file-action"
-                      data-tooltip='Open a file through sidebar to attach a file to chat'
-                      disabled>
-                    @
-                    </button>
-                    <!-- Send prompt button -->
-                    <button id="send-chat" class="chat-action send-action">
-                      <img style='height: 16px; width: 16px;' src='../assets/send.png'></img>
-                    </button>
-                  </div>
-                </div>
-
-              </div>
-            </div>
           </div>
 
             <div id="no-ai-panel">
