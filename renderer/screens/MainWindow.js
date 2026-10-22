@@ -109,12 +109,6 @@ const Backend = {
     await window.electronAPI.writeToConfigFile(data);
   },
 
-/*
-  async sendOllamaChat(message, chosenModel) {
-    return await window.electronAPI.chatOllama(message, chosenModel);
-  },
-  */
-
   async readFile(filePath) {
     return await window.electronAPI.readFile(filePath);
   },
@@ -140,30 +134,6 @@ const Backend = {
   }
 }
 
-/*
-const PathUtils = {
-  getFileName(path) {
-    if (path) {
-      const normalized = path.replaceAll('\\', '/').trim();
-      return normalized.substring(normalized.lastIndexOf('/') + 1);
-    }
-    else
-      return path;
-
-    return 'Untitled';
-  }
-}
-
-const DomQuery = {
-  getElement(element) {
-    if (element.includes('.') || element.includes('#'))
-      return document.querySelector(element)
-
-    return document.getElementById(element);
-  },
-}*/
-
-// const chatTabManager = new ChatTabManager();
 const fileTabManager = new FileTabManager();
 const floatingWindowManager = new FloatingWindowManager();
 const floatingButtonsManager = new FloatingButtonsManager();
@@ -189,12 +159,6 @@ class MainWindowUI {
   }
 
   //===> Chat tab logic <===//
-  /*
-  newChatTab() {
-    this.currentChatTab = this.chatPanel.newChatTab();
-  }
-  */
-
   removeChatTab(id) {
     ChatPanel.closeTab(`ai-tab-${id}`);
   }
@@ -202,28 +166,6 @@ class MainWindowUI {
   switchToChatTab(id) {
     ChatPanel.switchToTab(id);
   }
-
-  /*
-  currentChatTab() {
-    return this.chatPanel.currentChatTab;
-  }
-
-  setChatTabTitle(id, title) {
-    this.chatPanel.setChatTabTitle(Utility.getRawID(id), title);
-  }
-
-  clearChatBox(id) {
-    this.chatPanel.clearChatBox(Utility.getRawID(id));
-  }
-
-  clearChats(id) {
-    this.chatPanel.clearChats(Utility.getRawID(id));
-  }
-
-  scrollToBottom(id) {
-    this.chatPanel.scrollToBottom(Utility.getRawID(id));
-  }
-  */
 
   displayErrorMessageInFloatingWindow(id, error) {
     const rawID = StringUtils.getRawID(id);
@@ -249,16 +191,6 @@ class MainWindowUI {
         .appendChild(bubble);
     }
   }
-
-/*
-  displayErrorMessage(id, error) {
-    this.chatPanel.displayErrorMessage(id, error);
-  }
-
-  createLoadingDiv(id) {
-    return this.chatPanel.createLoadingDiv(Utility.getRawID(id));
-  }
-  */
 
   createLoadingDivInFloatingWindow(id, defaultText=true) {
     const rawID = StringUtils.getRawID(id);
@@ -331,18 +263,6 @@ class MainWindowUI {
 
     this.currentFileTab = targetTab.fileTab;
   }
-
-  //////////////////////
-
-  /*
-  hideChatPanel() {
-    this.chatPanel.hide();
-  }
-
-  showChatPanel() {
-    this.chatPanel.show();
-  }
-  */
 }
 
 class EventHandler {
@@ -450,15 +370,6 @@ class EventHandler {
         });
       }
     });
-
-/*
-    document.addEventListener('click', (e) => {
-      const target = e.target.closest('.checkbox-style');
-
-      if (DomQuery.getElement('.checkbox-style') && !target)
-        AttachSelectedFiles.hide();
-    });
-    */
   }
 }
 
@@ -467,14 +378,12 @@ class MainWindow {
     backend,
     ui,
     eventHandler,
-    //chatManager,
     sidebar,
     config
   ) {
     this.service = backend;
     this.ui = ui;
     this.eventHandler = eventHandler;
-    //this.chatManager = chatManager;
     this.sidebar = sidebar;
     this.config = config;
 
@@ -519,28 +428,6 @@ class MainWindow {
   switchToChatTab(id) {
     ChatPanel.switchToTab(id);
   }
-
-  /*
-  currentChatTab() {
-    return this.ui.chatPanel.currentChatTab;
-  }
-
-  setChatTabTitle(id, title) {
-    this.ui.setChatTabTitle(id, title);
-  }
-
-  clearChatBox(id) {
-    this.ui.clearChatBox(id);
-  }
-
-  clearChats(id) {
-    ChatPanel.clearChats(id);
-  }
-
-  scrollToBottom(id) {
-    this.ui.scrollToBottom(id);
-  }
-  */
 
   switchToFileTab(id) {
     this.ui.switchToFileTab(id);
@@ -694,7 +581,6 @@ export function createMainWindow(config) {
     Backend,
     ui,
     eventHandler,
-    // chatTabManager,
     sidebar,
     config
   );
