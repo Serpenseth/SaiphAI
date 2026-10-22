@@ -735,7 +735,11 @@ const AiResponse = {
     try {
       const selectedModel = await Config.getSelectedModel();
       const selectedFramework = await Config.getSelectedFramework();
-      const supportsVision = await AiBackend.supportsVision(selectedModel);
+      let supportsVision;
+
+      if (selectedFramework === 'ollama')
+        supportsVision = await AiBackend.supportsVision(selectedModel);
+
       const {
         contextString,
         imagePayloads
