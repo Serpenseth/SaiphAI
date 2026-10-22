@@ -1,6 +1,5 @@
 const { piscina } = require('./piscina_instance.js');
 
-const { EnvManager } = require('./EnvManager.js');
 const { OpenAi } = require('./OpenAI.js');
 const openAi = OpenAi;
 
@@ -47,7 +46,7 @@ const sendChat = async (event, apiKey, message, selectedModel) => {
   const response = await piscina.run({
     taskName: 'chatOpenai',
     payload: {
-      key: key,
+      key: apiKey,
       message: message,
       selectedModel: selectedModel,
     }
