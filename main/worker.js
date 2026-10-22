@@ -83,12 +83,12 @@ module.exports = async ({ taskName, payload }) => {
       break;
 
     case 'getAllOpenAiModels':
-      const openAiModels = await openAi.getAllModels(payload.key);
+      const openAiModels = await openAi.getAllModels();
       return openAiModels;
       break;
 
     case 'chatOpenai':
-      const result = await openAi.sendChat(payload.key, payload.message, payload.selectedModel);
+      const result = await openAi.sendChat(payload.message, payload.selectedModel);
       return result;
       break;
 

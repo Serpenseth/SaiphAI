@@ -34,8 +34,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // OpenAI
   isOpenAiApiKeyValid: (key) => ipcRenderer.invoke('is-openai-api-key-valid', key),
-  getAllOpenAiModels: (key) => ipcRenderer.invoke('get-all-openai-models', key),
-  chatOpenai: (key, message, model) => ipcRenderer.invoke('chat-openai', key, message, model),
+  getAllOpenAiModels: () => ipcRenderer.invoke('get-all-openai-models'),
+  chatOpenai: (message, model) => ipcRenderer.invoke('chat-openai', message, model),
 
   // Utilities
   getPlatform: () => ipcRenderer.invoke('get-platform'),

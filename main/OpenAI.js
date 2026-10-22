@@ -18,6 +18,8 @@ const OpenAI = {
         }
       });
 
+      key = null;
+
       if (result.status === 401)
         return { valid: false, message: "Invalid API key" };
 
@@ -28,11 +30,13 @@ const OpenAI = {
     }
   },
 
-  async getAllModels(apiKey) {
+  async getAllModels() {
+    const { success, error, keyName } = await KeyHandler.getKey();
+
     try {
       const result = await fetch("https://api.openai.com/v1/models", {
         method: 'GET',
-        headers: { 'Authorization': `Bearer ${apiKey}` }
+        headers: { 'Authorization': `Bearer ${keyName}` }
       });
 
       const data = await result.json();
@@ -44,12 +48,14 @@ const OpenAI = {
     }
   },
 
-  async sendChat(event, apiKey, message, selectedModel) {
+  async sendChat(message, selectedModel) {
+    const { success, error, keyName } = await KeyHandler.getKey();
+
     try {
       const result = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${apiKey}`,
+          'Authorization': `Bearer ${keyName}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
@@ -69,7 +75,7 @@ const OpenAI = {
 
       if (!result.ok) {
         const errMsg = jsonResponse.error.message;
-        throw new Error(`Failed to connect to OpenAI. \nReason: ${errMsg}`);
+        throw `Failed to connect to OpenAI. \nReason: ${errMsg}`;
       }
 
       else

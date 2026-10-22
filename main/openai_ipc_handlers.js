@@ -21,14 +21,12 @@ const isOpenAiApiKeyValid = async (event, key) => {
 /**
  *  Gets OpenAI models that are available to the user.
  *
- *  @param {string} key - OpenAI API key.
- *
  *  @returns {Array < Object >} list of models, or empty list with error.
 */
-const getAllOpenAiModels = async (event, key) => {
+const getAllOpenAiModels = async () => {
   const models = await piscina.run({
     taskName: 'getAllOpenAiModels',
-    payload: { key: key }
+    payload: { }
   });
   return models;
 }
@@ -36,17 +34,15 @@ const getAllOpenAiModels = async (event, key) => {
 /**
  *  Sends prompt to an OpenAI model.
  *
- *  @param {string} apiKey - OpenAI API key.
  *  @param {string} message - The message that the LLM will respond to.
  *  @param {string} selectedModel - Selected OpenAI model to use.
  *
  *  @returns {Array < Object >} list of models, or empty list with error.
 */
-const sendChat = async (event, apiKey, message, selectedModel) => {
+const sendChat = async (event, message, selectedModel) => {
   const response = await piscina.run({
     taskName: 'chatOpenai',
     payload: {
-      key: apiKey,
       message: message,
       selectedModel: selectedModel,
     }
