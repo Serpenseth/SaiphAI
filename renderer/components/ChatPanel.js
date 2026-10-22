@@ -119,19 +119,9 @@ const AiBackend = {
     return window.electronAPI.chatOllama(message, chosenModel);
   },
 
-  async sendOpenaiChat(message, chosenModel) {},
-
-  /* TODO: get api key from .env
   async sendOpenaiChat(message, chosenModel) {
-    let resp;
-
-    EnvHandler.getEnvEntry('openai').then(key => {
-      resp = window.electronAPI.chatOpenai(key, message, chosenModel);
-    });
-
-    return resp;
+    return window.electronAPI.chatOpenai(message, chosenModel);
   },
-  */
 
   async supportsVision(model) {
     return window.electronAPI.modelSupportsImages(model);
