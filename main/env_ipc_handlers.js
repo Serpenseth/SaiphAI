@@ -1,3 +1,6 @@
+const { app } = require('electron');
+const path = require('path');
+
 const { EnvManager } = require('./EnvManager.js');
 
 /**
@@ -13,8 +16,8 @@ const createEnvFile = async () => {
  *  @param {string} keyName - Key to read.
  *  @returns {{ success: boolean, error: string|null, keyName: string|null }}
 */
-const readEnvKey = (event, keyName) => {
-  return EnvManager.readKey(keyName);
+const readEnvKey = async (event, keyName) => {
+  return await EnvManager.readKey(keyName);
 }
 
 /**
