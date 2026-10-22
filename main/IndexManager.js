@@ -125,6 +125,19 @@ class SmartChunker {
   }
 }
 
+const Controller = {
+  signal: null,
+
+  set(abortController) {
+    Controller.signal = abortController;
+  },
+
+  destroy() {
+    Controller.signal.abort();
+    Controller.signal = null;
+  },
+}
+
 class DiskIndexManager {
   constructor(storageDir) {
     this.indexDir = path.join(storageDir, 'index');
@@ -252,97 +265,122 @@ class DiskIndexManager {
     return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
   }
 
+  _throwIfAborted() {
+    throw new Error('Indexing aborted');
+  }
+
+  stopIndexing(stoppedFile) {
+    Controller.destroy();
+
+  }
+
   async indexFile(filePath, onProgressCallback) {
-    if (onProgressCallback)
-      onProgressCallback(filePath);
+    Controller.set(new AbortController());
 
-    const baseName = path.basename(filePath).toLowerCase();
-    const stats = await fs.stat(filePath);
+    try {
+      if (onProgressCallback)
+        onProgressCallback(filePath);
 
-    if (stats.isDirectory()) {
-      const badFolders = new Set([
-        'node_modules',
-        '__pycache__',
-        'assets',
-        '.git',
-        '.github',
-        'dist',
-        'build',
-        'target',
-        'android',
-        'ios'
-      ]);
+      const baseName = path.basename(filePath).toLowerCase();
+      const stats = await fs.stat(filePath);
 
-      if (badFolders.has(baseName)) {
-        console.log('Folder skipped:', baseName)
+      if (stats.isDirectory()) {
+        const badFolders = new Set([
+          'node_modules',
+          '__pycache__',
+          'assets',
+          '.git',
+          '.github',
+          'dist',
+          'build',
+          'target',
+          'android',
+          'ios'
+        ]);
+
+        if (badFolders.has(baseName)) {
+          console.log('Folder skipped:', baseName);
+          this.stopIndexing();
+          return;
+        }
+
+        const entries = await fs.readdir(filePath, { withFileTypes: true });
+
+        for (const entry of entries) {
+          this._throwIfAborted();
+          await this.indexFile(path.join(filePath, entry.name), onProgressCallback);
+        }
         return;
       }
 
-      const entries = await fs.readdir(filePath, { withFileTypes: true });
+      const badExt = new Set(['7z', 'zip', 'rar', 'exe', 'dll', 'so', 'bin', 'png', 'jpg', 'jpeg', 'gif', 'pdf', 'ico', 'icns', 'bak', 'sql']);
+      const exclude = ['copy', 'package-lock'];
 
-      for (const entry of entries) {
-        await this.indexFile(path.join(filePath, entry.name), onProgressCallback);
+      for (const ext of badExt) {
+        if (filePath.toLowerCase().endsWith(`.${ext}`)) {
+          console.log('File skipped:', filePath)
+          return
+        }
       }
-      return;
-    }
 
-    const badExt = new Set(['7z', 'zip', 'rar', 'exe', 'dll', 'so', 'bin', 'png', 'jpg', 'jpeg', 'gif', 'pdf', 'ico', 'icns', 'bak', 'sql']);
-    const exclude = ['copy', 'package-lock'];
-
-    for (const ext of badExt) {
-      if (filePath.toLowerCase().endsWith(`.${ext}`)) {
+      if (exclude.some(p => filePath.toLowerCase().includes(p))) {
         console.log('File skipped:', filePath)
-        return
-      }
-    }
-
-    if (exclude.some(p => filePath.toLowerCase().includes(p))) {
-      console.log('File skipped:', filePath)
-      return;
-    }
-
-    if (baseName.startsWith('.')) {
-      console.log('File skipped:', baseName);
-      return;
-    }
-
-    const content = await fs.readFile(filePath, 'utf8');
-    const chunker = new SmartChunker();
-    const chunks = chunker.chunk(content);
-    const fileName = path.basename(filePath);
-    const fileId = crypto.createHash('sha256').update(filePath).digest('hex');
-
-    await this._storeFilePath(fileId, filePath);
-
-    for (let i = 0; i < chunks.length; i++) {
-      const chunkId = `${fileId}_${i}`;
-
-      // Prepend file name to chunk content for context
-      const chunkWithFileName = `File: ${fileName}\n${chunks[i]}`;
-
-      // Store the enhanced chunk
-      await fs.writeFile(path.join(this.dataDir, chunkId), chunkWithFileName);
-
-      // Embed the enhanced chunk (includes file name semantics)
-      const vector = await embeddingModel.embed(chunkWithFileName);
-      await fs.writeFile(path.join(this.vectorDir, `${chunkId}.vec`), Buffer.from(vector.buffer));
-
-      // Extract keywords from enhanced chunk + file name parts
-      const keywords = this._tokenize(chunkWithFileName);
-
-      // Explicitly index file name tokens (handles names like "myFile.js")
-      const fileNameTokens = fileName
-        .replace(/\.[^.]+$/, '') // remove extension
-        .split(/[\s\-_.]+/)
-        .filter(t => t.length >= 3);
-
-      for (const word of keywords) {
-        await this._addToIndex(word, chunkId);
+        return;
       }
 
-      for (const token of fileNameTokens) {
-        await this._addToIndex(token.toLowerCase(), chunkId);
+      if (baseName.startsWith('.')) {
+        console.log('File skipped:', baseName);
+        return;
       }
+
+      this._throwIfAborted();
+
+      const content = await fs.readFile(filePath, 'utf8');
+      const chunker = new SmartChunker();
+      const chunks = chunker.chunk(content);
+      const fileName = path.basename(filePath);
+      const fileId = crypto.createHash('sha256').update(filePath).digest('hex');
+
+      await this._storeFilePath(fileId, filePath);
+
+      for (let i = 0; i < chunks.length; i++) {
+        this._throwIfAborted();
+        const chunkId = `${fileId}_${i}`;
+
+        // Prepend file name to chunk content for context
+        const chunkWithFileName = `File: ${fileName}\n${chunks[i]}`;
+
+        // Store the enhanced chunk
+        await fs.writeFile(path.join(this.dataDir, chunkId), chunkWithFileName);
+
+        // Embed the enhanced chunk (includes file name semantics)
+        const vector = await embeddingModel.embed(chunkWithFileName);
+        this._throwIfAborted();
+
+        await fs.writeFile(path.join(this.vectorDir, `${chunkId}.vec`), Buffer.from(vector.buffer));
+
+        // Extract keywords from enhanced chunk + file name parts
+        const keywords = this._tokenize(chunkWithFileName);
+
+        // Explicitly index file name tokens (handles names like "myFile.js")
+        const fileNameTokens = fileName
+          .replace(/\.[^.]+$/, '') // remove extension
+          .split(/[\s\-_.]+/)
+          .filter(t => t.length >= 3);
+
+        for (const word of keywords) {
+          this._throwIfAborted();
+          await this._addToIndex(word, chunkId);
+        }
+
+        for (const token of fileNameTokens) {
+          this._throwIfAborted();
+          await this._addToIndex(token.toLowerCase(), chunkId);
+        }
+      }
+    }
+    catch(e) {
+      throw e;
     }
   }
 
