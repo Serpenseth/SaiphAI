@@ -1,10 +1,14 @@
 import { createSidebar } from '../components/SideBar.js';
-import { createChatPanel } from '../components/ChatPanel.js';
+// import { createChatPanel } from '../components/ChatPanel.js';
+import { ChatPanel } from '../components/ChatPanel.js';
 
+/* No longer used
 import {
   AttachSelectedFiles,
   AttachSelectedFilesClickHandler,
 } from '../components/AttachSelectedFiles.js';
+*/
+
 
 import {
   FileTab,
@@ -21,10 +25,15 @@ import {
   FloatingButtonsManager,
 } from '../components/FloatingButtons.js';
 
+// ChatTabManager no longer exists
+import { ChatTab } from '../components/ChatTab.js';
+
 import {
-  ChatTab,
-  ChatTabManager,
-} from '../components/ChatTab.js';
+  StringUtils,
+  UuidGenerator,
+  DomQuery,
+  MarkdownParser,
+} from '../utility/utilities.js';
 
 const Constants = {
   explainTextPrompt(text, fileContentsSummary) {
@@ -100,9 +109,11 @@ const Backend = {
     await window.electronAPI.writeToConfigFile(data);
   },
 
+/*
   async sendOllamaChat(message, chosenModel) {
     return await window.electronAPI.chatOllama(message, chosenModel);
   },
+  */
 
   async readFile(filePath) {
     return await window.electronAPI.readFile(filePath);
@@ -129,222 +140,7 @@ const Backend = {
   }
 }
 
-const Utility = {
-  getRawID(id) {
-    const element = id.substring(id.lastIndexOf('-') + 1);
-    return !element ? id.substring(id?.id.lastIndexOf('-') + 1) : element;
-  },
-
-  createRandomUUID() {
-    return crypto.randomUUID().substring(0, 8);
-  },
-
-  parseMarkdown(text) {
-    if (!text)
-      return '';
-
-    // Extract code blocks first to protect them from newline replacement
-    const codeBlocks = [];
-    let processedText = text
-      .replace(/&/g, '&amp;')
-      //.replace(/</g, '&lt;')
-      //.replace(/\>/g, '&gt;')
-      .replace(/```(\w+)?\n?([\s\S]*?)```/g, (match, lang, code) => {
-        // Get language
-        const language = lang || 'text';
-        // Apply highlighting
-        const highlighted = hljs.highlight(code.trim(), { language: language }).value;
-
-        //const language = lang || 'text';
-        const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`;
-        codeBlocks.push(`
-        <div>
-          <pre>
-            <code class="hljs language-${language}">${highlighted}</code>
-          </pre>
-        </div>`);
-
-        return placeholder;
-      })
-      .replace(/^(?:\/\/.*)$/gm, '<span class="comment">$1</span>')
-      .replace(/`([^`]+)`/g, '<code>$1</code>')
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-      .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-      .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-      .replace(/((?:^\d+\.\s+.+$\n?)+)/gm, (match) => {
-        const items = match.trim().split('\n').map(line => {
-          const content = line.replace(/^\d+\.\s+/, '');
-          return `<li>${content}</li>`;
-        }).join('');
-
-        return `<ol>${items}</ol>`;
-      })
-      .replace(/((?:^[-*]\s+.+$\n?)+)/gm, (match) => {
-        const items = match.trim().split('\n').map(line => {
-          const content = line.replace(/^[-*]\s+/, '');
-          return `<li>${content}</li>`;
-        }).join('');
-
-        return `<ul>${items}</ul>`;
-      })
-      .replace(/\n\n/g, '<br><br>')
-      .replace(/\n/g, '<br>');
-
-    codeBlocks.forEach((block, index) => {
-      processedText = processedText.replace(`__CODE_BLOCK_${index}__`, block);
-    });
-
-    return processedText;
-  },
-
-  parseDiffBlocks(text) {
-    let match;
-    //const regex = /<SEARCH>([\s\S]*?)<\/SEARCH>\s*<REPLACE>([\s\S]*?)<\/REPLACE>/g;
-    const regex = /<EXPLANATION>([\s\S]*?)<\/EXPLANATION>\s*<SEARCH>([\s\S]*?)<\/SEARCH>\s*<REPLACE>([\s\S]*?)<\/REPLACE>/gs;
-    const blocks = [];
-
-    while ((match = regex.exec(text)) !== null) {
-      blocks.push({
-        explanation: match[1],
-        search: match[2],
-        replace: match[3],
-        /*
-        search: match[1],
-        replace: match[2],
-        */
-      });
-    }
-    return blocks;
-  },
-
-  renderDiffsInEditor(editorContainer, diffBlocks) {
-    const editor = monaco.editor.getEditors().find(
-      e => e.getDomNode()?.parentElement?.id === editorContainer.id
-    );
-
-    const model = editor.getModel();
-    const fullText = model.getValue();
-    const language = model.getLanguageId();
-
-    this._activeDiffs = this._activeDiffs || new Map();
-
-    diffBlocks.forEach((block, i) => {
-      const startOffset = fullText.indexOf(block.search);
-
-      if (startOffset === -1) {
-        console.warn(`Search text not found for diff block ${i}`);
-        return;
-      }
-
-      const startPos = model.getPositionAt(startOffset);
-      const endPos   = model.getPositionAt(startOffset + block.search.length);
-
-      const decorationId = editor.deltaDecorations([], [{
-        range: new monaco.Range(
-          startPos.lineNumber, 1,
-          endPos.lineNumber, model.getLineMaxColumn(endPos.lineNumber)
-        ),
-        options: {
-          isWholeLine: true,
-          inlineClassName: 'diff-line-deleted',
-          linesDecorationsClassName: 'diff-glyph-deleted',
-          stickiness: monaco
-            .editor
-            .TrackedRangeStickiness
-            .NeverGrowsWhenTypingAtEdges
-          }
-      }]);
-
-      const replaceLines = block.replace.split('\n');
-      const zoneNode = document.createElement('div');
-
-      zoneNode.className = 'diff-viewzone';
-      replaceLines.forEach(line => {
-        const lineDiv = document.createElement('div');
-        lineDiv.className = 'diff-line-inserted';
-        lineDiv.textContent = '+ ' + line;
-        zoneNode.appendChild(lineDiv);
-      });
-
-      let viewZoneId;
-      editor.changeViewZones(acc => {
-        viewZoneId = acc.addZone({
-          afterLineNumber: endPos.lineNumber,
-          heightInLines: replaceLines.length + 1,
-          domNode: zoneNode,
-          suppressionConfig: {}
-        });
-      });
-
-      const widgetId = `diff-widget-${editorContainer.id}-${i}`;
-      const wdgNode = document.createElement('div');
-      wdgNode.className = 'diff-actions-inline';
-      wdgNode.innerHTML = `
-        <button class="accept-diff">✓ Accept</button>
-        <button class="reject-diff">✗ Reject</button>
-      `;
-
-      const widget = {
-        getId: () => widgetId,
-        getDomNode: () => wdgNode,
-        getPosition: () => ({
-          position: { lineNumber: endPos.lineNumber + 1, column: 1 },
-          preference: [monaco.editor.ContentWidgetPositionPreference.BELOW]
-        })
-      };
-      editor.addContentWidget(widget);
-
-      const acceptBtn = wdgNode.querySelector('.accept-diff');
-      const rejectBtn = wdgNode.querySelector('.reject-diff');
-
-      const clear = () => {
-        editor.deltaDecorations(decorationId, []);
-        editor.changeViewZones(acc => acc.removeZone(viewZoneId));
-        editor.removeContentWidget(widget);
-      };
-
-      acceptBtn.addEventListener('click', () => {
-        model.applyEdits([{
-          range: new monaco.Range(
-            startPos.lineNumber, 1,
-            endPos.lineNumber, model.getLineMaxColumn(endPos.lineNumber)
-          ),
-          text: block.replace
-        }]);
-        clear();
-      }, { once: true });
-
-      rejectBtn.addEventListener('click', clear, { once: true });
-    });
-  },
-
-  buildDiffSummary(diffBlocks) {
-    const items = diffBlocks.map((block, i) => `
-    <li>
-      <strong>Change ${i + 1}:</strong>
-      ${block.explanation || '<em>(No explanation provided.)</em>'}
-    </li>`).join('');
-
-    return `
-      <div class="ai-response">
-        <p>The assistant proposed <strong>${diffBlocks.length}</strong>
-        change${diffBlocks.length === 1 ? '' : 's'}. Review each one in
-        the editor and use the inline <em>Accept</em> / <em>Reject</em>
-        buttons to apply or discard them:</p><br>
-        <ul>${items}</ul>
-      </div>`;
-  },
-
-  getElement(element) {
-    if (element.includes('.') || element.includes('#'))
-      return document.querySelector(element)
-
-    return document.getElementById(element);
-  },
-}
-
+/*
 const PathUtils = {
   getFileName(path) {
     if (path) {
@@ -365,9 +161,9 @@ const DomQuery = {
 
     return document.getElementById(element);
   },
-}
+}*/
 
-const chatTabManager = new ChatTabManager();
+// const chatTabManager = new ChatTabManager();
 const fileTabManager = new FileTabManager();
 const floatingWindowManager = new FloatingWindowManager();
 const floatingButtonsManager = new FloatingButtonsManager();
@@ -384,22 +180,7 @@ class MainWindowUI {
   }
 
   init() {
-    this.chatPanel = createChatPanel(chatTabManager);
-    const rID = Utility.getRawID(this.chatPanel.ui.currentChatTab.id)
-    this.chatPanel.setMainChatTabTitle('Untittled');
-    this.chatPanel.init();
-
-    const id = rID
-    const elements = [
-      Utility.getElement('.tabRA'),
-      Utility.getElement('.floating-buttons'),
-      Utility.getElement('.floating-window'),
-      Utility.getElement('explain-selection'),
-      Utility.getElement('modify-with-ai'),
-    ];
-    elements.forEach(el => {
-      el.id = `${el.id}-${id}`;
-    });
+    ChatPanel.newChatTab();
   }
 
   show() {
@@ -408,18 +189,21 @@ class MainWindowUI {
   }
 
   //===> Chat tab logic <===//
+  /*
   newChatTab() {
     this.currentChatTab = this.chatPanel.newChatTab();
   }
+  */
 
   removeChatTab(id) {
-    this.chatPanel.removeChatTab(Utility.getRawID(id));
+    ChatPanel.closeTab(`ai-tab-${id}`);
   }
 
   switchToChatTab(id) {
-    this.chatPanel.switchToTab(Utility.getRawID(id));
+    ChatPanel.switchToTab(id);
   }
 
+  /*
   currentChatTab() {
     return this.chatPanel.currentChatTab;
   }
@@ -439,9 +223,10 @@ class MainWindowUI {
   scrollToBottom(id) {
     this.chatPanel.scrollToBottom(Utility.getRawID(id));
   }
+  */
 
   displayErrorMessageInFloatingWindow(id, error) {
-    const rawID = Utility.getRawID(id);
+    const rawID = StringUtils.getRawID(id);
     const thinkingDiv = this.chatPanel.getThinkingDiv(rawID);
 
     if (thinkingDiv)
@@ -465,6 +250,7 @@ class MainWindowUI {
     }
   }
 
+/*
   displayErrorMessage(id, error) {
     this.chatPanel.displayErrorMessage(id, error);
   }
@@ -472,9 +258,10 @@ class MainWindowUI {
   createLoadingDiv(id) {
     return this.chatPanel.createLoadingDiv(Utility.getRawID(id));
   }
+  */
 
   createLoadingDivInFloatingWindow(id, defaultText=true) {
-    const rawID = Utility.getRawID(id);
+    const rawID = StringUtils.getRawID(id);
     const floatingWindow = floatingWindowManager.get(rawID);
 
     const thinkingDiv = document.createElement("div");
@@ -525,7 +312,7 @@ class MainWindowUI {
   }
 
   removeFileTab(id) {
-    const rawID = Utility.getRawID(id);
+    const rawID = StringUtils.getRawID(id);
     fileTabManager.remove(rawID);
   }
 
@@ -536,7 +323,7 @@ class MainWindowUI {
   switchToFileTab(id) {
     this.hideAllFileTabs();
 
-    const targetTab = fileTabManager.get(Utility.getRawID(id));
+    const targetTab = fileTabManager.get(StringUtils.getRawID(id));
     const targetEditor = targetTab.editor;
 
     targetTab.fileTab.show();
@@ -547,6 +334,7 @@ class MainWindowUI {
 
   //////////////////////
 
+  /*
   hideChatPanel() {
     this.chatPanel.hide();
   }
@@ -554,6 +342,7 @@ class MainWindowUI {
   showChatPanel() {
     this.chatPanel.show();
   }
+  */
 }
 
 class EventHandler {
@@ -577,55 +366,12 @@ class EventHandler {
       const closeButton = e.target.closest('.tab-close');
 
       if (closeButton)
-        this.coordinator.closeChatTab(Utility.getRawID(tab.id));
+        this.coordinator.closeChatTab(StringUtils.getRawID(tab.id));
 
       else if (tab)
         this.coordinator.switchToChatTab(tab.id);
     });
 
-    this.addListener(this.ui.fileTabsContainer, 'click', (e) => {
-      let rawID = null;
-      const tab = e.target.closest('.tabRA');
-      const closeButton = e.target.closest('.tab-close');
-
-      if (closeButton) {
-        rawID = Utility.getRawID(tab.id);
-        let fileName = fileTabManager.get(rawID).fileName;
-        const element = `.file-item[data-path="${fileName}"]`;
-        const sidebarItem = Utility.getElement(element);
-
-        fileName = PathUtils.getFileName(fileName);
-        sidebarItem.classList.remove('selected');
-
-        const allOpenedFiles = Array.from(document.querySelectorAll('.checkbox-style'));
-
-        if (allOpenedFiles) {
-          if (allOpenedFiles.length > 1) {
-            const attachedFile = allOpenedFiles.findLast(elem => elem.id === fileName);
-
-            if (attachedFile)
-              attachedFile.remove();
-          }
-          // Only one item remaining in selected list
-          else {
-            const attachOpenedFile = DomQuery.getElement('attach-opened-file');
-            attachOpenedFile.dataset.tooltip = 'Open a file through sidebar to attach a file to chat';
-            attachOpenedFile.style.cursor = 'not-allowed';
-            attachOpenedFile.disabled = true;
-
-            DomQuery.getElement('.checkbox-style').remove();
-            AttachSelectedFiles.hide();
-          }
-        }
-
-        this.coordinator.removeFileTab(rawID);
-      }
-
-      else if (tab) {
-        rawID = Utility.getRawID(tab.id);
-        this.coordinator.switchToFileTab(rawID);
-      }
-    });
 
     this.addListener(this.ui.tabsAndEditorParent, 'click', async (e) => {
       let rawID = null;
@@ -637,7 +383,7 @@ class EventHandler {
 
       if (buttonPressed.id.includes('explain')) {
         try {
-          rawID = Utility.getRawID(buttonPressed.id);
+          rawID = StringUtils.getRawID(buttonPressed.id);
           const floatingButtons = floatingButtonsManager.get(rawID);
           const fileTab = fileTabManager.get(rawID).fileTab;
 
@@ -660,19 +406,19 @@ class EventHandler {
       }
 
       else if (buttonPressed.id.includes('modify')) {
-        const rawID = Utility.getRawID(buttonPressed.id);
-        const activeEditor = Utility.getElement(`editor-container-${rawID}`);
+        const rawID = StringUtils.getRawID(buttonPressed.id);
+        const activeEditor = DomQuery.getElement(`editor-container-${rawID}`);
 
         const activeFloatingWindow = floatingWindowManager.get(rawID);
-        let inputField = Utility.getElement(`suggest-input-${rawID}`);
+        let inputField = DomQuery.getElement(`suggest-input-${rawID}`);
 
         if (!inputField) {
           activeFloatingWindow.createSendChangeField();
-          inputField = Utility.getElement(`suggest-input-${rawID}`);
+          inputField = DomQuery.getElement(`suggest-input-${rawID}`);
         }
 
         else {
-          const cont = Utility.getElement(`suggest-input-container-${rawID}`);
+          const cont = DomQuery.getElement(`suggest-input-container-${rawID}`);
           cont.style.display = 'block';
         }
 
@@ -691,7 +437,7 @@ class EventHandler {
           }
         });
 
-        const suggestionBtn = Utility.getElement(`send-suggestion-${rawID}`);
+        const suggestionBtn = DomQuery.getElement(`send-suggestion-${rawID}`);
         suggestionBtn.addEventListener('click', () => {
           const value = inputField.value.trim();
 
@@ -721,14 +467,14 @@ class MainWindow {
     backend,
     ui,
     eventHandler,
-    chatManager,
+    //chatManager,
     sidebar,
     config
   ) {
     this.service = backend;
     this.ui = ui;
     this.eventHandler = eventHandler;
-    this.chatManager = chatManager;
+    //this.chatManager = chatManager;
     this.sidebar = sidebar;
     this.config = config;
 
@@ -749,6 +495,12 @@ class MainWindow {
 
     else
       this.sidebar.hide();
+
+    if (this.config.showChatPanel)
+      ChatPanel.show(true);
+
+    else
+      ChatPanel.show(false);
   }
 
   async show() {
@@ -757,17 +509,18 @@ class MainWindow {
   }
 
   newChatTab() {
-    this.ui.createNewChatTab();
+    ChatPanel.newChatTab();
   }
 
   closeChatTab(id) {
-    this.ui.removeChatTab(id);
+    ChatPanel.closeTab(`ai-tab-${id}`);
   }
 
   switchToChatTab(id) {
-    this.ui.switchToChatTab(id);
+    ChatPanel.switchToTab(id);
   }
 
+  /*
   currentChatTab() {
     return this.ui.chatPanel.currentChatTab;
   }
@@ -781,12 +534,13 @@ class MainWindow {
   }
 
   clearChats(id) {
-    this.ui.clearChats(id);
+    ChatPanel.clearChats(id);
   }
 
   scrollToBottom(id) {
     this.ui.scrollToBottom(id);
   }
+  */
 
   switchToFileTab(id) {
     this.ui.switchToFileTab(id);
@@ -796,15 +550,15 @@ class MainWindow {
     this.ui.removeFileTab(id);
   }
 
-  async displayAiResponse(message) {
-    this.ui.chatPanel.displayAiResponse(message);
+  displayAiResponse(message) {
+    ChatPanel.displayAiResponse(message);
   }
 
   async explainText(id, text, fileName) {
     const fileContents = await this.service.readFile(fileName);
     const fileContensSummary = await this.service.summarizeText(fileContents, text);
     const prompt = Constants.explainTextPrompt(text, fileContents);
-    const rawID = Utility.getRawID(id);
+    const rawID = StringUtils.getRawID(id);
     const activeFloatingWindow = floatingWindowManager.get(rawID);
 
     if (activeFloatingWindow.contentLength() !== 0) {
@@ -839,22 +593,22 @@ class MainWindow {
 
   tryAgain(id) {
     floatingWindowManager
-      .get(Utility.getRawID(id))
+      .get(StringUtils.getRawID(id))
       .setContent('');
 
-    const input = Utility.getElement(`suggest-input-${id}`);
+    const input = DomQuery.getElement(`suggest-input-${id}`);
 
     this.suggestEdit(id, input ? input.value.trim() : 'How to improve this?');
   }
 
   async suggestEdit(id, userProvidedInstructions) {
-    const rawID = Utility.getRawID(id);
-    const editorContainer = Utility.getElement(`editor-container-${rawID}`);
+    const rawID = StringUtils.getRawID(id);
+    const editorContainer = DomQuery.getElement(`editor-container-${rawID}`);
     const ftab = fileTabManager.get(rawID);
     const floatingWindow = floatingWindowManager.get(rawID);
     const selectedText = floatingButtonsManager.get(rawID).getSelectedText();
     const userInstruction = userProvidedInstructions;
-    const cont = Utility.getElement(`suggest-input-container-${rawID}`);
+    const cont = DomQuery.getElement(`suggest-input-container-${rawID}`);
 
     if (cont) {
       cont.remove();
@@ -919,7 +673,7 @@ class MainWindow {
       floatingWindow.setContent(Utility.buildDiffSummary(diffBlocks));
       floatingWindow.createTryAgainButton();
 
-      Utility.getElement(`try-again-${rawID}`)
+      DomQuery.getElement(`try-again-${rawID}`)
         .addEventListener('click', () => {
           this.boundTryAgain(rawID);
         }, { once: true });
@@ -940,7 +694,7 @@ export function createMainWindow(config) {
     Backend,
     ui,
     eventHandler,
-    chatTabManager,
+    // chatTabManager,
     sidebar,
     config
   );
