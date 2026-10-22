@@ -2,17 +2,38 @@ const dotenv = require('dotenv');
 const fs = require('fs').promises;
 const fsSync = require('fs');
 
-const EnvManager = {
-  ENV_PATH: null,
-
-  async create() {
-    await fs.writeFile(this.ENV_PATH, "OPENAI_KEY=", 'utf8');
-    dotenv.config({ path: this.ENV_PATH, override: true });
+const EnvPathHandler = {
+  async fetchConfigPath() {
+    const { default: envPaths } = await import('env-paths');
+    const paths = envPaths('SaiphAI');
+    return paths.config;
   },
 
-  readKey(keyName) {
+  getEnvPath(configPath) {
+    let path = configPath.replace('-nodejs\\Config', '');
+    path = `${path}\\.env`;
+
+    return path;
+  },
+}
+
+const EnvManager = {
+  async getEnvPath() {
+    const configPath = await EnvPathHandler.fetchConfigPath();
+    return await EnvPathHandler.getEnvPath(configPath);
+  },
+
+  async create() {
+    const path = await EnvManager.getEnvPath();
+    await fs.writeFile(path, "OPENAI_KEY=", 'utf8');
+    dotenv.config({ path: path, override: true });
+  },
+
+  async readKey(keyName) {
+    const path = await EnvManager.getEnvPath();
+
     // Refresh dotenv
-    dotenv.config({ path: this.ENV_PATH, override: true });
+    dotenv.config({ path: path, override: true });
 
     // TODO: implement api keys for other frameworks such as anthropic
     switch (keyName) {
@@ -34,7 +55,8 @@ const EnvManager = {
     },
 
     async writeKey(keyName, key) {
-      const envContent = await fs.readFile(this.ENV_PATH, 'utf8');
+      const path = await EnvManager.getEnvPath();
+      const envContent = await fs.readFile(path, 'utf8');
       const lines = envContent.split('\n');
       const keyIndex = lines.findIndex(line => line.startsWith(`${keyName}=`));
 
@@ -45,13 +67,14 @@ const EnvManager = {
         lines.push(`${keyName}=${key}`);
       }
 
-      await fs.writeFile(this.ENV_PATH, lines.join('\n'), 'utf8');
+      await fs.writeFile(path, lines.join('\n'), 'utf8');
       // Reload env
-      dotenv.config({ path: this.ENV_PATH, override: true });
+      dotenv.config({ path: path, override: true });
     },
 
     async removeKey(keyName) {
-      const envContent = await fs.readFile(this.ENV_PATH, 'utf8');
+      const path = await EnvManager.getEnvPath();
+      const envContent = await fs.readFile(path, 'utf8');
       const lines = envContent.split('\n');
       const keyIndex = lines.findIndex(line => line.startsWith(`${key}=`));
 
@@ -63,9 +86,9 @@ const EnvManager = {
           }
 
         lines[keyIndex] = `${key}=`;
-        await fs.writeFile(this.ENV_PATH, lines.join('\n'), 'utf8');
+        await fs.writeFile(path, lines.join('\n'), 'utf8');
         // Reload env
-        dotenv.config({ path: this.ENV_PATH, override: true });
+        dotenv.config({ path: path, override: true });
 
         return {
           success: true,
@@ -79,8 +102,9 @@ const EnvManager = {
       }
     },
 
-    isKeyEmpty(keyName) {
-      dotenv.config({ path: this.ENV_PATH });
+    async isKeyEmpty(keyName) {
+      const path = await EnvManager.getEnvPath();
+      dotenv.config({ path: path });
 
       switch (keyName) {
         case 'OPENAI_KEY':
