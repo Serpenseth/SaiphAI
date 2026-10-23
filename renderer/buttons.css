@@ -83,6 +83,11 @@
   width: 25%;
 }
 
+#abort-index-btn {
+  z-index: 10010;
+  pointer-events: auto;
+}
+
 .sidebar-actions {
   padding: 8px 5px 0.5rem;
   border-bottom: 1px solid var(--border-color);
