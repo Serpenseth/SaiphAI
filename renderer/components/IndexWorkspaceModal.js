@@ -1,11 +1,4 @@
-const DomQuery = {
-  getElement(element) {
-    if (element.includes('.') || element.includes('#'))
-      return document.querySelector(element)
-
-    return document.getElementById(element);
-  },
-}
+import { DomQuery } from '../utility/utilities.js';
 
 class IndexWorkspaceModal {
   constructor() {
@@ -33,4 +26,3 @@ export { IndexWorkspaceModal };
   // constructor(workspacePath) {
   //   this.workspace = workspacePath;
   // }
-
