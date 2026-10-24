@@ -432,10 +432,11 @@ const OllamaDetected = {
   async handleContinue() {
     this.destroy();
 
-    await ConfigFile.create();
-    await ConfigFile.saveToConfig({
-      selectedModel: Models.selected,
-      ollamaModelCount: Models.count
+    ConfigFile.create().then(_ => {
+      ConfigFile.saveToConfig({
+        selectedModel: Models.selected,
+        ollamaModelCount: Models.count
+      });
     });
 
     const isConnected = await OllamaBackend.checkConnection();
