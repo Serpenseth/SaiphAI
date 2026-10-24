@@ -3,7 +3,6 @@ import { DomQuery } from '../utility/utilities.js';
 class IndexWorkspaceModal {
   constructor() {
     this.indexingModal = DomQuery.getElement('indexing-workspace-modal');
-    this.indexingModalContent = DomQuery.getElement('index-workspace-dialog');
   }
 
   show() {
