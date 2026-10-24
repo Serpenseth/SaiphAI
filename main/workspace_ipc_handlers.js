@@ -1,6 +1,6 @@
 const { app, ipcMain } = require('electron');
 const path = require('path');
-// const { piscina } = require('./piscina_instance.js');
+const { piscina } = require('./piscina_instance.js');
 
 const { fork } = require('child_process');
 
