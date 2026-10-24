@@ -47,6 +47,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onIndexingProgress: (callback) => {
     ipcRenderer.on('indexing-progress', (event, data) => callback(data));
   },
+  abortIndexing: () => ipcRenderer.invoke('abort-indexing'),
 
   // Summarize text
   summarizeText: (text, includeText) => ipcRenderer.invoke('summarize-text', text, includeText),
