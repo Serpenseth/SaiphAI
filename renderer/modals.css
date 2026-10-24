@@ -49,11 +49,22 @@
   display: flex;
   padding: 14px 16px;
   align-items: center;
-  border-radius: 8px;
+  margin: 0;
   background: rgba(228, 235, 238, 0.05);
   color: var(--text-primary);
   min-height: 56px;
   width: 50%;
+  border-bottom: 1px solid rgba(228, 235, 238, 0.09);
+}
+
+.details li:first-child {
+  border-top: none;
+  border-radius: 5px 5px 0 0;
+}
+
+.details li:last-child {
+  border-bottom: none;
+  border-radius: 0 0 5px 5px;
 }
 
 .details.openai-details li {
