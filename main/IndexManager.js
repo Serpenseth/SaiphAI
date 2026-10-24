@@ -125,19 +125,6 @@ class SmartChunker {
   }
 }
 
-const Controller = {
-  signal: null,
-
-  set(abortController) {
-    Controller.signal = abortController;
-  },
-
-  destroy() {
-    Controller.signal.abort();
-    Controller.signal = null;
-  },
-}
-
 class DiskIndexManager {
   constructor(storageDir) {
     this.indexDir = path.join(storageDir, 'index');
@@ -265,18 +252,7 @@ class DiskIndexManager {
     return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
   }
 
-  _throwIfAborted() {
-    throw new Error('Indexing aborted');
-  }
-
-  stopIndexing(stoppedFile) {
-    Controller.destroy();
-
-  }
-
   async indexFile(filePath, onProgressCallback) {
-    Controller.set(new AbortController());
-
     try {
       if (onProgressCallback)
         onProgressCallback(filePath);
@@ -300,14 +276,12 @@ class DiskIndexManager {
 
         if (badFolders.has(baseName)) {
           console.log('Folder skipped:', baseName);
-          this.stopIndexing();
           return;
         }
 
         const entries = await fs.readdir(filePath, { withFileTypes: true });
 
         for (const entry of entries) {
-          this._throwIfAborted();
           await this.indexFile(path.join(filePath, entry.name), onProgressCallback);
         }
         return;
@@ -333,8 +307,6 @@ class DiskIndexManager {
         return;
       }
 
-      this._throwIfAborted();
-
       const content = await fs.readFile(filePath, 'utf8');
       const chunker = new SmartChunker();
       const chunks = chunker.chunk(content);
@@ -355,7 +327,6 @@ class DiskIndexManager {
 
         // Embed the enhanced chunk (includes file name semantics)
         const vector = await embeddingModel.embed(chunkWithFileName);
-        this._throwIfAborted();
 
         await fs.writeFile(path.join(this.vectorDir, `${chunkId}.vec`), Buffer.from(vector.buffer));
 
@@ -369,12 +340,10 @@ class DiskIndexManager {
           .filter(t => t.length >= 3);
 
         for (const word of keywords) {
-          this._throwIfAborted();
           await this._addToIndex(word, chunkId);
         }
 
         for (const token of fileNameTokens) {
-          this._throwIfAborted();
           await this._addToIndex(token.toLowerCase(), chunkId);
         }
       }
