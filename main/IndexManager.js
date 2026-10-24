@@ -316,7 +316,6 @@ class DiskIndexManager {
       await this._storeFilePath(fileId, filePath);
 
       for (let i = 0; i < chunks.length; i++) {
-        this._throwIfAborted();
         const chunkId = `${fileId}_${i}`;
 
         // Prepend file name to chunk content for context
