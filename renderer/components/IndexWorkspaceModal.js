@@ -1,22 +1,10 @@
 import { DomQuery } from '../utility/utilities.js';
 
 class IndexWorkspaceModal {
-  constructor() {
-    this.indexingModal = DomQuery.getElement('indexing-workspace-modal');
-  }
-
-  show() {
-    this.indexingModal.style.display = 'flex';
-    this.indexingModal.style.contentVisibility = '';
-    this.indexingModal.style.opacity = 1;
-    this.indexingModal.style.visibility = "visible";
-  }
-
-  hide() {
-    this.indexingModal.style.display = 'none';
-    this.indexingModal.style.contentVisibility = 'hidden';
-    this.indexingModal.style.opacity = 0;
-    this.indexingModal.style.visibility = "hidden";
+  show(state) {
+    const workspaceModal = 'indexing-workspace-modal';
+    DomQuery.toggleVisibility(workspaceModal, state);
+    DomQuery.showElement(workspaceModal, state);
   }
 }
 
