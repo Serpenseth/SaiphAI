@@ -200,64 +200,40 @@ const Utility = {
   },
 }
 
-const DomQuery = {
-  getElement(element) {
-    if (element.includes('.') || element.includes('#'))
-      return document.querySelector(element)
-
-    return document.getElementById(element);
-  },
-}
-
-const PathUtils = {
-  getFileName(path) {
-    if (path) {
-      const normalized = path.replaceAll('\\', '/').trim();
-      return normalized.substring(normalized.lastIndexOf('/') + 1);
-    }
-    else
-      return path;
-
-    return 'Untitled';
-  },
-}
-
-class ResizeManager {
-  constructor(ui) {
-    this.startMouseX = 0;
-    this.startWidth = 0;
-
-    this.ui = ui;
-    this.boundResize = this.resize.bind(this);
-    this.boundStopResize = this.stopResize.bind(this);
-  }
+const ResizeManager = {
+  startMouseX: 0,
+  startWidth: 0,
+  savedWidth: 0,
 
   startResize(e) {
-    this.startMouseX = e.clientX;
-    this.startWidth = this.ui.sidebar.offsetWidth;
-  }
+    const sidebar = DomQuery.getElement('sidebar');
+    ResizeManager.startMouseX = e.clientX;
+    ResizeManager.startWidth = sidebar.offsetWidth;
+    ResizeManager.savedWidth = sidebar.style.width;
+  },
 
   resize(e) {
-    const box = this.ui.sidebar;
+    const box = DomQuery.getElement('sidebar');
     const minWidth = 180;
     const maxWidth = window.innerWidth * 0.2;
 
     // Calculate how much the mouse has moved since the click
-    const deltaX = e.clientX - this.startMouseX;
-    let newWidth = this.startWidth + deltaX;
+    const deltaX = e.clientX - ResizeManager.startMouseX;
+    let newWidth = ResizeManager.startWidth + deltaX;
 
     // Clamp the value
     newWidth = Math.max(minWidth, Math.min(newWidth, maxWidth));
 
     box.style.width = newWidth + 'px';
-    this.ui.savedWidth = box.style.width;
-  }
+    ResizeManager.savedWidth = box.style.width;
+  },
 
   stopResize() {
-    window.removeEventListener('mousemove', this.boundResize);
-    window.removeEventListener('mouseup', this.boundStopResize);
+    window.removeEventListener('mousemove', ResizeManager.resize);
+    window.removeEventListener('mouseup', ResizeManager.stopResize);
   }
 }
+
 
 class SideBarUI {
   constructor() {
@@ -417,25 +393,30 @@ class EventHandler {
           attachOpenedFile.disabled = false;
           AttachSelectedFiles.add(item);
         }
+        */
 
         await this.coordinator.loadFileContents(fullPath);
       }
     });
 
-    this.addListener(this.ui.resizeHandle, 'mousedown', (e) => {
+    const resizeHandle = DomQuery.getElement("handle-sidebar");
+
+    this.addListener(resizeHandle, 'mousedown', (e) => {
       if (this.ui.isHidden)
         return;
 
       e.preventDefault();
 
-      this.resizeManager.startResize(e);
+      ResizeManager.startResize(e);
 
-      window.addEventListener('mousemove', this.resizeManager.boundResize);
-      window.addEventListener('mouseup', this.resizeManager.boundStopResize);
+      window.addEventListener('mousemove', ResizeManager.resize);
+      window.addEventListener('mouseup', ResizeManager.stopResize);
     });
 
     this.addListener(this.ui.hideSidebar, 'click', () => this.ui.hide());
     this.addListener(this.ui.showSidebar, 'click', () => this.ui.show());
+
+    const workspaceModal = this.coordinator.workspaceModal;
 
     this.addListener(this.ui.openWorkspaceButton, 'click', async () => {
       const workspace = await Backend.getWorkspace();
@@ -544,8 +525,8 @@ class SideBar {
 
 export function createSidebar(/*projectPath, */ fileTabManager) {
   const ui = new SideBarUI();
-  const resizeManager = new ResizeManager(ui);
-  const eventHandler = new EventHandler(ui, null, resizeManager);
+  // const resizeManager = new ResizeManager(ui);
+  const eventHandler = new EventHandler(ui, null);
 
   const sidebar = new SideBar(
     //projectPath,
