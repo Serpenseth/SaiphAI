@@ -392,14 +392,12 @@ const EventFunctions = {
 
     if (workspace) {
       await WorkspaceConfig.setWorkspacePath(workspace);
-      SidebarConfig.projectPath = workspace;
+      await SideBar.populate(workspace);
 
+      SidebarConfig.projectPath = workspace;
       Ui.removeEmptyMessage();
 
-      //await this.coordinator.populate();
-
-
-      workspaceModal.show(true);
+      //workspaceModal.show(true);
       //this.coordinator.indexWorkspace(workspace);
     }
   },
@@ -457,7 +455,7 @@ const SideBar = {
   },
 
   async populate(path) {
-    const projectPath = SidebarConfig.projectPath || path;
+    const projectPath = path || SidebarConfig.projectPath;
     const projectContents = await FileHandler.loadFileTree(projectPath);
     FileTree.populate(projectContents);
   },
