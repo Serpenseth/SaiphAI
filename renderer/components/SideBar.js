@@ -373,27 +373,6 @@ class EventHandler {
 
         item.classList.add('selected');
 
-        const openedFilesSelection = DomQuery.getElement('selected-opened-files');
-        const attachOpenedFile = DomQuery.getElement('attach-opened-file');
-
-        if (!openedFilesSelection) {
-          AttachSelectedFiles.create();
-
-          attachOpenedFile.removeAttribute('data-tooltip');
-          attachOpenedFile.style.cursor = 'pointer';
-          attachOpenedFile.disabled = false;
-
-          AttachSelectedFilesClickHandler.init();
-        }
-
-        else {
-          attachOpenedFile.removeAttribute('data-tooltip');
-          attachOpenedFile.style.cursor = 'pointer';
-          attachOpenedFile.disabled = false;
-          AttachSelectedFiles.add(item);
-        }
-        */
-
         await this.coordinator.loadFileContents(fullPath);
       }
     });
