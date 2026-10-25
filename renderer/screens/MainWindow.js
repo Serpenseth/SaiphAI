@@ -1,4 +1,5 @@
-import { createSidebar } from '../components/SideBar.js';
+//import { createSidebar } from '../components/SideBar.js';
+import { SideBar as Sidebar } from '../components/SideBar.js';
 // import { createChatPanel } from '../components/ChatPanel.js';
 import { ChatPanel } from '../components/ChatPanel.js';
 
@@ -378,13 +379,13 @@ class MainWindow {
     backend,
     ui,
     eventHandler,
-    sidebar,
+    ///sidebar,
     config
   ) {
     this.service = backend;
     this.ui = ui;
     this.eventHandler = eventHandler;
-    this.sidebar = sidebar;
+    // this.sidebar = sidebar;
     this.config = config;
 
     this.boundTryAgain = this.tryAgain.bind(this);
@@ -392,6 +393,7 @@ class MainWindow {
 
   async init() {
     this.eventHandler.init();
+    Sidebar.init();
 
     /*
     if (this.config.workspacePath) {
@@ -399,11 +401,13 @@ class MainWindow {
     }
     */
 
+    /*
     if (this.config.showSidebar)
       this.sidebar.show();
 
     else
       this.sidebar.hide();
+    */
 
     if (this.config.showChatPanel)
       ChatPanel.show(true);
@@ -575,18 +579,17 @@ export function createMainWindow(config) {
   const ui = new MainWindowUI();
   const eventHandler = new EventHandler(ui, null);
 
-  const sidebar = createSidebar(fileTabManager);
-
+  //const sidebar = createSidebar(fileTabManager);
   const mainWindow = new MainWindow(
     Backend,
     ui,
     eventHandler,
-    sidebar,
+    //Sidebar,
     config
   );
 
   eventHandler.coordinator = mainWindow;
-  sidebar.mainUI = mainWindow;
+  //sidebar.mainUI = mainWindow;
 
   return mainWindow;
 }
