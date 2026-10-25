@@ -203,7 +203,7 @@ const Utility = {
 const ResizeManager = {
   startMouseX: 0,
   startWidth: 0,
-  savedWidth: 0,
+  savedWidth: 180,
 
   startResize(e) {
     const sidebar = DomQuery.getElement('sidebar');
@@ -234,6 +234,28 @@ const ResizeManager = {
   }
 }
 
+const Ui = {
+  async showSidebar(state) {
+    Config.saveSidebarVisibility(state).then(_ => {
+      DomQuery.toggleVisibility('file-tree', state);
+      DomQuery.showElement('show-sidebar', !state);
+      DomQuery.showElement('hide-sidebar', state);
+
+      if (state) {
+        const savedWidth = ResizeManager.savedWidth + 'px';
+        DomQuery.setWidth('sidebar', savedWidth);
+        DomQuery.setWidth('sidebar-container', savedWidth);
+        DomQuery.updateText('settings-text', 'Settings');
+      }
+
+      else {
+        DomQuery.setWidth('sidebar', '40px');
+        DomQuery.setWidth('sidebar-container', '40px');
+        DomQuery.updateText('settings-text', '');
+      }
+    });
+  },
+}
 
 class SideBarUI {
   constructor() {
@@ -391,8 +413,8 @@ class EventHandler {
       window.addEventListener('mouseup', ResizeManager.stopResize);
     });
 
-    this.addListener(this.ui.hideSidebar, 'click', () => this.ui.hide());
-    this.addListener(this.ui.showSidebar, 'click', () => this.ui.show());
+    this.addListener(this.ui.hideSidebar, 'click', () => Ui.showSidebar(false));
+    this.addListener(this.ui.showSidebar, 'click', () => Ui.showSidebar(true));
 
     const workspaceModal = this.coordinator.workspaceModal;
 
