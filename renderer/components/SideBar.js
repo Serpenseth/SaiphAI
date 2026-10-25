@@ -397,14 +397,14 @@ const EventFunctions = {
       SidebarConfig.projectPath = workspace;
       Ui.removeEmptyMessage();
 
-      //workspaceModal.show(true);
-      //await IndexingService.index(workspacePath);
+      IndexWorkspaceModal.show(true);
+      await IndexingService.index(workspace);
     }
   },
 
   async stopIndexing() {
     await IndexingService.stop();
-    workspaceModal.show(false);
+    IndexWorkspaceModal.show(false);
     setTimeout(() => alert('Indexing aborted'), 250);
   },
 }
