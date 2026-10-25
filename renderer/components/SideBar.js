@@ -453,8 +453,9 @@ class EventHandler {
     this.addListener(this.ui.showSidebar, 'click', () => Ui.showSidebar(true));
 
     const workspaceModal = this.coordinator.workspaceModal;
+    const workspaceButton = DomQuery.getElement('open-workspace');
 
-    this.addListener(this.ui.openWorkspaceButton, 'click', async () => {
+    this.addListener(workspaceButton, 'click', async () => {
       const workspace = await Backend.getWorkspace();
 
       if (workspace) {
