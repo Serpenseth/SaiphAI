@@ -314,11 +314,10 @@ class SideBarUI {
 }
 
 class EventHandler {
-    constructor(ui, coordinator, resizeManager) {
+    constructor(ui, coordinator) {
     this.ui = ui;
     this.coordinator = coordinator;
     this.controller = new AbortController();
-    this.resizeManager = resizeManager;
   }
 
   addListener(element, event, handler) {
