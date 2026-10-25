@@ -123,6 +123,10 @@ const Backend = {
     return await window.electronAPI.indexWorkspace(workspacePath);
   },
 
+  async abortIndexing() {
+    await window.electronAPI.abortIndexing();
+  },
+
   async readFile(filePath) {
     return await window.electronAPI.readFile(filePath);
   },
@@ -443,13 +447,22 @@ class EventHandler {
         await this.coordinator.populate();
         await Backend.saveWorkspace(workspace);
 
-        this.coordinator.workspaceModal.show();
-        this.coordinator.indexWorkspace(workspace)
+        workspaceModal.show(true);
+        this.coordinator.indexWorkspace(workspace);
       }
     });
 
     window.electronAPI.onIndexingProgress((filePath) => {
-      DomQuery.getElement('indexing-text').textContent = `${filePath}`;
+      if (filePath)
+        DomQuery.getElement('indexing-text').textContent = `${filePath}`;
+    });
+
+    const stopIndexBtn = DomQuery.getElement('abort-index-btn');
+
+    this.addListener(stopIndexBtn, 'click', async () => {
+      await Backend.abortIndexing();
+      workspaceModal.show(false);
+      setTimeout(() => alert('Indexing aborted'), 250);
     });
   }
 }
