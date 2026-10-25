@@ -257,6 +257,38 @@ const Ui = {
   },
 }
 
+const FileTree = {
+  populate(items, container=null) {
+    const target = container || DomQuery.getElement('file-tree');
+    target.innerHTML = '';
+
+    for (const item of items) {
+      const div = document.createElement('div');
+      const isDir = item.isDirectory;
+
+      div.classList.add('file-item');
+
+      if (isDir)
+        div.classList.add('directory');
+
+      if (item.name.length > 18)
+        div.title = item.name;
+
+      div.dataset.path = item.path.replaceAll('\\', '/').trim();
+
+      const icon = isDir ? '📁' : ''
+      const fileIcon = document.createElement('span');
+
+      fileIcon.className = 'file-icon';
+      fileIcon.textContent = icon;
+      fileIcon.textContent += item.name;
+
+      div.appendChild(fileIcon);
+      target.appendChild(div);
+    }
+  }
+}
+
 class SideBarUI {
   constructor() {
     this.sidebarContainer = document.getElementById('sidebar-container');
@@ -491,7 +523,8 @@ class SideBar {
 
   async populate() {
     const projectContents = await this.service.loadFileTree(this.projectPath);
-    this.ui.populate(projectContents);
+    FileTree.populate(projectContents);
+    //this.ui.populate(projectContents);
   }
 
   async loadFileContents(file) {
