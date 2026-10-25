@@ -255,6 +255,10 @@ const Ui = {
       }
     });
   },
+
+  removeEmptyMessage() {
+    DomQuery.removeElement('sidebar-empty');
+  }
 }
 
 const FileTree = {
