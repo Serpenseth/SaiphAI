@@ -6,14 +6,6 @@ import {
   DomQuery,
 } from '../utility/utilities.js';
 
-/*
-import {
-  AttachSelectedFiles,
-  AttachSelectedFilesClickHandler,
-} from './AttachSelectedFiles.js';
-*/
-
-
 import { IndexWorkspaceModal } from './IndexWorkspaceModal.js';
 
 const IndexingService = {
