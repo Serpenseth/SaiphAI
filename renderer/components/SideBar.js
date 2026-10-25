@@ -42,6 +42,11 @@ const Config = {
     await window.electronAPI.writeToConfigFile({ showSidebar: state });
   },
 
+  async getSidebarVisibility() {
+    const config = await window.electronAPI.readConfigFile();
+    return config.showSidebar;
+  },
+
   async saveSidebarWidth(width) {
     await window.electronAPI.writeToConfigFile({ sidebarWidth: width });
   },
@@ -290,9 +295,147 @@ const FileTree = {
       div.appendChild(fileIcon);
       target.appendChild(div);
     }
-  }
+  },
 }
 
+const Controller = {
+  abortController: null,
+
+  init() {
+    this.abortController = new AbortController();
+  },
+}
+
+const EventHandler = {
+  setupEvents(elems, fn, abortSignal) {
+    elems.forEach(({ id, fn }) => {
+      const elem = DomQuery.getElement(id);
+
+      if (elem)
+        elem.addEventListener('click', fn, { signal: abortSignal });
+    });
+  },
+
+  setupResizeEvent(elem, fn, abortSignal) {
+    const el = DomQuery.getElement(elem);
+    el.addEventListener('mousedown', fn, { signal: abortSignal });
+  },
+}
+
+const EventFunctions = {
+  resize(e) {
+    if (DomQuery.getElement('sidebar').style.width === '40px')
+      return;
+
+    e.preventDefault();
+    ResizeManager.startResize(e);
+
+    window.addEventListener('mousemove', ResizeManager.resize);
+    window.addEventListener('mouseup', ResizeManager.stopResize);
+  },
+
+  async fileTreeItemClick(e) {
+    const item = e.target.closest('.file-item');
+
+    if (!item)
+      return;
+
+    if (item.classList.contains('directory')) {
+      const path = item.dataset.path;
+
+      // Remove existing children if already open
+      const existing = item.nextElementSibling;
+
+      if (existing?.classList.contains('dir-children')) {
+        existing.remove();
+        return;
+      }
+
+      // Create targeted container for children
+      const div = document.createElement('div');
+      div.className = 'dir-children';
+
+      // Apply styles to the container for nesting
+      div.style.paddingLeft = '1rem';
+      div.style.borderLeft = '1px solid #242B34';
+      div.style.padding =  '0.375rem';
+      div.style.marginLeft = '1rem';
+      div.style.borderRadius = '0 4px 4px 0px';
+
+      item.after(div);
+
+      const items = await FileHandler.loadFileTree(path);
+      FileTree.populate(items, div);
+    }
+
+    else if (!item.classList.contains('directory')) {
+      /*
+      const fullPath = item.dataset.path;
+      const fname = Utility.removeExtension(fullPath);
+      const allTabs = this.coordinator.fileTabManager.getAll();
+
+      for (let [id, tab] of allTabs) {
+        if (tab.fileTab.element().textContent.includes(fname)) {
+          this.coordinator.mainUI.ui.switchToFileTab(id);
+          return
+        }
+      }
+
+      item.classList.add('selected');
+      await this.coordinator.loadFileContents(fullPath);
+      */
+    }
+  },
+
+  async openWorkspace() {
+    const workspace = await FileHandler.openWorkspaceFolderChooser();
+
+    if (workspace) {
+      await WorkspaceConfig.setWorkspacePath(workspace);
+      SidebarConfig.projectPath = workspace;
+
+      Ui.removeEmptyMessage();
+
+      //await this.coordinator.populate();
+
+
+      workspaceModal.show(true);
+      //this.coordinator.indexWorkspace(workspace);
+    }
+  },
+
+  async stopIndexing() {
+    await IndexingService.stop();
+    workspaceModal.show(false);
+    setTimeout(() => alert('Indexing aborted'), 250);
+  },
+}
+
+const Events = {
+  init() {
+    EventHandler.setupEvents([
+      { id: 'file-tree', fn: (e) => EventFunctions.fileTreeItemClick(e) },
+      { id: 'handle-sidebar', fn: (e) => EventFunctions.resize(e) },
+      { id: 'open-workspace', fn: () => EventFunctions.openWorkspace() },
+      { id: 'abort-index-btn', fn: () => EventFunctions.stopIndexing() },
+      { id: 'hide-sidebar', fn: () => Ui.showSidebar(false) },
+      { id: 'show-sidebar', fn: () => Ui.showSidebar(true) },
+    ]);
+
+    EventHandler.setupResizeEvent(
+      'handle-sidebar',
+      (e) => EventFunctions.resize(e),
+      Controller.abortController.signal,
+    );
+
+    window.electronAPI.onIndexingProgress((filePath) => {
+      if (filePath)
+        DomQuery.getElement('indexing-text').textContent = `${filePath}`;
+    });
+  },
+}
+
+/*
 class EventHandler {
     constructor(ui, coordinator) {
     this.ui = ui;
@@ -405,55 +548,40 @@ class EventHandler {
       setTimeout(() => alert('Indexing aborted'), 250);
     });
   }
+}*/
+
+const SidebarConfig = {
+  projectPath: null,
+  isHidden: false
 }
 
-class SideBar {
-  constructor(
-    //projectPath,
-    backend,
-    ui,
-    eventHandler,
-    fileTabManager
-  ) {
-    this.projectPath = null; // projectPath;
-    this.service = backend;
-    this.ui = ui;
-    this.eventHandler = eventHandler;
-    this.fileTabManager = fileTabManager;
-    this.mainUI = null;
+const SideBar = {
+  init() {
+    Controller.init();
+    Events.init();
 
-    this.workspaceModal = new IndexWorkspaceModal();
-  }
+    Config.getSidebarVisibility().then(shouldShow => {
+      Ui.showSidebar(shouldShow);
+      SidebarConfig.isHidden = shouldShow;
+    });
 
-  show() {
-    this.ui.show();
-    this.eventHandler.init();
+    WorkspaceConfig.getWorkspacePath().then(path => {
+      this.populate(path);
+      SidebarConfig.projectPath = path;
+    });
+  },
 
-    this.service.getWorkspaceFromConfig()
-      .then(res => {
-        if (res) {
-          this.projectPath = res;
-          this.populate();
-
-          //this.indexWorkspace(res);
-        }
-      });
-  }
+  async populate(path) {
+    const projectPath = SidebarConfig.projectPath || path;
+    const projectContents = await FileHandler.loadFileTree(projectPath);
+    FileTree.populate(projectContents);
+  },
 
   async indexWorkspace(workspacePath) {
-    return await this.service.indexWorkspace(workspacePath);
-  }
+    await IndexingService.index(workspacePath);
+  },
 
-  hide() {
-    this.ui.hide();
-  }
-
-  async populate() {
-    const projectContents = await this.service.loadFileTree(this.projectPath);
-    FileTree.populate(projectContents);
-    //this.ui.populate(projectContents);
-  }
-
+  /*
   async loadFileContents(file) {
     try {
       const mainUI = this.mainUI.ui;
@@ -481,23 +609,7 @@ class SideBar {
       throw e;
     }
   }
+  */
 }
 
-export function createSidebar(/*projectPath, */ fileTabManager) {
-  const ui = new SideBarUI();
-  // const resizeManager = new ResizeManager(ui);
-  const eventHandler = new EventHandler(ui, null);
-
-  const sidebar = new SideBar(
-    //projectPath,
-    Backend,
-    ui,
-    eventHandler,
-    fileTabManager
-  );
-
-  eventHandler.coordinator = sidebar;
-
-  return sidebar;
-}
-
+export { SideBar }
