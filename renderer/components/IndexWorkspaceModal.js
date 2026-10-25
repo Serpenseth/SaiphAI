@@ -1,6 +1,6 @@
 import { DomQuery } from '../utility/utilities.js';
 
-class IndexWorkspaceModal {
+const IndexWorkspaceModal = {
   show(state) {
     const workspaceModal = 'indexing-workspace-modal';
     DomQuery.toggleVisibility(workspaceModal, state);
