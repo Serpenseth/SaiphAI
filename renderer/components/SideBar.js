@@ -398,7 +398,7 @@ const EventFunctions = {
       Ui.removeEmptyMessage();
 
       //workspaceModal.show(true);
-      //this.coordinator.indexWorkspace(workspace);
+      //await IndexingService.index(workspacePath);
     }
   },
 
@@ -458,10 +458,6 @@ const SideBar = {
     const projectPath = path || SidebarConfig.projectPath;
     const projectContents = await FileHandler.loadFileTree(projectPath);
     FileTree.populate(projectContents);
-  },
-
-  async indexWorkspace(workspacePath) {
-    await IndexingService.index(workspacePath);
   },
 
   /*
