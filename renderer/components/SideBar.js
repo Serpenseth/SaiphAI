@@ -255,26 +255,26 @@ const EventFunctions = {
 
       item.after(div);
 
-      const items = await FileHandler.loadFileTree(path);
-      FileTree.populate(items, div);
+      FileHandler.loadFileTree(path).then(items => {
+        FileTree.populate(items, div);
+      });
     }
 
     else if (!item.classList.contains('directory')) {
-      /*
       const fullPath = item.dataset.path;
-      const fname = Utility.removeExtension(fullPath);
-      const allTabs = this.coordinator.fileTabManager.getAll();
-
+      // const fname = Utility.removeExtension(fullPath);
+      //const allTabs = this.coordinator.fileTabManager.getAll();
+/*
       for (let [id, tab] of allTabs) {
         if (tab.fileTab.element().textContent.includes(fname)) {
           this.coordinator.mainUI.ui.switchToFileTab(id);
           return
         }
-      }
+      }*/
 
       item.classList.add('selected');
-      await this.coordinator.loadFileContents(fullPath);
-      */
+      SideBar.getClickedItemInTree(fullPath);
+      // await this.coordinator.loadFileContents(fullPath);
     }
   },
 
@@ -349,6 +349,10 @@ const SideBar = {
     const projectPath = path || SidebarConfig.projectPath;
     const projectContents = await FileHandler.loadFileTree(projectPath);
     FileTree.populate(projectContents);
+  },
+
+  getClickedItemInTree(item) {
+    return item;
   },
 
   /*
