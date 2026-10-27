@@ -851,15 +851,17 @@ const ChatPanel = {
     const currentTabData = ChatTab.getTabChats(fullTabID);
     const isOnlyTab =  ChatTab.getTabCount() === 1;
     const prevTabSlot = currentTabData.slot - 1;
+
     const prev = ChatTab.getTabChatIDBySlot(!isOnlyTab ? prevTabSlot : 0);
     const prevCompleteID = `ai-tab-${prev}`;
 
     if (!isOnlyTab && currentTabData.slot !== 0) {
+      Controller.abort(TabHandler.getTabRawID(fullTabID));
       ChatTab.remove(fullTabID);
       Ui.removePanel(fullTabID);
-      Controller.abort(TabHandler.getTabRawID(prev));
       DomQuery.showElement(`ai-panel-${prev}`, true);
       TabHandler.switchToTab(prevCompleteID);
+
     }
 
     else {
