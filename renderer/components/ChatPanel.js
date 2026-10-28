@@ -397,33 +397,12 @@ const TabHandler = {
     DomQuery.showElement(`ai-panel-${id}`, shouldShow);
   },
 
-  switchToTab(fullTabID) {
-    const oldID = ChatTab.getActiveTabRawID();
-    const id = ChatTab.getTabRawID(fullTabID);
-    ChatTab.setActiveTab(fullTabID);
-  },
-
-  removeTab(fullTabID) {
-    const id = ChatTab.getTabRawID(fullTabID);
-    DomQuery.removeElement(`ai-panel-${id}`);
-
-    const tabToRemove = ChatTab.getTabChats(fullTabID);
-    const oldTabSlot = tabToRemove.slot - 1;
-    const moreThanTwo = oldTabSlot > 0;
-
-    const prevID = ChatTab.getTabChatIDBySlot(moreThanTwo ? oldTabSlot : 0);
-    ChatTab.setActiveTab(`ai-tab-${prevID}`);
-
-    if (moreThanTwo)
-      ChatTab.remove(fullTabID);
-  },
-
   createNewTab() {
     ChatTab.create();
 
     if (ChatTab.getTabCount() > 1) {
       const newTabID = ChatTab.getActiveTabRawID();
-      this.switchToTab(`ai-tab-${newTabID}`);
+      ChatTab.switchChatTabs(`ai-tab-${newTabID}`);
     }
   },
 
@@ -816,6 +795,7 @@ const ChatPanel = {
     EventSetup.init(rawID, this);
   },
 
+
   newChatTab() {
     const tabCount = ChatTab.getTabCount();
 
@@ -824,8 +804,7 @@ const ChatPanel = {
       DomQuery.showElement(`ai-panel-${oldID}`, false);
     }
 
-    TabHandler.createNewTab();
-
+    ChatTab.create();
     const id = TabHandler.getActiveTabRawID();
     const newPanel = ChatPanelUi.create(id);
 
@@ -833,14 +812,15 @@ const ChatPanel = {
     this.createEvents(id);
   },
 
+
   switchToTab(fullTabID) {
-    const oldID = TabHandler.getActiveTabRawID();
+    const oldID = ChatTab.getActiveTabRawID();
     DomQuery.showElement(`ai-panel-${oldID}`, false);
 
-    const idn = TabHandler.getTabRawID(fullTabID);
-    DomQuery.showElement(`ai-panel-${idn}`, true);
+    const newID = ChatTab.getTabRawID(fullTabID);
+    DomQuery.showElement(`ai-panel-${newID}`, true);
 
-    TabHandler.switchToTab(fullTabID);
+    ChatTab.switchChatTabs(oldID, newID);
   },
 
   clearChats(fullTabID) {
@@ -848,27 +828,13 @@ const ChatPanel = {
   },
 
   closeTab(fullTabID) {
-    const currentTabData = ChatTab.getTabChats(fullTabID);
-    const isOnlyTab =  ChatTab.getTabCount() === 1;
-    const prevTabSlot = currentTabData.slot - 1;
+    const tabCount = ChatTab.getTabCount();
 
-    const prev = ChatTab.getTabChatIDBySlot(!isOnlyTab ? prevTabSlot : 0);
-    const prevCompleteID = `ai-tab-${prev}`;
-
-    if (!isOnlyTab && currentTabData.slot !== 0) {
-      Controller.abort(TabHandler.getTabRawID(fullTabID));
-      ChatTab.remove(fullTabID);
-      Ui.removePanel(fullTabID);
-      DomQuery.showElement(`ai-panel-${prev}`, true);
-      TabHandler.switchToTab(prevCompleteID);
-
-    }
-
-    else {
-      const firstTabID = ChatTab.getTabChatIDBySlot(0);
+    if (tabCount === 1) {
+      const firstTab = ChatTab.getFirstTab();
+      const firstTabID = ChatTab.getTabRawID(firstTab);
 
       ChatsHandler.addChatForTab(firstTabID, {
-        slot: 0,
         title: 'Untitled',
         user: [],
         system: []
@@ -877,6 +843,36 @@ const ChatPanel = {
       Ui.clearChatbox(firstTabID);
       Ui.clearChats(firstTabID);
       TabHandler.setTabTitle(firstTabID, 'Untitled');
+    }
+
+    const tabToRemoveRawID = ChatTab.getTabRawID(fullTabID);
+
+    if (tabCount > 1) {
+      if (ChatTab.getFirstTab() !== fullTabID) {
+        const prev = ChatTab.getPreviousTabFrom(fullTabID);
+        const prevRawID = ChatTab.getTabRawID(prev);
+
+        if (ChatTab.getActiveTab() === fullTabID) {
+          ChatTab.switchChatTabs(tabToRemoveRawID, prevRawID);
+        }
+
+        DomQuery.showElement(`ai-panel-${prevRawID}`, true);
+      }
+
+      else {
+        const next = ChatTab.getNextTabFrom(fullTabID);
+        const nextRawID = ChatTab.getTabRawID(next);
+
+        if (ChatTab.getActiveTab() === fullTabID) {
+          ChatTab.switchChatTabs(tabToRemoveRawID, nextRawID);
+        }
+
+        DomQuery.showElement(`ai-panel-${nextRawID}`, true);
+      }
+
+      Ui.removePanel(fullTabID);
+      Controller.abort(tabToRemoveRawID);
+      ChatTab.remove(fullTabID);
     }
   },
 
@@ -903,7 +899,6 @@ const ChatPanel = {
       chats.system.push(aiMsg);
 
       ChatsHandler.addChatForTab(id, {
-        slot: chats.slot,
         title: title,
         user: chats.user,
         system: chats.system

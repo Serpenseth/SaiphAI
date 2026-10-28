@@ -37,14 +37,26 @@ const Ui = {
       .getElement(`${this.aiTab}-${rawID}`)
       .querySelector('p').textContent = newTitle;
   },
-}
 
-const ChatTabState = {
-  setActive(rawID, active) {
+  setActiveState(rawID, active) {
     const tab = `ai-tab-${rawID}`;
     active
       ? DomQuery.setElementClass(tab, 'active', true)
       : DomQuery.setElementClass(tab, 'active', false);
+  },
+
+  getActiveTab() {
+    const active = document.querySelector('.tabAI.active');
+    return active?.id;
+  },
+
+  getAllTabs() {
+    const allOpenedTabs = document.querySelectorAll('.tabAI');
+    return Array.from(allOpenedTabs);
+  },
+
+  getTabCount() {
+    return this.getAllTabs().length;
   },
 }
 
@@ -59,7 +71,6 @@ const ChatsHandler = {
 
   addChat(id, chatData) {
     UserChats.history.set(id, {
-      slot: chatData.slot,
       title: chatData.title,
       user: chatData.user,
       system: chatData.system,
@@ -71,38 +82,8 @@ const ChatsHandler = {
   },
 
   getAllChats() {
-    return UserChats.history;
+    return Array.from(UserChats.history);
   },
-
-  lastChat() {
-    return Array.from(UserChats.history.entries()).pop();
-  },
-
-  getChatBySlot(slot) {
-    for (const [key, value] of UserChats.history) {
-      if (value.slot === slot)
-        return UserChats.history.get(key);
-    }
-
-    return null;
-  },
-
-  getChatIDBySlot(slot) {
-    for (const [key, value] of UserChats.history) {
-      if (value.slot === slot)
-        return key;
-    }
-
-    return null;
-  },
-}
-
-const ChatTabManager = {
-  active: null,
-
-  setActiveTab(id) {
-    this.active = id;
-  }
 }
 
 const TabID = {
@@ -115,34 +96,71 @@ const ChatTab = {
   create() {
     const id = UuidGenerator.generate();
     const tab = ChatTabUi.create(id);
-    const prev = ChatTabManager.active;
+    const active = Ui.getActiveTab();
 
-    Ui.attachTab(tab);
-    ChatTabState.setActive(id, true);
-
-    if (prev) {
-      const oldID = TabID.get(prev);
-      ChatTabState.setActive(oldID, false);
+    if (active) {
+      Ui.setActiveState(TabID.get(active), false);
     }
 
-    let lastChat;
-
-    if (prev)
-      lastChat = ChatsHandler.lastChat();
-
+    Ui.attachTab(tab);
     ChatsHandler.addChat(id, {
-      slot: !lastChat ? 0 : lastChat[1].slot + 1,
       title: 'Untitled',
       user: [],
       system: []
     });
-    ChatTabManager.setActiveTab(`ai-tab-${id}`);
+
+    Ui.setActiveState(id, true);
   },
 
   remove(fullTabID) {
-    const id = TabID.get(fullTabID);
-    Ui.removeTab(id);
-    ChatsHandler.removeChat(id);
+    const idOfTabToRemove = TabID.get(fullTabID);
+    Ui.removeTab(idOfTabToRemove);
+    ChatsHandler.removeChat(idOfTabToRemove);
+  },
+
+  getPreviousTabFrom(fullTabID) {
+    const count = Ui.getTabCount();
+
+    if (count === 1) {
+      return Ui.getAllTabs()[0].id;
+    }
+
+    const allTabs = Ui.getAllTabs();
+    let prevTabToSwitchTo;
+
+    for (let i = 0; i < allTabs.length; i++) {
+      if (allTabs[i].id === fullTabID) {
+        if (i - 1 > 0) {
+          prevTabToSwitchTo = allTabs[i-1].id;
+        }
+      }
+    }
+
+    return prevTabToSwitchTo;
+  },
+
+  getNextTabFrom(fullTabID) {
+    const count = Ui.getTabCount();
+
+    if (count === 1) {
+      return;
+    }
+
+    const allTabs = Ui.getAllTabs();
+    let nextTabToSwitchTo;
+
+    for (let i = 0; i < allTabs.length; i++) {
+      if (allTabs[i].id === fullTabID) {
+        nextTabToSwitchTo = allTabs[i+1].id;
+      }
+    }
+
+    return nextTabToSwitchTo;
+  },
+
+  switchChatTabs(currentTabRawID, newTabRawID) {
+    Ui.setActiveState(currentTabRawID, false);
+    Ui.setActiveState(newTabRawID, true);
   },
 
   removeChatsFromTab(fullTabID) {
@@ -150,38 +168,20 @@ const ChatTab = {
     ChatsHandler.removeChat(id);
   },
 
-  setActiveTab(fullTabID) {
-    const oldID = TabID.get(ChatTabManager.active);
-    ChatTabState.setActive(oldID, false);
-
-    ChatTabManager.setActiveTab(fullTabID);
-
-    const id = TabID.get(fullTabID);
-    ChatTabState.setActive(id, true);
-  },
-
-  getLastTabChatEntry() {
-    return ChatsHandler.lastChat();
-  },
-
-  getTabChatBySlot(slot) {
-    return ChatsHandler.getChatBySlot(slot);
-  },
-
-  getTabChatIDBySlot(slot) {
-    return ChatsHandler.getChatIDBySlot(slot);
+  getFirstTab() {
+    return Ui.getAllTabs()[0].id;
   },
 
   getActiveTab() {
-    return ChatTabManager.active;
+    return Ui.getActiveTab();
   },
 
   getActiveTabElement() {
-    return Ui.getTab(TabID.get(ChatTabManager.active));
+    return Ui.getTab(TabID.get(Ui.getActiveTab()));
   },
 
   getActiveTabRawID() {
-    return TabID.get(ChatTabManager.active);
+    return TabID.get(Ui.getActiveTab());
   },
 
   getTabRawID(fullTabID) {
@@ -201,7 +201,7 @@ const ChatTab = {
   },
 
   getTabCount() {
-    return ChatsHandler.getAllChats().size;
+    return Ui.getTabCount();
   },
 
   addTabToHistory(fullTabID, tabData) {
@@ -211,6 +211,10 @@ const ChatTab = {
 
   getAllChats() {
     return ChatsHandler.geAllChats();
+  },
+
+  getAllTabs() {
+    return Ui.getAllTabs();
   },
 
   updateTabTitle(fullTabID, newTitle) {
