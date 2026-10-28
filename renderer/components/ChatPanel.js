@@ -618,13 +618,15 @@ const AttachedFilesHandler = {
           attachedImages.push(fcontents);
         }
       }
+
+      return {
+        fileNames: attachedFileNames,
+        files: attachedFiles,
+        images: attachedImages
+      };
     }
 
-    return {
-      fileNames: attachedFileNames,
-      files: attachedFiles,
-      images: attachedImages
-    };
+    else return null;
   },
 }
 
@@ -711,76 +713,98 @@ const AiResponse = {
   },
 
   async generate(prevChats, message, attachedFiles=null) {
-    try {
-      const selectedModel = await Config.getSelectedModel();
-      const selectedFramework = await Config.getSelectedFramework();
-      let supportsVision;
+    let history = [];
 
-      if (selectedFramework === 'ollama')
-        supportsVision = await AiBackend.supportsVision(selectedModel);
+    for (let i = 0; i < prevChats.user.length; i++) {
+      history.push({
+        role: 'user',
+        content: prevChats.user[i]
+      });
 
-      const {
-        contextString,
-        imagePayloads
-      } = await AiResponse.buildContextString(selectedModel, supportsVision, attachedFiles);
+      history.push({
+        role: 'assistant',
+        content: prevChats.system[i]
+      });
+    }
 
-      let history = [];
+    const selectedModel = await Config.getSelectedModel();
+    const selectedFramework = await Config.getSelectedFramework();
 
-      for (let i = 0; i < prevChats.user.length; i++) {
-        history.push({
-          role: 'user',
-          content: prevChats.user[i]
-        });
+    if (attachedFiles) {
+      try {
+        let supportsVision;
+        let fullTextMessage;
 
-        history.push({
-          role: 'assistant',
-          content: prevChats.system[i]
-        });
-      }
+        if (selectedFramework === 'ollama')
+          supportsVision = await AiBackend.supportsVision(selectedModel);
 
-      const fullTextMessage = attachedFiles ? message + contextString : message;
+        const context = await AiResponse.buildContextString(
+          selectedModel,
+          supportsVision,
+          attachedFiles
+        );
 
-      let finalUserContent = fullTextMessage;
+        const contextString = context.contextString;
+        const imagePayloads = context.imagePayloads;
 
-      if (imagePayloads.length > 0) {
-        finalUserContent = [
-          { type: 'text', text: fullTextMessage },
-          ...imagePayloads.map(img => ({
-            type: 'image_url',
-            image_url: { url: img.imageBlob }
-          }))
-        ];
-      }
+        fullTextMessage = message + contextString;
 
-      if (selectedFramework === 'ollama') {
-        if (Array.isArray(finalUserContent)) {
-          finalUserContent = AiResponse.normalize({
-            role: 'user',
-            content: finalUserContent
-          });
+        let finalUserContent = fullTextMessage;
+
+        if (imagePayloads.length > 0) {
+          finalUserContent = [
+            { type: 'text', text: fullTextMessage },
+            ...imagePayloads.map(img => ({
+              type: 'image_url',
+              image_url: { url: img.imageBlob }
+            }))
+          ];
         }
 
-        else finalUserContent = {
-          role: 'user',
-          content: finalUserContent
-        };
+        if (selectedFramework === 'ollama') {
+          if (Array.isArray(finalUserContent)) {
+            finalUserContent = AiResponse.normalize({
+              role: 'user',
+              content: finalUserContent
+            });
+          }
+
+          else finalUserContent = {
+            role: 'user',
+            content: finalUserContent
+          };
+        }
+
+        const messages = [
+          ...history.slice(0, -1),
+          selectedFramework === 'ollama'
+            ? finalUserContent
+            : { role: 'user', content: finalUserContent }
+        ];
+
+        prevChats.user.push(fullTextMessage);
+
+        return selectedFramework === 'ollama'
+          ? AiBackend.sendOllamaChat(messages, selectedModel)
+          : AiBackend.sendOpenaiChat(messages, selectedModel);
       }
+
+      catch(e) {
+        throw e;
+      }
+    }
+
+    else {
+      prevChats.user.push(message);
 
       const messages = [
         ...history.slice(0, -1),
-        selectedFramework === 'ollama'
-          ? finalUserContent
-          : { role: 'user', content: finalUserContent }
+        { role: 'user', content: message }
       ];
-
-      prevChats.user.push(fullTextMessage);
 
       return selectedFramework === 'ollama'
         ? AiBackend.sendOllamaChat(messages, selectedModel)
         : AiBackend.sendOpenaiChat(messages, selectedModel);
-    }
-    catch(e) {
-      throw e;
     }
   },
 }
