@@ -14,6 +14,10 @@ export const StringUtils = {
 
     return 'Untitled';
   },
+
+  getFileExtention(file) {
+    return file.substr(file.lastIndexOf('.')+1, file.length-1);
+  },
 }
 
 export const MarkdownParser = {
