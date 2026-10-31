@@ -1,80 +1,70 @@
-class FloatingButtonsManager {
-  constructor() {
-    this.floatingButtons = new Map();
-  }
+import { DomQuery } from '../utility/utilities.js';
 
-  add(id, floatingButtonsInstance) {
-    this.floatingButtons.set(id, floatingButtonsInstance);
-  }
+const FloatingButtonsUI = {
+  create(rawID) {
+    return `
+      <div rawID="floating-buttons-${rawID}" class='floating-buttons' style='display:none'>
+        ${this._createExplainCodeButton(rawID)}
+        <p style='padding: 0px 0.35rem'>|</p>
+        ${this._createModifyWithAI(rawID)}
+      </div>
+      `
+  },
 
-  remove(id) {
-    this.floatingButtons.delete(id);
-  }
+  _createExplainCodeButton(rawID) {
+    return `
+      <button rawID='explain-selection-${rawID}' class='floating-button-action'>
+        Explain selection
+      </button>
+    `;
+  },
 
-  get(id) {
-    return this.floatingButtons.get(id);
-  }
+  _createModifyWithAI(rawID) {
+    return `
+      <button rawID='modify-with-ai-${rawID}' class='floating-button-action'>
+        Modify with AI
+      </button>
+    `;
+  },
+}
 
-  hideAll() {
-    for (let [, fb] of this.floatingButtons) {
-      fb.hide();
-    }
+const Ui = {
+  show(element, state) {
+    DomQuery.showElement(element, state);
+  },
+
+  getSelectedText(element) {
+    const el = DomQuery.getElement(element);
+    return el.dataset.selectedText;
+  },
+
+  getFloatingButtons(fullWindowID) {
+    return DomQuery.getElement(fullWindowID);
+  },
+}
+
+const FloatingButtons = {
+  create(rawID) {
+    return FloatingButtonsUI.create(rawID);
+  },
+
+  show(rawID, state) {
+    Ui.show(`floating-buttons-${rawID}`, state);
+  },
+
+  getSelectedText(rawID) {
+    return Ui.getSelectedText(`floating-buttons-${rawID}`);
+  },
+
+  destroy(rawID) {
+    return Ui.destroyButtons(`floating-buttons-${rawID}`);
+  },
+
+  element(rawID) {
+    return Ui.getFloatingButtons(`floating-buttons-${rawID}`);
   }
 }
 
-class FloatingButtons {
-  constructor(id) {
-    this.id = id;
 
-    this.newFloatingButtons = document.createElement('div');
-    this.newFloatingButtons.className = 'floating-buttons';
-    this.newFloatingButtons.id = `floating-buttons-${this.id}`;
-    this.newFloatingButtons.style.display = 'none';
-
-    this.newExplainCode = document.createElement('button');
-    this.newExplainCode.className = 'floating-button-action';
-    this.newExplainCode.id = `explain-selection-${this.id}`;
-    this.newExplainCode.textContent = 'Explain selection'
-
-    this.newModifyWithAi = document.createElement('button');
-    this.newModifyWithAi.className = 'floating-button-action';
-    this.newModifyWithAi.id = `modify-with-ai-${this.id}`;
-    this.newModifyWithAi.textContent = 'Modify with AI';
-
-    this.newFloatingButtons.appendChild(this.newExplainCode);
-    this.newFloatingButtons.appendChild(this._createSep());
-    this.newFloatingButtons.appendChild(this.newModifyWithAi);
-
-    this.floatingButtons = this.newFloatingButtons;
-    this.newFloatingButtons = null;
-  }
-
-  _createSep() {
-    const sep = document.createElement('p');
-    sep.textContent = '|';
-    sep.style.padding = '0px 0.35rem';
-
-    return sep;
-  }
-
-  show() {
-    this.floatingButtons.style.display = 'block';
-    return this;
-  }
-
-  hide() {
-    this.floatingButtons.style.display = 'none';
-    return this;
-  }
-
-  element() {
-    return this.floatingButtons;
-  }
-
-  getSelectedText() {
-    return this.floatingButtons.dataset.selectedText;
-  }
-}
-
-export { FloatingButtonsManager, FloatingButtons }
+export { FloatingButtons }
 
