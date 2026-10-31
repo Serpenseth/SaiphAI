@@ -1,12 +1,11 @@
-import { MonacoHighlighter } from './MonacoHighlighter.js';
-import { FileTabManager } from './FileTab.js';
-
 import {
   StringUtils,
   DomQuery,
 } from '../utility/utilities.js';
 
 import { IndexWorkspaceModal } from './IndexWorkspaceModal.js';
+import { FileEditor } from './FileEditor.js';
+import { FileTab } from './FileTab.js';
 
 const IndexingService = {
   async index(workspacePath) {
@@ -49,50 +48,8 @@ const FileHandler = {
     return await window.electronAPI.scanFolder(path);
   },
 
-  async readFile(filePath) {
-    return await window.electronAPI.readFile(filePath);
-  },
-
   async openWorkspaceFolderChooser() {
     return await window.electronAPI.openFolder();
-  },
-}
-
-const ExtHandler = {
-  convertExtToFullLang(fileExtension) {
-    const ext = {
-      js: 'javascript',
-      py: 'python',
-      ts: 'typescript',
-      exs: 'elixir',
-      sh: 'bash',
-      ps1: 'powershell',
-      rs: 'rust',
-    }
-
-    return ext[fileExtension] ?? fileExtension;
-  },
-}
-
-const MonacoInstance = {
-  async init(tab, file) {
-    const contents = await FileHandler.readFile(file);
-    const extRaw = StringUtils.getFileExtention(file);
-    const ext = ExtHandler.convertExtToFullLang(extRaw);
-
-    require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' }});
-
-    return new Promise((resolve) => {
-      require(['vs/editor/editor.main'], () => {
-        const instance = monaco.editor.create(tab, {
-          value: contents,
-          language: ext,
-          theme:  'vs-dark',
-          automaticLayout: true
-        });
-        resolve(instance);
-      });
-    });
   },
 }
 
@@ -175,6 +132,7 @@ const FileTree = {
         div.title = item.name;
 
       div.dataset.path = item.path.replaceAll('\\', '/').trim();
+      div.id = isDir ? '' : div.name;
 
       const icon = isDir ? '📁' : ''
       const fileIcon = document.createElement('span');
@@ -262,19 +220,12 @@ const EventFunctions = {
 
     else if (!item.classList.contains('directory')) {
       const fullPath = item.dataset.path;
-      // const fname = Utility.removeExtension(fullPath);
-      //const allTabs = this.coordinator.fileTabManager.getAll();
-/*
-      for (let [id, tab] of allTabs) {
-        if (tab.fileTab.element().textContent.includes(fname)) {
-          this.coordinator.mainUI.ui.switchToFileTab(id);
-          return
-        }
-      }*/
+      const alreadyOpened = FileTab.tabAlreadyExists(fullPath);
 
-      item.classList.add('selected');
-      SideBar.getClickedItemInTree(fullPath);
-      // await this.coordinator.loadFileContents(fullPath);
+      if (!alreadyOpened) {
+        FileTab.create(fullPath);
+        item.classList.add('selected');
+      }
     }
   },
 
@@ -350,40 +301,6 @@ const SideBar = {
     const projectContents = await FileHandler.loadFileTree(projectPath);
     FileTree.populate(projectContents);
   },
-
-  getClickedItemInTree(item) {
-    return item;
-  },
-
-  /*
-  async loadFileContents(file) {
-    try {
-      const mainUI = this.mainUI.ui;
-      const currentFileTab = mainUI.currentFileTab;
-      const newFileTab = mainUI.newFileTab(file);
-      const id = Utility.getRawID(newFileTab.element().id);
-      const editorElement = newFileTab.editorElement().element();
-      const monacoInstance = await this.service.initMonaco(editorElement, file);
-      const floatingButtons = document.getElementById(`floating-buttons-${id}`);
-      const highlighter = new MonacoHighlighter(monacoInstance, floatingButtons);
-
-      this.fileTabManager.replace(id, {
-        fileName: file,
-        fileTab: newFileTab,
-        editor: newFileTab.editorElement(),
-        monacoID: monacoInstance,
-        monacoHighlighter: highlighter
-      });
-
-      mainUI.hideAllFileTabs();
-      newFileTab.show();
-    }
-    catch(e) {
-      console.error(e.message);
-      throw e;
-    }
-  }
-  */
 }
 
 export { SideBar }
