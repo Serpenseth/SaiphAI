@@ -5,6 +5,7 @@ import {
 } from '../utility/utilities.js';
 
 import { suggestEditPrompt } from './suggest_edit_prompt.js';
+import { FloatingButtons } from './FloatingButtons.js';
 
 const FloatingWindowUI = {
   create(id) {
@@ -15,7 +16,7 @@ const FloatingWindowUI = {
 
   createCloseFloatingWindowButton(id) {
     return `
-      <button id='close-floating-${id}' class='close-floating-window'>
+      <button id='close-floating-${id}' class='close-floating-window' style='display: none'>
         X
       </button>`;
   },
@@ -27,7 +28,7 @@ const FloatingWindowUI = {
       : 'Thinking...';
 
     return `
-      <div id='floating-thinking-${id}' style='${thinkingDivStyle}'>
+      <div id='floating-thinking-${id}' style='${thinkingDivStyle}' style='display: none'>
         <div class='mini-spinner'></div>
         <p class='secondary-text'>${text}</p>
       </div>`;
@@ -38,7 +39,7 @@ const FloatingWindowUI = {
     const sendBtnID = `send-suggestion-${id}`;
 
     return `
-      <div id='${containerID}' class=suggest-input-container'>
+      <div id='${containerID}' class=suggest-input-container' style='display: none'>
         <div>
           <p class='text-secondary'>
             Enter below what you'd like to change
@@ -56,17 +57,25 @@ const FloatingWindowUI = {
 
   createTryAgainButton(id) {
     return `
-      <div id='try-again-container' class='try-again-container'>
+      <div id='try-again-container' class='try-again-container' style='display: none'>
         <button id='try-again-${id}' class='try-again'>
           Try again
         </button>
       </div>`;
   },
 
-  createErrorBubble(id, errorMessage) {
+  createUserMsgBubble(id, message) {
+    return `
+      <div id='floating-window-msg-${id}' class='user-msg-bubble'>
+        ${message}
+      </div>`;
   },
 
-  createAiResponseUi(id, AiResponse) {
+  createErrorBubble(id, errorMessage) {
+    return `
+      <div id='floating-window-err-${id}' class='error-msg-bubble'>
+        ${errorMessage}
+      </div>`;
   },
 }
 
@@ -113,19 +122,19 @@ const Ui = {
     DomQuery.appendChild('tabs-and-editor', elementDOM);
   },
 
-
-  setFloatingWindowContent(fullWindowID, newContent) {
-    DomQuery.updateInnerHTML(fullWindowID, newContent);
-  },
-
   attachElementToFloatingWindow(fullWindowID, elementHTML) {
     const elementDOM = DomQuery.htmlTemplateToDOM(elementHTML);
     DomQuery.appendChild(fullWindowID, elementDOM);
   },
 
+  showElement(fullWindowID, state) {
+    DomQuery.showElement(fullWindowID, state);
+  },
+
   showFloatingWindowElement(elementHTML, state) {
     const elementDOM = DomQuery.htmlTemplateToDOM(elementHTML);
     const firstChild = elementDOM.firstElementChild;
+
     DomQuery.showElement(firstChild.id, state);
   },
 
@@ -141,6 +150,10 @@ const Ui = {
   getFloatingWindowContentLength(fullWindowID) {
     const floatingWindow = DomQuery.getElement(fullWindowID);
     return floatingWindow.innerHTML.length;
+  },
+
+  setFloatingWindowContent(fullWindowID, newContent) {
+    DomQuery.updateInnerHTML(fullWindowID, newContent);
   },
 
   getFloatingWindowElement(fullWindowID) {
@@ -169,25 +182,31 @@ const SuggestEdit = {
 
 const FloatingButtonsAction = {
   async explainText(clickedButtonID, text, fileName) {
-    try {
-      const id = StringUtils.getRawID(clickedButtonID);
-      const floatingWindow = FloatingWindow.element(id);
-      const fWindowID = floatingWindow.id;
+    const id = StringUtils.getRawID(clickedButtonID);
+    const floatingWindow = FloatingWindow.element(id);
+    const fWindowID = floatingWindow.id;
+    const thinkingID = `floating-thinking-${id}`;
 
-      FloatingButtons.show(`floating-buttons-${id}`, false);
-      FloatingWindow.show(fWindowID, true);
-      FloatingWindow.showThinkingSpinner(fWindowID, true);
+    try {
+      Ui.showFloatingWindow(fWindowID, true);
+      //Ui.showElement(thinkingID, true);
+
+      FloatingButtons.show(id, false);
 
       const fileContents = await FileHandler.readFile(fileName);
-      let prompt = PromptOptions.explainTextPrompt;
 
+      let prompt = PromptOptions.explainTextPrompt;
       prompt = `${prompt}\n\nTEXT TO EXPLAIN: ${text}\n\n`;
       prompt = `${prompt}\n\nREFERENCE FILE CONTENTS: ${fileContents}\n\n`;
 
-      if (FloatingWindow.getContentLength(fWindowID) !== 0) {
-        // Wipe previous response
-        FloatingWindow.setContent(fWindowID, '');
+      const fwContentLength = Ui.getFloatingWindowContentLength(fWindowID);
+
+      /*
+      // Wipe previous response
+      if (fwContentLength !== 0) {
+        Ui.setFloatingWindowContent(fWindowID, '');
       }
+      */
 
       const chosenModel = await Config.getSelectedModel();
       const chosenFramework = await Config.getSelectedFramework();
@@ -198,14 +217,16 @@ const FloatingButtonsAction = {
 
       const aiResponse = result.message.content;
       const mdAiResponse = MarkdownParser.parse(aiResponse);
+      const respHTML = FloatingWindowUI.createUserMsgBubble(id, mdAiResponse);
 
-      FloatingWindow.showThinkingSpinner(fWindowID, false);
-      FloatingWindow.setContent(fWindowID, mdAiResponse);
+      Ui.showElement(thinkingID, false);
+      Ui.attachElementToFloatingWindow(fWindowID, respHTML);
     }
 
     catch(e) {
+      Ui.showElement(thinkingID, false);
       console.error(e);
-      floatingWindow.setContent(e);
+      //floatingWindow.setContent(e);
     }
   },
 }
@@ -224,7 +245,6 @@ const FloatingWindowCreation = {
 
     elementsToAttach.forEach(el => {
       Ui.attachElementToFloatingWindow(`floating-window-${rawID}`, el);
-      Ui.showFloatingWindowElement(el, false);
     });
 
     return floatingWindow;
