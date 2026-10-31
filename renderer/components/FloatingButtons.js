@@ -3,12 +3,12 @@ import { DomQuery } from '../utility/utilities.js';
 const FloatingButtonsUI = {
   create(rawID) {
     return `
-      <div rawID="floating-buttons-${rawID}" class='floating-buttons' style='display:none'>
+      <div id='floating-buttons-${rawID}' class='floating-buttons' style='display:none'>
         ${this._createExplainCodeButton(rawID)}
         <p style='padding: 0px 0.35rem'>|</p>
         ${this._createModifyWithAI(rawID)}
       </div>
-      `
+    `;
   },
 
   _createExplainCodeButton(rawID) {
