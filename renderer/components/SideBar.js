@@ -226,6 +226,12 @@ const EventFunctions = {
         FileTab.create(fullPath);
         item.classList.add('selected');
       }
+
+      else {
+        const active = FileTab.getActiveTab();
+        const itemFileTab = FileTab.getTabByFilePath(fullPath);
+        FileTab.switchFileTabs(active, itemFileTab);
+      }
     }
   },
 

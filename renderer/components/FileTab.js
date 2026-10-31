@@ -101,6 +101,18 @@ const FileTabManager = {
 
     return false;
   },
+
+  getTabByFilePath(filePath) {
+    const allTabs = Ui.getAllTabs();
+    let allActiveFiles = document.querySelectorAll('.file-item.selected');
+    allActiveFiles = Array.from(allActiveFiles);
+
+    const index = allTabs.findIndex(item => {
+      return item.dataset.path === filePath
+    });
+
+    return allTabs[index].id;
+  },
 }
 
 const SidebarActiveFile = {
@@ -206,6 +218,10 @@ const FileTab = {
   getActiveTabRawID() {
     return TabID.get(Ui.getActiveTab());
   },
+
+  getTabByFilePath(filePath) {
+    return FileTabManager.getTabByFilePath(filePath);
+  }
 }
 
 export { FileTab };
