@@ -189,7 +189,6 @@ const FloatingButtonsAction = {
 
     try {
       Ui.showFloatingWindow(fWindowID, true);
-      //Ui.showElement(thinkingID, true);
 
       FloatingButtons.show(id, false);
 
@@ -200,14 +199,6 @@ const FloatingButtonsAction = {
       prompt = `${prompt}\n\nREFERENCE FILE CONTENTS: ${fileContents}\n\n`;
 
       const fwContentLength = Ui.getFloatingWindowContentLength(fWindowID);
-
-      /*
-      // Wipe previous response
-      if (fwContentLength !== 0) {
-        Ui.setFloatingWindowContent(fWindowID, '');
-      }
-      */
-
       const chosenModel = await Config.getSelectedModel();
       const chosenFramework = await Config.getSelectedFramework();
 
@@ -225,8 +216,10 @@ const FloatingButtonsAction = {
 
     catch(e) {
       Ui.showElement(thinkingID, false);
+      FloatingButtons.show(id, false);
       console.error(e);
-      //floatingWindow.setContent(e);
+      const errHTML = FloatingWindowUI.createErrorBubble(id, e);
+      Ui.attachElementToFloatingWindow(fWindowID, errHTML);
     }
   },
 }
