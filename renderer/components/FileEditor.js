@@ -309,7 +309,6 @@ const FileEditorCreation = {
     const elementsToAttach = [
       editor,
       Ui.convertHTMLToDOM(FloatingButtons.create(id)),
-      Ui.convertHTMLToDOM(FloatingWindow.create(id)),
     ];
 
     elementsToAttach.forEach(el => {
