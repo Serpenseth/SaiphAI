@@ -140,6 +140,9 @@ class EventHandler {
 
       if (closeButton)
         this.coordinator.removeFileTab(tab.id);
+
+      else if (tab)
+        this.coordinator.switchToFileTab(tab.id);
     });
 
     const chatTabsContainer = this.ui.chatTabsContainer;
@@ -280,7 +283,8 @@ class MainWindow {
   }
 
   switchToFileTab(id) {
-    // this.ui.switchToFileTab(id);
+    const active = FileTab.getActiveTab();
+    FileTab.switchFileTabs(active, id);
   }
 
   removeFileTab(id) {
