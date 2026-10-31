@@ -50,11 +50,11 @@
   padding: 14px 16px;
   align-items: center;
   margin: 0;
-  background: rgba(228, 235, 238, 0.05);
+  background: rgba(228, 235, 238, 0.015);
   color: var(--text-primary);
   min-height: 56px;
   width: 50%;
-  border-bottom: 1px solid rgba(228, 235, 238, 0.09);
+  border-bottom: 1px solid rgba(228, 235, 238, 0.03);
 }
 
 .details li:first-child {
