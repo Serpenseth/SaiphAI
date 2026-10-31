@@ -13,7 +13,7 @@ const FloatingButtonsUI = {
 
   _createExplainCodeButton(rawID) {
     return `
-      <button rawID='explain-selection-${rawID}' class='floating-button-action'>
+      <button id='explain-selection-${rawID}' class='floating-button-action'>
         Explain selection
       </button>
     `;
@@ -21,7 +21,7 @@ const FloatingButtonsUI = {
 
   _createModifyWithAI(rawID) {
     return `
-      <button rawID='modify-with-ai-${rawID}' class='floating-button-action'>
+      <button id='modify-with-ai-${rawID}' class='floating-button-action'>
         Modify with AI
       </button>
     `;
