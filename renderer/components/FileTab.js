@@ -1,162 +1,211 @@
+import {
+  DomQuery,
+  StringUtils,
+  MarkdownParser,
+  UuidGenerator,
+} from '../utility/utilities.js';
+
+import { FloatingWindow } from './FloatingWindow.js';
+import { FloatingButtons } from './FloatingButtons.js';
 import { FileEditor } from './FileEditor.js';
-import { FloatingWindowManager } from './FloatingWindow.js';
-import { FloatingButtonsManager } from './FloatingButtons.js';
 
-const Utility = {
-  normalizeFileName(path) {
-    if (path) {
-      const normalized = path.replaceAll('\\', '/').trim();
-      return normalized.substring(normalized.lastIndexOf('/') + 1);
-    }
-    else
-      return path;
-
-    return 'Untitled';
-  },
-
-  getElement(element) {
-    return document.getElementById(element);
-  },
-}
-
-class FileTabManager {
-  constructor() {
-    this.files = new Map()
-  }
-
-  get(id) {
-    return this.files.get(id);
-  }
-
-  add(id, fileTab, fileName, editor, monacoInstance, monacoHighlighter) {
-    this.files.set(id, {
-      fileName: fileName,
-      fileTab: fileTab,
-      editor: editor,
-      monacoID: monacoInstance,
-      monacoHighlighter: monacoHighlighter
-    });
-  }
-
-  replace(id, data) {
-    this.files.set(id, {
-      fileName: data.fileName,
-      fileTab: data.fileTab,
-      editor: data.editor,
-      monacoID: data.monacoID,
-      monacoHighlighter: data.monacoHighlighter
-    });
-  }
-
-  remove(id) {
-    let tab = this.files.get(id);
-    tab.monacoID.dispose();
-    tab.monacoHighlighter.destroy();
-    tab.fileTab.remove();
-    //tab.fileTab.element().remove();
-
-    this.files.delete(id);
-    tab = null;
-  }
-
-  hideAll() {
-    for (let [, fileTab] of this.files) {
-      fileTab.fileTab.hide();
-    }
-  }
-
-  getAll() {
-    return this.files;
-  }
-}
-
-class FileTab {
-  constructor(
-    id,
-    fileName,
-    floatingWindowManager,
-    floatingButtonsManager,
-    fileTabManager,
-  ) {
-    this.id = id;
-    this.floatingWindowManager = floatingWindowManager;
-    this.floatingButtonsManager = floatingButtonsManager;
-    this.fileTabManager = fileTabManager;
-
-    this.fileTab = null;
-    this.editor = null;
-
-    this._createNewFileTab(fileName);
-  }
-
-  _createNewFileTab(fileName) {
+const FileTabUI = {
+  create(id, fullPath) {
     const tab = document.createElement('div');
-    tab.className = 'tabRA';
-    tab.id = `file-tab-${this.id}`;
+    tab.className = 'file-tab';
+    tab.id = `file-tab-${id}`;
+    tab.dataset.path = fullPath;
     tab.classList.add('active');
 
     const title = document.createElement('p');
-    title.textContent = Utility.normalizeFileName(fileName);
-    title.id = `file-tab-title-${this.id}`;
+    const fname = StringUtils.getFileName(fullPath);
+    title.innerHTML = fname;
+    title.id = `file-tab-title-${id}`;
 
     const closeTabButton = document.createElement('button');
     closeTabButton.className = 'tab-close';
     closeTabButton.title = 'Close file';
-    closeTabButton.id = `btn-close-file-${this.id}`;
+    closeTabButton.id = `btn-close-file-${id}`;
     closeTabButton.textContent = '×';
 
     tab.appendChild(title);
     tab.appendChild(closeTabButton);
 
-    const newEditor = new FileEditor(
-      this.id,
-      this.floatingWindowManager,
-      this.floatingButtonsManager
-    );
-
-    this.editor = newEditor;
-    this.fileTab = tab;
-  }
-
-  hideAllFileTabs() {
-    this.fileTabManager.hideAll();
-    this.editor.hideAll();
-  }
-
-  switchToEditor(id) {
-    this.hide();
-
-    const targetEditor = this.fileTabManager.get(id).editor;
-    targetEditor.show();
-
-    this.editor = targetEditor;
-  }
-
-  remove() {
-    //this.editor.remove(this.id);
-    this.fileTab.remove();
-    //this.fileTabManager.remove(this.id);
-    console.log(this.fileTabManager.files);
-  }
-
-  show() {
-    this.fileTab.classList.add('active');
-    this.editor.show();
-  }
-
-  hide() {
-    this.fileTab.classList.remove('active');
-    this.editor.hide();
-  }
-
-  element() {
-    return this.fileTab;
-  }
-
-  editorElement() {
-    return this.editor;
-  }
+    return tab;
+  },
 }
 
-export { FileTabManager, FileTab }
+const Ui = {
+  attachTab(tab) {
+    DomQuery.appendChild('file-tabs', tab);
+  },
 
+  removeTab(rawID) {
+    DomQuery.removeElement(`file-tab-${rawID}`);
+  },
+
+  getTab(rawID) {
+    return DomQuery.getElement(`file-tab-${rawID}`);
+  },
+
+  updateTabTitle(rawID, newTitle) {
+    DomQuery.updateText(`file-tab-title-${rawID}`, newTitle);
+  },
+
+  setActiveState(rawID, active) {
+    const tab = `file-tab-${rawID}`;
+    active
+      ? DomQuery.setElementClass(tab, 'active', true)
+      : DomQuery.setElementClass(tab, 'active', false);
+  },
+
+  getActiveTab() {
+    const active = document.querySelector('.file-tab.active');
+    return active?.id;
+  },
+
+  getAllTabs() {
+    const allOpenedTabs = document.querySelectorAll('.file-tab');
+    return Array.from(allOpenedTabs);
+  },
+
+  getTabCount() {
+    return Ui.getAllTabs().length;
+  },
+
+  getTabFilePath(rawID) {
+    return Ui.getTab(rawID).dataset.path;
+  },
+
+  getFirstTab() {
+    return Ui.getAllTabs()[0];
+  },
+}
+
+const TabID = {
+  get(fullTabID) {
+    return StringUtils.getRawID(fullTabID);
+  },
+}
+
+const FileTabManager = {
+  tabAlreadyExists(filePath) {
+    const allTabs = Ui.getAllTabs();
+
+    for (let i = 0; i < allTabs.length; i++) {
+      const tab = allTabs[i];
+
+      if (tab.dataset.path.trim() === filePath.trim())
+        return true;
+    };
+
+    return false;
+  },
+}
+
+const SidebarActiveFile = {
+  setActiveState(id, state) {
+    const filePath = Ui.getTabFilePath(id);
+    let allActiveFiles = document.querySelectorAll('.file-item.selected');
+    allActiveFiles = Array.from(allActiveFiles);
+
+    for (const item of allActiveFiles) {
+      if (item.dataset.path.trim() === filePath) {
+        item.classList.toggle('selected', state);
+      }
+    }
+  },
+}
+
+
+const TabHandler = {
+  getTabFrom(fullTabID) {
+    let prevTabToSwitchTo;
+    const allTabs = Ui.getAllTabs();
+    const index = allTabs.findIndex(el => el.id === fullTabID);
+
+    return allTabs[index-1].id;
+  },
+}
+
+const FileTabCreation = {
+  init(fullPath) {
+    const count = Ui.getTabCount();
+
+     if (count > 0) {
+      const active = Ui.getActiveTab();
+      const oldID = TabID.get(active);
+      const currentTabFile = Ui.getTabFilePath(oldID);
+
+      Ui.setActiveState(oldID, false);
+      FileEditor.show(`editor-container-${oldID}`, false);
+    }
+
+    const id = UuidGenerator.generate();
+    const editor = FileEditor.create(id, fullPath);
+    FileEditor.show(editor.id, true);
+
+    const tab = FileTabUI.create(id, fullPath);
+    Ui.attachTab(tab);
+
+    return tab;
+  },
+}
+
+const FileTab = {
+  create(fullPath) {
+    return FileTabCreation.init(fullPath);
+  },
+
+  tabAlreadyExists(filePath) {
+    const res = FileTabManager.tabAlreadyExists(filePath);
+    return res;
+  },
+
+  close(fullTabID) {
+    const id = TabID.get(fullTabID);
+    const tabCount = Ui.getTabCount();
+    SidebarActiveFile.setActiveState(id, false);
+
+    if (tabCount === 1) {
+      FileEditor.destroy(id);
+      Ui.removeTab(id);
+      return;
+    }
+
+    else {
+      const activeTabRawID = TabID.get(Ui.getActiveTab());
+
+      if (id === activeTabRawID) {
+        const prevTab = TabHandler.getTabFrom(fullTabID);
+        const prevTabRawID = TabID.get(prevTab);
+
+        this.switchFileTabs(id, prevTabRawID);
+      }
+    }
+
+    FileEditor.destroy(id);
+    Ui.removeTab(id);
+  },
+
+  switchFileTabs(fromFullID, toFullID) {
+    const fromID = TabID.get(fromFullID);
+    const toID = TabID.get(toFullID);
+
+    Ui.setActiveState(fromID, false);
+    Ui.setActiveState(toID, true);
+
+    FileEditor.show(`editor-container-${fromID}`, false);
+    FileEditor.show(`editor-container-${toID}`, true);
+  },
+
+  getActiveTab() {
+    return Ui.getActiveTab();
+  },
+
+  getActiveTabRawID() {
+    return TabID.get(Ui.getActiveTab());
+  },
+}
+
+export { FileTab };
