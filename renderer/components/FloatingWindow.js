@@ -1,167 +1,277 @@
-// const Backend = {
+import {
+  DomQuery,
+  StringUtils,
+  MarkdownParser,
+} from '../utility/utilities.js';
 
+import { suggestEditPrompt } from './suggest_edit_prompt.js';
 
-const Helper = {
-  createTryAgainButton(id, floatingWindow) {
-    const div = document.createElement('div');
-    div.className = 'try-again-container';
-
-    const button = document.createElement('button');
-    button.id = `try-again-${id}`;
-    button.className = 'try-again';
-    button.textContent = 'Try again';
-
-    div.appendChild(button);
-    floatingWindow.appendChild(div);
-
-    return this;
+const FloatingWindowUI = {
+  create(id) {
+    return `
+      <div id='floating-window-${id}' class='floating-window' style='display: none'
+      </div>`;
   },
 
-  createSendChangeField(id, floatingWindow) {
+  createCloseFloatingWindowButton(id) {
+    return `
+      <button id='close-floating-${id}' class='close-floating-window'>
+        X
+      </button>`;
+  },
+
+  createThinkingSpinner(id, useDefaultText=true) {
+    const thinkingDivStyle = 'display: flex; flex-direction: row;';
+    const text = useDefaultText
+      ? 'Analyzing selected text...'
+      : 'Thinking...';
+
+    return `
+      <div id='floating-thinking-${id}' style='${thinkingDivStyle}'>
+        <div class='mini-spinner'></div>
+        <p class='secondary-text'>${text}</p>
+      </div>`;
+  },
+
+  createSendChangeInputField(id) {
     const containerID = `suggest-input-container-${id}`;
     const sendBtnID = `send-suggestion-${id}`;
-    //const textID = `suggestion-text-${id}`;
 
-    const domElement = document.createElement('div');
-    domElement.className = 'suggest-input-container';
-    domElement.id = containerID;
-    domElement.innerHTML = `
-    <div
-      <p class='text-secondary'>
-        Enter below what you'd like to change
-      </p>
+    return `
+      <div id='${containerID}' class=suggest-input-container'>
+        <div>
+          <p class='text-secondary'>
+            Enter below what you'd like to change
+          </p>
 
-      <div style='display: flex; flex-direction: row'>
-        <textarea id='suggest-input-${id}' class='suggest-input'></textarea>
-        <button id='${sendBtnID}' class='chat-action send-suggest'>
-          <img style='height: 16px; width: 16px;' src='../assets/send.png'
+          <div style='display: flex; flex-direction: row'>
+            <textarea id='suggest-input-${id}' class='suggest-input'></textarea>
+            <button id='${sendBtnID}' class='chat-action send-suggest'>
+              <img style='height: 16px; width: 16px;' src='../assets/send.png'
+            </button>
+          </div>
+        </div>
+      </div>`;
+  },
+
+  createTryAgainButton(id) {
+    return `
+      <div id='try-again-container' class='try-again-container'>
+        <button id='try-again-${id}' class='try-again'>
+          Try again
         </button>
-      </div>
-    </div>`;
-
-    // original
-    // <input id='suggest-input-${id}' class='suggest-input'></input>
-
-    // somewhat ok word-wrap
-    // <div contenteditable='true' id='suggest-input-${id}' class='suggest-input'></div>
-
-    floatingWindow.appendChild(domElement);
+      </div>`;
   },
 
-  createCloseFloatingWindowButton(id, floatingWindow) {
-    const close = document.createElement('button');
-    close.className = 'close-floating-window';
-    close.textContent = 'X';
-    close.id = `close-floating-${id}`;
+  createErrorBubble(id, errorMessage) {
+  },
+
+  createAiResponseUi(id, AiResponse) {
   },
 }
 
-class FloatingWindowManager {
-  constructor() {
-    this.floatingWindows = new Map();
-  }
+const FileHandler = {
+  async readFile(filePath) {
+    return await window.electronAPI.readFile(filePath);
+  },
+}
 
-  add(id, floatingWindowInstance) {
-    this.floatingWindows.set(id, floatingWindowInstance);
-  }
+const AiBackend = {
+  async sendOllamaChat(message, chosenModel) {
+    return window.electronAPI.chatOllama(message, chosenModel);
+  },
 
-  remove(id) {
-    this.floatingWindows.delete(id);
-  }
+  async sendOpenaiChat(message, chosenModel) {
+    return window.electronAPI.chatOpenai(message, chosenModel);
+  },
+}
 
-  get(id) {
-    return this.floatingWindows.get(id);
-  }
+const Config = {
+  async getSelectedFramework() {
+    const config = await window.electronAPI.readConfigFile();
+    return config.modelFramework;
+  },
 
-  hideAll() {
-    for (let [, floatingWindow] of this.floatingWindows) {
-      floatingWindow.hide();
+  async getSelectedModel() {
+    const config = await window.electronAPI.readConfigFile();
+    return config.selectedModel;
+  },
+}
+
+const PromptOptions = {
+  suggestEditPrompt: suggestEditPrompt,
+  explainTextPrompt: `Explain the following text based on the provided file contents.`,
+};
+
+const Ui = {
+  showFloatingWindow(fullWindowID, state) {
+    DomQuery.showElement(fullWindowID, state);
+  },
+
+  attachFloatingWindow(elementHTML) {
+    const elementDOM = DomQuery.htmlTemplateToDOM(elementHTML);
+    DomQuery.appendChild('tabs-and-editor', elementDOM);
+  },
+
+
+  setFloatingWindowContent(fullWindowID, newContent) {
+    DomQuery.updateInnerHTML(fullWindowID, newContent);
+  },
+
+  attachElementToFloatingWindow(fullWindowID, elementHTML) {
+    const elementDOM = DomQuery.htmlTemplateToDOM(elementHTML);
+    DomQuery.appendChild(fullWindowID, elementDOM);
+  },
+
+  showFloatingWindowElement(elementHTML, state) {
+    const elementDOM = DomQuery.htmlTemplateToDOM(elementHTML);
+    const firstChild = elementDOM.firstElementChild;
+    DomQuery.showElement(firstChild.id, state);
+  },
+
+  removeFloatingWindowElement(fullElementID) {
+    DomQuery.removeElement(fullElementID);
+  },
+
+  getFloatingWindowContent(fullWindowID) {
+    const floatingWindow = DomQuery.getElement(fullWindowID);
+    return floatingWindow.innerHTML;
+  },
+
+  getFloatingWindowContentLength(fullWindowID) {
+    const floatingWindow = DomQuery.getElement(fullWindowID);
+    return floatingWindow.innerHTML.length;
+  },
+
+  getFloatingWindowElement(fullWindowID) {
+    return DomQuery.getElement(fullWindowID);
+  },
+}
+
+const SuggestEdit = {
+  async send(fileName, selectedText, userInstruction) {
+    const fileContents = await FileManager.readFile(fileName);
+
+    const selectedFramework = await Config.getSelectedFramework();
+    const selectedModel = await Config.getSelectedModel();
+
+    let prompt = PromptOptions.suggestEditPrompt;
+    prompt = `${prompt}\n\nFILE: ${fileName}\n\n`;
+    prompt = `${prompt}FULL FILE CONTENTS: ${fileContents}\n\n`;
+    prompt = `${prompt}SELECTED CODE: ${selectedText}\n\n`;
+    prompt = `${prompt}USER REQUEST: ${userInstruction}\n\n`;
+
+    return response = selectedFramework === 'ollama'
+      ? AiBackend.sendOllamaChat(prompt, selectedModel)
+      : AiBackend.sendOpenaiChat(prompt, selectedModel);
+  },
+}
+
+const FloatingButtonsAction = {
+  async explainText(clickedButtonID, text, fileName) {
+    try {
+      const id = StringUtils.getRawID(clickedButtonID);
+      const floatingWindow = FloatingWindow.element(id);
+      const fWindowID = floatingWindow.id;
+
+      FloatingButtons.show(`floating-buttons-${id}`, false);
+      FloatingWindow.show(fWindowID, true);
+      FloatingWindow.showThinkingSpinner(fWindowID, true);
+
+      const fileContents = await FileHandler.readFile(fileName);
+      let prompt = PromptOptions.explainTextPrompt;
+
+      prompt = `${prompt}\n\nTEXT TO EXPLAIN: ${text}\n\n`;
+      prompt = `${prompt}\n\nREFERENCE FILE CONTENTS: ${fileContents}\n\n`;
+
+      if (FloatingWindow.getContentLength(fWindowID) !== 0) {
+        // Wipe previous response
+        FloatingWindow.setContent(fWindowID, '');
+      }
+
+      const chosenModel = await Config.getSelectedModel();
+      const chosenFramework = await Config.getSelectedFramework();
+
+      const result = chosenFramework === 'ollama'
+        ? await AiBackend.sendOllamaChat(prompt, chosenModel)
+        : await AiBackend.sendOpenaiChat(prompt, chosenModel);
+
+      const aiResponse = result.message.content;
+      const mdAiResponse = MarkdownParser.parse(aiResponse);
+
+      FloatingWindow.showThinkingSpinner(fWindowID, false);
+      FloatingWindow.setContent(fWindowID, mdAiResponse);
     }
+
+    catch(e) {
+      console.error(e);
+      floatingWindow.setContent(e);
+    }
+  },
+}
+
+const FloatingWindowCreation = {
+  init(rawID) {
+    const floatingWindow = FloatingWindowUI.create(rawID);
+    Ui.attachFloatingWindow(floatingWindow);
+
+    const elementsToAttach = [
+      FloatingWindowUI.createCloseFloatingWindowButton(rawID),
+      FloatingWindowUI.createThinkingSpinner(rawID),
+      FloatingWindowUI.createSendChangeInputField(rawID),
+      FloatingWindowUI.createTryAgainButton(rawID),
+    ];
+
+    elementsToAttach.forEach(el => {
+      Ui.attachElementToFloatingWindow(`floating-window-${rawID}`, el);
+      Ui.showFloatingWindowElement(el, false);
+    });
+
+    return floatingWindow;
+  },
+}
+
+const FloatingWindow = {
+  create(rawID) {
+    return FloatingWindowCreation.init(rawID);
+  },
+
+  show(fullWindowID, state) {
+    Ui.showFloatingWindow(fullWindowID, state);
+  },
+
+  destroy(fullWindowID) {
+    Ui.removeFloatingWindowElement(fullWindowID);
+  },
+
+  showThinkingSpinner(rawID, state) {
+    Ui.showElement(`floating-thinking-${rawID}`, state);
+  },
+
+  showSendSuggestEdit(rawID, state) {
+    Ui.showElement(`suggest-input-container-${rawID}`, state);
+  },
+
+  showTryAgainButton(rawID, state) {
+    Ui.showElement(`try-again-${rawID}`, state);
+  },
+
+  setContent(rawID, newContent) {
+    Ui.setFloatingWindowContent(`floating-window-${rawID}`, newContent);
+  },
+
+  getContentLength(fullWindowID) {
+    return Ui.getFloatingWindowContentLength(fullWindowID);
+  },
+
+  element(rawID) {
+    return Ui.getFloatingWindowElement(`floating-window-${rawID}`);
+  },
+
+  async explainText(btnD, text, fileName) {
+    return await FloatingButtonsAction.explainText(btnD, text, fileName);
   }
 }
 
-class FloatingWindow {
-  constructor(id) {
-    this.id = id;
-
-    this.floatingWindow = document.createElement('div');
-    this.floatingWindow.id = `floating-window-${this.id}`;
-    this.floatingWindow.className = 'floating-window';
-    this.floatingWindow.style.display = 'none';
-  }
-
-  show() {
-    this.floatingWindow.style.display = 'block';
-    return this;
-  }
-
-  hide() {
-    this.floatingWindow.style.display = 'none';
-    return this;
-  }
-
-  createTryAgainButton() {
-    Helper.createTryAgainButton(this.id, this.floatingWindow);
-    return this;
-
-    /*
-    const div = document.createElement('div');
-    div.className = 'try-again-container';
-
-    const button = document.createElement('button');
-    button.id = `try-again-${this.id}`;
-    button.className = 'try-again';
-    button.textContent = 'Try again';
-
-    div.appendChild(button);
-    this.floatingWindow.appendChild(div);
-
-    return this;
-    */
-  }
-
-  createSendChangeField() {
-    Helper.createSendChangeField(this.id, this.floatingWindow);
-    return this;
-
-    /*
-    const div = document.createElement('div');
-    div.className = 'suggest-input-container';
-
-    const field = document.createElement('input');
-    field.id = `suggest-input-${this.id}`;
-    field.className = 'input';
-    field.style.width = '80%';
-
-    div.appendChild(field);
-    this.floatingWindow.appendChild(div);
-
-    return this;
-    */
-  }
-
-  element() {
-    return this.floatingWindow;
-  }
-
-  setContent(content) {
-    this.floatingWindow.innerHTML = content;
-    return this;
-  }
-
-  getContent() {
-    return this.floatingWindow.innerHTML;
-  }
-
-  contentLength() {
-    return this.floatingWindow.textContent.length;
-  }
-
-  remove() {
-    this.floatingWindow.remove();
-    return this;
-  }
-}
-
-export { FloatingWindowManager,  FloatingWindow }
+export { FloatingWindow }
 
