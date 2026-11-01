@@ -66,8 +66,8 @@ const FloatingWindowUI = {
 
   createUserMsgBubble(id, message) {
     return `
-      <div id='floating-window-msg-${id}' class='user-msg-bubble'>
-        ${message}
+      <div id='floating-window-msg-${id}' class='ai-response'>
+        ${message}<br><br>
       </div>`;
   },
 
@@ -214,7 +214,7 @@ const AiResponse = {
       ? await AiBackend.sendOllamaChat(prompt, chosenModel)
       : await AiBackend.sendOpenaiChat(prompt, chosenModel);
 
-    return aiResponse = result.message.content;
+    return result.message.content;
   },
 }
 
