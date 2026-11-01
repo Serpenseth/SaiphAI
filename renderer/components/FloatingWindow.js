@@ -161,6 +161,31 @@ const Ui = {
   },
 }
 
+const PromptHandler = {
+  async buildPrompt(data, fromExplainText=true) {
+    const fileContents = await FileHandler.readFile(data. fileName);
+    let prompt;
+
+    if (fromExplainText) {
+      prompt = PromptOptions.explainTextPrompt;
+      prompt = `${prompt}\n\nTEXT TO EXPLAIN: ${data.text}\n\n`;
+      prompt = `${prompt}\n\nREFERENCE FILE CONTENTS: ${fileContents}\n\n`;
+    }
+
+    else {
+      const { selectedText, userInstruction } = data;
+
+      prompt = PromptOptions.suggestEditPrompt;
+      prompt = `${prompt}\n\nFILE: ${fileName}\n\n`;
+      prompt = `${prompt}FULL FILE CONTENTS: ${fileContents}\n\n`;
+      prompt = `${prompt}SELECTED CODE: ${selectedText}\n\n`;
+      prompt = `${prompt}USER REQUEST: ${userInstruction}\n\n`;
+    }
+
+    return prompt;
+  },
+}
+/*
 const SuggestEdit = {
   async send(fileName, selectedText, userInstruction) {
     const fileContents = await FileManager.readFile(fileName);
@@ -178,6 +203,19 @@ const SuggestEdit = {
       ? AiBackend.sendOllamaChat(prompt, selectedModel)
       : AiBackend.sendOpenaiChat(prompt, selectedModel);
   },
+}*/
+
+const AiResponse = {
+  async generate(prompt) {
+    const chosenModel = await Config.getSelectedModel();
+    const chosenFramework = await Config.getSelectedFramework();
+
+    const result = chosenFramework === 'ollama'
+      ? await AiBackend.sendOllamaChat(prompt, chosenModel)
+      : await AiBackend.sendOpenaiChat(prompt, chosenModel);
+
+    return aiResponse = result.message.content;
+  },
 }
 
 const FloatingButtonsAction = {
@@ -189,25 +227,15 @@ const FloatingButtonsAction = {
 
     try {
       Ui.showFloatingWindow(fWindowID, true);
-
       FloatingButtons.show(id, false);
 
-      const fileContents = await FileHandler.readFile(fileName);
+      const prompt = await PromptHandler.buildPrompt({
+        text: text,
+        fileName: fileName
+      });
 
-      let prompt = PromptOptions.explainTextPrompt;
-      prompt = `${prompt}\n\nTEXT TO EXPLAIN: ${text}\n\n`;
-      prompt = `${prompt}\n\nREFERENCE FILE CONTENTS: ${fileContents}\n\n`;
-
-      const fwContentLength = Ui.getFloatingWindowContentLength(fWindowID);
-      const chosenModel = await Config.getSelectedModel();
-      const chosenFramework = await Config.getSelectedFramework();
-
-      const result = chosenFramework === 'ollama'
-        ? await AiBackend.sendOllamaChat(prompt, chosenModel)
-        : await AiBackend.sendOpenaiChat(prompt, chosenModel);
-
-      const aiResponse = result.message.content;
-      const mdAiResponse = MarkdownParser.parse(aiResponse);
+      const aiReply = await AiResponse.generate(prompt);
+      const mdAiResponse = MarkdownParser.parse(aiReply);
       const respHTML = FloatingWindowUI.createUserMsgBubble(id, mdAiResponse);
 
       Ui.showElement(thinkingID, false);
