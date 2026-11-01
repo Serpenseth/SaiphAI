@@ -114,7 +114,8 @@ const PromptOptions = {
 
 const Ui = {
   showFloatingWindow(fullWindowID, state) {
-    DomQuery.showElement(fullWindowID, state);
+    const id = StringUtils.getRawID(fullWindowID);
+    DomQuery.showElement(`floating-window-${id}`, state);
   },
 
   attachFloatingWindow(elementHTML) {
@@ -153,7 +154,8 @@ const Ui = {
   },
 
   setFloatingWindowContent(fullWindowID, newContent) {
-    DomQuery.updateInnerHTML(fullWindowID, newContent);
+    const id = StringUtils.getRawID(fullWindowID);
+    DomQuery.updateText(`floating-window-msg-${id}`, newContent);
   },
 
   getFloatingWindowElement(fullWindowID) {
@@ -185,25 +187,6 @@ const PromptHandler = {
     return prompt;
   },
 }
-/*
-const SuggestEdit = {
-  async send(fileName, selectedText, userInstruction) {
-    const fileContents = await FileManager.readFile(fileName);
-
-    const selectedFramework = await Config.getSelectedFramework();
-    const selectedModel = await Config.getSelectedModel();
-
-    let prompt = PromptOptions.suggestEditPrompt;
-    prompt = `${prompt}\n\nFILE: ${fileName}\n\n`;
-    prompt = `${prompt}FULL FILE CONTENTS: ${fileContents}\n\n`;
-    prompt = `${prompt}SELECTED CODE: ${selectedText}\n\n`;
-    prompt = `${prompt}USER REQUEST: ${userInstruction}\n\n`;
-
-    return response = selectedFramework === 'ollama'
-      ? AiBackend.sendOllamaChat(prompt, selectedModel)
-      : AiBackend.sendOpenaiChat(prompt, selectedModel);
-  },
-}*/
 
 const AiResponse = {
   async generate(prompt) {
@@ -224,6 +207,8 @@ const FloatingButtonsAction = {
     const floatingWindow = FloatingWindow.element(id);
     const fWindowID = floatingWindow.id;
     const thinkingID = `floating-thinking-${id}`;
+
+    Ui.setFloatingWindowContent(fWindowID, '');
 
     try {
       Ui.showFloatingWindow(fWindowID, true);
