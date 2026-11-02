@@ -46,13 +46,18 @@ const FloatingWindowUI = {
             Enter below what you'd like to change
           </p>
 
-          <div style='display: flex; flex-direction: row'>
-            <textarea id='suggest-input-${id}' class='suggest-input'></textarea>
-            <button id='${sendBtnID}' class='chat-action send-suggest'>
-              <img style='height: 16px; width: 16px;' src='../assets/send.png'
+          <div style="position: relative; display: flex; align-items: center; width: 100%;">
+            <textarea
+              id="suggest-input-${id}"
+              class="suggest-input"
+              style="padding-right: 40px;"
+            ></textarea>
+
+            <button id="${sendBtnID}"class="chat-action send-suggest">
+              <img style="height: 16px; width: 16px;" src="../assets/send.png" alt="Send">
             </button>
           </div>
-        </div>
+
       </div>`;
   },
 
