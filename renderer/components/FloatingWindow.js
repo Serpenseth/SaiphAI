@@ -6,6 +6,7 @@ import {
 
 import { suggestEditPrompt } from './suggest_edit_prompt.js';
 import { FloatingButtons } from './FloatingButtons.js';
+import { FileEditor } from '../components/FileEditor.js';
 
 const FloatingWindowUI = {
   create(id) {
