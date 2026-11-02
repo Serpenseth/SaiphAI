@@ -158,7 +158,7 @@ class EventHandler {
         this.coordinator.switchToChatTab(tab.id);
     });
 
-    this.addListener(this.ui.tabsAndEditorParent, 'click', async (e) => {
+    this.addListener(this.ui.tabsAndEditorParent, 'click', (e) => {
       const btnPressed = e.target.closest('.floating-button-action');
 
       if (!btnPressed)
@@ -169,7 +169,7 @@ class EventHandler {
       const fileTabFile = FileTab.getActiveTabFileName();
 
       if (btnPressed.id.includes('explain')) {
-        await FloatingWindow.explainText(btnPressed.id, selected, fileTabFile);
+        FloatingWindow.explainText(btnPressed.id, selected, fileTabFile);
         return;
       }
 
