@@ -65,8 +65,7 @@ const Ui = {
   },
 
   getAllTabs() {
-    const allOpenedTabs = document.querySelectorAll('.file-tab');
-    return Array.from(allOpenedTabs);
+    return document.querySelectorAll('.file-tab');
   },
 
   getTabCount() {
@@ -103,10 +102,7 @@ const FileTabManager = {
   },
 
   getTabByFilePath(filePath) {
-    const allTabs = Ui.getAllTabs();
-    let allActiveFiles = document.querySelectorAll('.file-item.selected');
-    allActiveFiles = Array.from(allActiveFiles);
-
+    const allTabs = Array.from(Ui.getAllTabs());
     const index = allTabs.findIndex(item => {
       return item.dataset.path === filePath
     });
@@ -133,7 +129,7 @@ const SidebarActiveFile = {
 const TabHandler = {
   getTabFrom(fullTabID) {
     let prevTabToSwitchTo;
-    const allTabs = Ui.getAllTabs();
+    const allTabs = Array.from(Ui.getAllTabs());
     const index = allTabs.findIndex(el => el.id === fullTabID);
 
     return allTabs[index-1].id;
