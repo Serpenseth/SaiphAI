@@ -175,23 +175,21 @@ const Ui = {
 
 const PromptHandler = {
   async buildPrompt(data, fromExplainText=true) {
-    const fileContents = await FileHandler.readFile(data. fileName);
+    const fileContents = await FileHandler.readFile(data.fileName);
     let prompt;
 
     if (fromExplainText) {
       prompt = PromptOptions.explainTextPrompt;
-      prompt = `${prompt}\n\nTEXT TO EXPLAIN: ${data.text}\n\n`;
+      prompt = `${prompt}\n\nTEXT TO EXPLAIN: ${data.selectedText}\n\n`;
       prompt = `${prompt}\n\nREFERENCE FILE CONTENTS: ${fileContents}\n\n`;
     }
 
     else {
-      const { selectedText, userInstruction } = data;
-
       prompt = PromptOptions.suggestEditPrompt;
-      prompt = `${prompt}\n\nFILE: ${fileName}\n\n`;
-      prompt = `${prompt}FULL FILE CONTENTS: ${fileContents}\n\n`;
-      prompt = `${prompt}SELECTED CODE: ${selectedText}\n\n`;
-      prompt = `${prompt}USER REQUEST: ${userInstruction}\n\n`;
+      prompt = `${prompt}\n\nFILE NAME: ${data.fileName}\n\n`;
+      prompt = `${prompt}REFERENCE FILE CONTENTS: ${fileContents}\n\n`;
+      prompt = `${prompt}SELECTED CODE: ${data.selectedText}\n\n`;
+      prompt = `${prompt}USER INSTRUCTIONS: ${data.userInstructions}\n\n`;
     }
 
     return prompt;
