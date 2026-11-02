@@ -158,86 +158,70 @@ class EventHandler {
         this.coordinator.switchToChatTab(tab.id);
     });
 
-    /*
     this.addListener(this.ui.tabsAndEditorParent, 'click', async (e) => {
-      let rawID = null;
-      let floatingWindow = null;
-      const buttonPressed = e.target.closest('.floating-button-action');
+      const btnPressed = e.target.closest('.floating-button-action');
 
-      if (!buttonPressed)
+      if (!btnPressed)
         return;
 
-      if (buttonPressed.id.includes('explain')) {
-        try {
-          rawID = StringUtils.getRawID(buttonPressed.id);
-          const floatingButtons = floatingButtonsManager.get(rawID);
-          const fileTab = fileTabManager.get(rawID).fileTab;
+      const id = StringUtils.getRawID(btnPressed.id);
+      const selected = FloatingButtons.getSelectedText(id);
+      const fileTabFile = FileTab.getActiveTabFileName();
 
-          floatingWindow = floatingWindowManager.get(rawID);
-          floatingButtons.hide();
-          floatingWindow.show();
-
-          await this.coordinator.explainText(
-            //this.ui.currentFileTab.editor,
-            fileTab.editorElement().element().id,
-            floatingButtons.getSelectedText(),
-            fileTabManager.get(rawID).fileName
-          );
-
-        }
-        catch(e) {
-          console.error(e);
-          floatingWindow.setContent(e);
-        }
+      if (btnPressed.id.includes('explain')) {
+        await FloatingWindow.explainText(btnPressed.id, selected, fileTabFile);
+        return;
       }
 
-      else if (buttonPressed.id.includes('modify')) {
-        const rawID = StringUtils.getRawID(buttonPressed.id);
-        const activeEditor = DomQuery.getElement(`editor-container-${rawID}`);
+      else if (btnPressed.id.includes('modify')) {
+        const inputID = `suggest-input-${id}`
+        const fWindow = FloatingWindow;
+        const input = fWindow.getElement(inputID);
+        const inputClasses = new Set(input.classList);
+        const sendSuggestionBtnID = `send-suggestion-${id}`
+        const sendSuggestionBtn = fWindow.getElement(sendSuggestionBtnID);
 
-        const activeFloatingWindow = floatingWindowManager.get(rawID);
-        let inputField = DomQuery.getElement(`suggest-input-${rawID}`);
+        FloatingButtons.show(id, false);
+        fWindow.show(`floating-window-${id}`, true);
+        fWindow.showSendSuggestEdit(id, true);
+        fWindow.showThinkingSpinner(id, false);
+        input.focus();
 
-        if (!inputField) {
-          activeFloatingWindow.createSendChangeField();
-          inputField = DomQuery.getElement(`suggest-input-${rawID}`);
-        }
+        if (!inputClasses.has('initialized')) {
+          input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
 
-        else {
-          const cont = DomQuery.getElement(`suggest-input-container-${rawID}`);
-          cont.style.display = 'block';
-        }
+              fWindow.clearInputField(id);
+              fWindow.showSendSuggestEdit(id, false);
+              fWindow.showThinkingSpinner(id, true);
+              fWindow.suggestEdit(
+                btnPressed.id,
+                selected,
+                fileTabFile,
+                input.value || 'How to improve this?',
+              );
+            }
+          });
 
-        activeFloatingWindow.show();
-        floatingButtonsManager.get(rawID).hide();
-
-        inputField.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' && !e.shiftKey) {
+          sendSuggestionBtn.addEventListener('click', (e) => {
             e.preventDefault();
 
-            const value = inputField.value.trim();
-
-            if (value !== '') {
-              this.coordinator.suggestEdit(activeEditor.id, value);
-            }
-          }
-        });
-
-        const suggestionBtn = DomQuery.getElement(`send-suggestion-${rawID}`);
-        suggestionBtn.addEventListener('click', () => {
-          const value = inputField.value.trim();
-
-          if (value !== '') {
-            this.coordinator.suggestEdit(
-              activeEditor.id,
-              inputField.value.trim()
+            fWindow.clearInputField(id);
+            fWindow.showSendSuggestEdit(id, false);
+            fWindow.showThinkingSpinner(id, true);
+            fWindow.suggestEdit(
+              btnPressed.id,
+              selected,
+              fileTabFile,
+              input.value || 'How to improve this?',
             );
-          }
-        });
+          });
+
+          DomQuery.setElementClass(inputID, 'initialized');
+        }
       }
     });
-    */
-
   }
 }
 
