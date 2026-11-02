@@ -130,14 +130,14 @@
   color: var(--text-primary);
   font-size: 0.9rem;
   margin-top: 1rem;
-  background: rgba(236, 235, 234, 0.25);
-  border: 1px solid rgba(196, 217, 220, 0.25);
+  background: rgba(236, 235, 234, 0.05);
+  border: 1px solid rgba(196, 217, 220, 0.05);
   resize: none;
 }
 
 .suggest-input:focus {
   filter: brightness(1.2);
   outline: none;
-  box-shadow: 0 0px 4px rgba(236, 235, 234, 0.4);
+  box-shadow: 0 0px 2px rgba(236, 235, 234, 0.4);
 }
 
