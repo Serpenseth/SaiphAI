@@ -124,6 +124,10 @@ const Ui = {
     DomQuery.showElement(`floating-window-${id}`, state);
   },
 
+  clearSuggestInputField(rawID) {
+    DomQuery.updateInnerHTML(`suggest-input-container-${rawID}`, '');
+  },
+
   attachFloatingWindow(elementHTML) {
     const elementDOM = DomQuery.htmlTemplateToDOM(elementHTML);
     DomQuery.appendChild('tabs-and-editor', elementDOM);
