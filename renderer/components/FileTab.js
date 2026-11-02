@@ -223,7 +223,12 @@ const FileTab = {
 
   getTabByFilePath(filePath) {
     return FileTabManager.getTabByFilePath(filePath);
-  }
+  },
+
+  getActiveTabFileName() {
+    const activeRaw = this.getActiveTabRawID();
+    return Ui.getTabFilePath(activeRaw);
+  },
 }
 
 export { FileTab };
