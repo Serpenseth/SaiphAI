@@ -209,6 +209,33 @@ const AiResponse = {
   },
 }
 
+const SuggestEditUI = {
+  createNoChanges(id) {
+    const noChangesMessage = `
+      <div class="ai-response">
+        <em>
+          No changes are required. The selected code looks good as-is.
+        </em>
+      </div>
+      <br><br>`;
+
+    const mdParsed = MarkdownParser.parse(noChangesMessage);
+    return FloatingWindowUI.createAiReplyBubble(id, mdParsed);
+  },
+
+  createClarifyMatch(id, clarifyMatch) {
+    const parsedMatch = MarkdownParser.parse(clarifyMatch[1].trim());
+    const clarifyMessage = `
+      <div class="ai-response">
+        <p><strong>I need clarification:</strong></p>
+        <p>${parsedMatch}</p>
+      </div>
+      <br><br>`;
+
+    return FloatingWindowUI.createAiReplyBubble(id, clarifyMessage);
+  },
+}
+
 const FloatingButtonsAction = {
   async explainText(clickedButtonID, text, fileName) {
     const id = StringUtils.getRawID(clickedButtonID);
