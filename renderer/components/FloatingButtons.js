@@ -33,6 +33,10 @@ const Ui = {
     DomQuery.showElement(element, state);
   },
 
+  destroyButtons(fullButtonsID) {
+    DomQuery.removeElement(fullButtonsID);
+  },
+
   getSelectedText(element) {
     const el = DomQuery.getElement(element);
     return el.dataset.selectedText;
