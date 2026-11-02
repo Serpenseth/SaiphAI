@@ -70,7 +70,7 @@ const FloatingWindowUI = {
       </div>`;
   },
 
-  createUserMsgBubble(id, message) {
+  createAiReplyBubble(id, message) {
     return `
       <div id='floating-window-msg-${id}' class='ai-response'>
         ${message}<br><br>
