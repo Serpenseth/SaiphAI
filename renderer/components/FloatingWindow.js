@@ -138,6 +138,12 @@ const Ui = {
     Ui.attachElementToFloatingWindow(floatingWindowID, button);
   },
 
+  createTryAgainButton(rawID) {
+    const button = FloatingWindowUI.createTryAgainButton(rawID);
+    const elementDOM = DomQuery.htmlTemplateToDOM(button);
+    return elementDOM;
+  },
+
   attachFloatingWindow(elementHTML) {
     const elementDOM = DomQuery.htmlTemplateToDOM(elementHTML);
     DomQuery.appendChild('tabs-and-editor', elementDOM);
@@ -146,6 +152,10 @@ const Ui = {
   attachElementToFloatingWindow(fullWindowID, elementHTML) {
     const elementDOM = DomQuery.htmlTemplateToDOM(elementHTML);
     DomQuery.appendChild(fullWindowID, elementDOM);
+  },
+
+  appendElementToFloatingWindow(fullWindowID, element) {
+    DomQuery.appendChild(fullWindowID, element);
   },
 
   showElement(fullWindowID, state) {
@@ -220,9 +230,9 @@ const AiResponse = {
 }
 
 const SuggestEditUI = {
-  createNoChanges(id) {
+  createNoChanges(id, tryAgainFn) {
     const noChangesMessage = `
-      <div class="ai-response">
+      <div id='no-changes-${id}' class="ai-response">
         <em>
           No changes are required. The selected code looks good as-is.
         </em>
@@ -230,19 +240,39 @@ const SuggestEditUI = {
       <br><br>`;
 
     const mdParsed = MarkdownParser.parse(noChangesMessage);
-    return FloatingWindowUI.createAiReplyBubble(id, mdParsed);
+    const noChangesHTML = FloatingWindowUI.createAiReplyBubble(id, mdParsed);
+    const fWindowID = `floating-window-${id}`;
+    const clarifyHTML = Ui.attachElementToFloatingWindow(fWindowID, noChangesHTML);
+
+    Controller.create(id);
+    Ui.createAndAttachTryAgainButton(id);
+
+    const tryAgainBtn = FloatingWindow.getElement(`try-again-${id}`);
+    const controller = Controller.get(id).signal;
+
+    tryAgainBtn.addEventListener('click', tryAgainFn, { once: true, signal: controller });
   },
 
-  createClarifyMatch(id, clarifyMatch) {
+  createClarifyMatch(id, clarifyMatch, tryAgainFn) {
     const parsedMatch = MarkdownParser.parse(clarifyMatch[1].trim());
     const clarifyMessage = `
-      <div class="ai-response">
+      <div id='clarify-${id}' class="ai-response">
         <p><strong>I need clarification:</strong></p>
         <p>${parsedMatch}</p>
       </div>
       <br><br>`;
 
-    return FloatingWindowUI.createAiReplyBubble(id, clarifyMessage);
+    FloatingWindowUI.createAiReplyBubble(id, clarifyMessage);
+    const fWindowID = `floating-window-${id}`;
+    const clarifyHTML = Ui.attachElementToFloatingWindow(fWindowID, clarifyMessage);
+
+    Controller.create(id);
+    Ui.createAndAttachTryAgainButton(id);
+
+    const tryAgainBtn = FloatingWindow.getElement(`try-again-${id}`);
+    const controller = Controller.get(id).signal;
+
+    tryAgainBtn.addEventListener('click', tryAgainFn, { once: true, signal: controller });
   },
 }
 
@@ -296,11 +326,11 @@ const FloatingButtonsAction = {
         FloatingButtonsAction.explainText(clickedButtonID, text, fileName);
       }
 
-      Controller.create(clickedButtonID);
+      Controller.create(id);
       Ui.createAndAttachTryAgainButton(id);
 
       const tryAgainBtn = FloatingWindow.getElement(`try-again-${id}`);
-      const controller = Controller.get(clickedButtonID).signal;
+      const controller = Controller.get(id).signal;
 
       tryAgainBtn.addEventListener('click', tryAgain, { once: true, signal: controller });
       Ui.showElement(`try-again-${id}`, true);
@@ -322,6 +352,16 @@ const FloatingButtonsAction = {
     const thinkingID = `floating-thinking-${id}`;
 
     try {
+      function tryAgain() {
+        Ui.removeFloatingWindowElement(`floating-window-msg-${id}`);
+        Ui.removeFloatingWindowElement(`try-again-${id}`);
+        Ui.removeFloatingWindowElement(`no-changes-${id}`);
+        Ui.removeFloatingWindowElement(`clarify-${id}`);
+        Ui.showElement(thinkingID, true);
+
+        FloatingButtonsAction.suggestEdit(clickedButtonID, text, fileName, userInstructions);
+      }
+
       const prompt = await PromptHandler.buildPrompt({
         selectedText: text,
         fileName: fileName,
@@ -329,37 +369,29 @@ const FloatingButtonsAction = {
       }, false);
 
       const aiReply = await AiResponse.generate(prompt);
-      const { createNoChanges, createClarifyMatch } = SuggestEditUI;
 
       if (/^\s*NO_CHANGES\s*$/i.test(aiReply)) {
-        const noChanges = createNoChanges(id);
-
+        SuggestEditUI.createNoChanges(id, tryAgain);
         Ui.showElement(thinkingID, false);
-        Ui.attachElementToFloatingWindow(fWindowID, noChanges);
-
-        //floatingWindow.createTryAgainButton();
+        Ui.showElement(`try-again-${id}`, true);
         return;
       }
 
       const clarifyMatch = aiReply.match(/<CLARIFY>([\s\S]*?)<\/CLARIFY>/i);
 
       if (clarifyMatch) {
-        const clarifyMessage = createClarifyMatch(id, clarifyMatch);
-
+        SuggestEditUI.createClarifyMatch(id, clarifyMatch, tryAgain);
         Ui.showElement(thinkingID, false);
-        Ui.attachElementToFloatingWindow(fWindowID, clarifyMessage);
+        Ui.showElement(`try-again-${id}`, true);
         return;
       }
 
       const diffBlocks = FileEditor.parseDiffBlocks(aiReply);
 
       if (diffBlocks.length === 0) {
-        const noChanges = createNoChanges(id);
-
+        SuggestEditUI.createNoChanges(id, tryAgain);
         Ui.showElement(thinkingID, false);
-        Ui.attachElementToFloatingWindow(fWindowID, noChanges);
-
-        //floatingWindow.createTryAgainButton();
+        Ui.showElement(`try-again-${id}`, true);
         return;
       }
 
@@ -377,7 +409,11 @@ const FloatingButtonsAction = {
       FileEditor.createEditorDiffs(currentEditor, diffBlocks);
       Ui.showElement(thinkingID, false);
       Ui.attachElementToFloatingWindow(fWindowID, respHTML);
-      //floatingWindow.createTryAgainButton();
+
+      const tryAgainBtn = FloatingWindow.getElement(`try-again-${id}`);
+      const controller = Controller.get(id).signal;
+
+      tryAgainBtn.addEventListener('click', tryAgainFn, { once: true, signal: controller });
     }
     catch(e) {
       Ui.showElement(thinkingID, false);
