@@ -243,25 +243,97 @@ const FloatingButtonsAction = {
     const fWindowID = floatingWindow.id;
     const thinkingID = `floating-thinking-${id}`;
 
-    Ui.setFloatingWindowContent(fWindowID, '');
-
     try {
       Ui.showFloatingWindow(fWindowID, true);
       FloatingButtons.show(id, false);
 
       const prompt = await PromptHandler.buildPrompt({
-        text: text,
-        fileName: fileName
+        selectedText: text,
+        fileName: fileName,
       });
 
       const aiReply = await AiResponse.generate(prompt);
       const mdAiResponse = MarkdownParser.parse(aiReply);
-      const respHTML = FloatingWindowUI.createUserMsgBubble(id, mdAiResponse);
+      const respHTML = FloatingWindowUI.createAiReplyBubble(id, mdAiResponse);
 
       Ui.showElement(thinkingID, false);
       Ui.attachElementToFloatingWindow(fWindowID, respHTML);
     }
 
+    catch(e) {
+      Ui.showElement(thinkingID, false);
+      FloatingButtons.show(id, false);
+      console.error(e);
+      const errHTML = FloatingWindowUI.createErrorBubble(id, e);
+      Ui.attachElementToFloatingWindow(fWindowID, errHTML);
+    }
+  },
+
+  async suggestEdit(clickedButtonID, text, fileName, userInstructions) {
+    const id = StringUtils.getRawID(clickedButtonID);
+    const floatingWindow = FloatingWindow.element(id);
+    const fWindowID = floatingWindow.id;
+    const thinkingID = `floating-thinking-${id}`;
+
+    try {
+      const prompt = await PromptHandler.buildPrompt({
+        selectedText: text,
+        fileName: fileName,
+        userInstructions: userInstructions,
+      }, false);
+
+      const aiReply = await AiResponse.generate(prompt);
+      const { createNoChanges, createClarifyMatch } = SuggestEditUI;
+
+
+      if (/^\s*NO_CHANGES\s*$/i.test(aiReply)) {
+        const noChanges = createNoChanges(id);
+
+        Ui.showElement(thinkingID, false);
+        Ui.attachElementToFloatingWindow(fWindowID, noChanges);
+
+        //floatingWindow.createTryAgainButton();
+        return;
+      }
+
+      const clarifyMatch = aiReply.match(/<CLARIFY>([\s\S]*?)<\/CLARIFY>/i);
+
+      if (clarifyMatch) {
+        const clarifyMessage = createClarifyMatch(id, clarifyMatch);
+
+        Ui.showElement(thinkingID, false);
+        Ui.attachElementToFloatingWindow(fWindowID, clarifyMessage);
+        return;
+      }
+
+      const diffBlocks = FileEditor.parseDiffBlocks(aiReply);
+
+      if (diffBlocks.length === 0) {
+        const noChanges = createNoChanges(id);
+
+        Ui.showElement(thinkingID, false);
+        Ui.attachElementToFloatingWindow(fWindowID, noChanges);
+
+        //floatingWindow.createTryAgainButton();
+        return;
+      }
+
+      const diffSummary = FileEditor.buildDiffSummary(diffBlocks);
+
+      if (diffBlocks.length === 1) {
+        diffBlocks[0].search = text;
+      }
+
+      const editorID = `editor-container-${id}`;
+      const currentEditor = FileEditor.getEditorElement(editorID);
+      const mdSummary = MarkdownParser.parse(diffSummary);
+      const respHTML = FloatingWindowUI.createAiReplyBubble(id, mdSummary);
+
+      FileEditor.createEditorDiffs(currentEditor, diffBlocks);
+      Ui.showElement(thinkingID, false);
+      Ui.attachElementToFloatingWindow(fWindowID, respHTML);
+      //floatingWindow.createTryAgainButton();
+    }
     catch(e) {
       Ui.showElement(thinkingID, false);
       FloatingButtons.show(id, false);
@@ -329,9 +401,30 @@ const FloatingWindow = {
     return Ui.getFloatingWindowElement(`floating-window-${rawID}`);
   },
 
+  getElement(fullElementID) {
+    return Ui.getFloatingWindowElement(fullElementID);
+  },
+
+  showElement(fullWindowID, state) {
+    return Ui.showElement(fullWindowID, state);
+  },
+
+  clearInputField(rawID) {
+    Ui.clearSuggestInputField(rawID);
+  },
+
   async explainText(btnD, text, fileName) {
     return await FloatingButtonsAction.explainText(btnD, text, fileName);
-  }
+  },
+
+  async suggestEdit(clickedButtonID, text, fileName, userInstructions) {
+    return await FloatingButtonsAction.suggestEdit(
+      clickedButtonID,
+      text,
+      fileName,
+      userInstructions
+    );
+  },
 }
 
 export { FloatingWindow }
