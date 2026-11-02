@@ -101,14 +101,6 @@
   border-top: 1px dashed #444;
 }
 
-.try-again-container {
-  display: flex;
-  flex: 1;
-  margin-top: auto;
-  justify-content: center;
-  align-items: center;
-}
-
 .suggest-input-container {
   display: flex;
   flex-direction: column;
