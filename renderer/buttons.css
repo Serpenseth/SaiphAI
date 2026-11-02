@@ -270,12 +270,13 @@
 }
 
 .send-suggest {
-  background: transparent;
+  background: var(--send-btn);
   width: 32px;
   height: 32px;
   margin-top: 4rem;
   margin-left: 0.45rem;
   transition: all 0.5s ease-in-out;
+  filter: brightness(1.2);
 }
 
 .send-suggest:hover {
