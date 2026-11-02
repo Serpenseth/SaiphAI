@@ -209,6 +209,8 @@ const FileTab = {
 
     FileEditor.show(`editor-container-${fromID}`, false);
     FileEditor.show(`editor-container-${toID}`, true);
+    FloatingWindow.show(fromFullID, false);
+    FloatingWindow.show(toFullID, true);
   },
 
   getActiveTab() {
