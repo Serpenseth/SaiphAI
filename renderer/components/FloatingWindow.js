@@ -63,8 +63,8 @@ const FloatingWindowUI = {
 
   createTryAgainButton(id) {
     return `
-      <div id='try-again-container' class='try-again-container' style='display: none'>
-        <button id='try-again-${id}' class='try-again'>
+      <div style='display: flex; justify-content: center; width: 100%;'>
+        <button id='try-again-${id}' class='try-again' style='display: none'>
           Try again
         </button>
       </div>`;
@@ -130,6 +130,12 @@ const Ui = {
 
   destroyFloatingWindow(fullWindowID) {
     DomQuery.removeElement(fullWindowID);
+  },
+
+  createAndAttachTryAgainButton(rawID) {
+    const button = FloatingWindowUI.createTryAgainButton(rawID);
+    const floatingWindowID = `floating-window-${rawID}`;
+    Ui.attachElementToFloatingWindow(floatingWindowID, button);
   },
 
   attachFloatingWindow(elementHTML) {
@@ -240,6 +246,24 @@ const SuggestEditUI = {
   },
 }
 
+const Controller = {
+  controllerMap: new Map,
+
+  create(clickedButtonID) {
+    this.controllerMap.set(clickedButtonID, new AbortController());
+  },
+
+  get(clickedButtonID) {
+    return this.controllerMap.get(clickedButtonID);
+  },
+
+  abort(clickedButtonID) {
+    const c = this.controllerMap.get(clickedButtonID);
+    c?.abort();
+    this.controllerMap.delete(clickedButtonID);
+  }
+}
+
 const FloatingButtonsAction = {
   async explainText(clickedButtonID, text, fileName) {
     const id = StringUtils.getRawID(clickedButtonID);
@@ -251,17 +275,35 @@ const FloatingButtonsAction = {
       Ui.showFloatingWindow(fWindowID, true);
       FloatingButtons.show(id, false);
 
-      const prompt = await PromptHandler.buildPrompt({
+      const data = {
         selectedText: text,
         fileName: fileName,
-      });
+      }
 
+      const prompt = await PromptHandler.buildPrompt(data);
       const aiReply = await AiResponse.generate(prompt);
       const mdAiResponse = MarkdownParser.parse(aiReply);
       const respHTML = FloatingWindowUI.createAiReplyBubble(id, mdAiResponse);
 
       Ui.showElement(thinkingID, false);
       Ui.attachElementToFloatingWindow(fWindowID, respHTML);
+
+      function tryAgain() {
+        Ui.removeFloatingWindowElement(`floating-window-msg-${id}`);
+        Ui.removeFloatingWindowElement(`try-again-${id}`);
+        Ui.showElement(thinkingID, true);
+
+        FloatingButtonsAction.explainText(clickedButtonID, text, fileName);
+      }
+
+      Controller.create(clickedButtonID);
+      Ui.createAndAttachTryAgainButton(id);
+
+      const tryAgainBtn = FloatingWindow.getElement(`try-again-${id}`);
+      const controller = Controller.get(clickedButtonID).signal;
+
+      tryAgainBtn.addEventListener('click', tryAgain, { once: true, signal: controller });
+      Ui.showElement(`try-again-${id}`, true);
     }
 
     catch(e) {
@@ -288,7 +330,6 @@ const FloatingButtonsAction = {
 
       const aiReply = await AiResponse.generate(prompt);
       const { createNoChanges, createClarifyMatch } = SuggestEditUI;
-
 
       if (/^\s*NO_CHANGES\s*$/i.test(aiReply)) {
         const noChanges = createNoChanges(id);
@@ -346,6 +387,18 @@ const FloatingButtonsAction = {
       Ui.attachElementToFloatingWindow(fWindowID, errHTML);
     }
   },
+
+  tryAgainExplainText() {
+    const activeID = TryAgainData.activeID;
+    const data = TryAgainData.get(activeID);
+    this.explainText(activeID, data.selectedText, data.fileName);
+  },
+
+  tryAgainsuggestEdit() {
+    const activeID = TryAgainData.activeID;
+    const data = TryAgainData.get(activeID);
+    this.suggestEdit(activeID, data.selectedText, data.fileName, data.userInstructions);
+  },
 }
 
 const FloatingWindowCreation = {
@@ -357,7 +410,7 @@ const FloatingWindowCreation = {
       FloatingWindowUI.createCloseFloatingWindowButton(rawID),
       FloatingWindowUI.createThinkingSpinner(rawID),
       FloatingWindowUI.createSendChangeInputField(rawID),
-      FloatingWindowUI.createTryAgainButton(rawID),
+      //FloatingWindowUI.createTryAgainButton(rawID),
     ];
 
     elementsToAttach.forEach(el => {
