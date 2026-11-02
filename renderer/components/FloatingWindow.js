@@ -456,6 +456,7 @@ const FloatingWindow = {
 
   destroy(rawID) {
     Ui.removeFloatingWindowElement(`floating-window-${rawID}`);
+    Controller.abort(rawID);
   },
 
   showThinkingSpinner(rawID, state) {
