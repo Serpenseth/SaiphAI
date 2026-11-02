@@ -133,6 +133,7 @@
   background: rgba(236, 235, 234, 0.05);
   border: 1px solid rgba(196, 217, 220, 0.05);
   resize: none;
+  font: inherit;
 }
 
 .suggest-input:focus {
