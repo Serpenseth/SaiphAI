@@ -128,6 +128,10 @@ const Ui = {
     DomQuery.updateInnerHTML(`suggest-input-container-${rawID}`, '');
   },
 
+  destroyFloatingWindow(fullWindowID) {
+    DomQuery.removeElement(fullWindowID);
+  },
+
   attachFloatingWindow(elementHTML) {
     const elementDOM = DomQuery.htmlTemplateToDOM(elementHTML);
     DomQuery.appendChild('tabs-and-editor', elementDOM);
@@ -373,8 +377,8 @@ const FloatingWindow = {
     Ui.showFloatingWindow(fullWindowID, state);
   },
 
-  destroy(fullWindowID) {
-    Ui.removeFloatingWindowElement(fullWindowID);
+  destroy(rawID) {
+    Ui.removeFloatingWindowElement(`floating-window-${rawID}`);
   },
 
   showThinkingSpinner(rawID, state) {
