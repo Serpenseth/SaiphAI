@@ -387,18 +387,6 @@ const FloatingButtonsAction = {
       Ui.attachElementToFloatingWindow(fWindowID, errHTML);
     }
   },
-
-  tryAgainExplainText() {
-    const activeID = TryAgainData.activeID;
-    const data = TryAgainData.get(activeID);
-    this.explainText(activeID, data.selectedText, data.fileName);
-  },
-
-  tryAgainsuggestEdit() {
-    const activeID = TryAgainData.activeID;
-    const data = TryAgainData.get(activeID);
-    this.suggestEdit(activeID, data.selectedText, data.fileName, data.userInstructions);
-  },
 }
 
 const FloatingWindowCreation = {
