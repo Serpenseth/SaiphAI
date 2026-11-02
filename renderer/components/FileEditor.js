@@ -368,6 +368,8 @@ const FileEditor = {
   destroy(rawFileTabID) {
     EditorManager.remove(rawFileTabID);
     Ui.removeEditor(`editor-container-${rawFileTabID}`);
+    FloatingWindow.destroy(rawFileTabID);
+    FloatingButtons.destroy(rawFileTabID);
   },
 
   element(rawFileTabID) {
