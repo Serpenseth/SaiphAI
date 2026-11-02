@@ -177,6 +177,23 @@ const EditorDiffs = {
   },
 }
 
+const DiffsBlock = {
+  parse(block) {
+    let match;
+    const regex = /<EXPLANATION>([\s\S]*?)<\/EXPLANATION>\s*<SEARCH>([\s\S]*?)<\/SEARCH>\s*<REPLACE>([\s\S]*?)<\/REPLACE>/gs;
+    const blocks = [];
+
+    while ((match = regex.exec(block)) !== null) {
+      blocks.push({
+        explanation: match[1],
+        search: match[2],
+        replace: match[3],
+      });
+    }
+    return blocks;
+  },
+}
+
 const TextSummarizer = {
   async summarize(fileContents, mandatoryText) {
     return window.electronAPI.summarizeText(fileContents, mandatoryText);
@@ -368,6 +385,22 @@ const FileEditor = {
   setActiveEditor(fullEditorContainerID) {
     const editorEl = Ui.getEditorElement(fullEditorContainerID);
     return ActiveEditor.set(editorEl);
+  },
+
+  buildDiffSummary(diffBlocks) {
+    return DiffsUI.buildDiffSummary(diffBlocks);
+  },
+
+  renderDiffPreview(diffBlocks, fileContents) {
+    return DiffsUI.renderDiffPreview(diffBlocks, fileContents);
+  },
+
+  createEditorDiffs(editorContainer, diffBlocks) {
+    EditorDiffs.create(editorContainer, diffBlocks);
+  },
+
+  parseDiffBlocks(blocks) {
+    return DiffsBlock.parse(blocks);
   },
 }
 
