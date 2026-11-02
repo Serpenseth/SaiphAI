@@ -382,6 +382,10 @@ const FileEditor = {
     return ActiveEditor.get();
   },
 
+  getEditorElement(fullEditorID) {
+    return Ui.getEditorElement(fullEditorID);
+  },
+
   setActiveEditor(fullEditorContainerID) {
     const editorEl = Ui.getEditorElement(fullEditorContainerID);
     return ActiveEditor.set(editorEl);
