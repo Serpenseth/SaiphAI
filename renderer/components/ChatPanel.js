@@ -149,7 +149,7 @@ const ImageHandler = {
 }
 
 const PanelWidth = {
-  width: 440,
+  width: 360,
 
   get() {
     return PanelWidth.width;
@@ -439,7 +439,7 @@ const ResizeManager = {
   resize(e) {
     const currentPanel = `ai-panel-${TabHandler.getActiveTabRawID()}`;
     const box = DomQuery.getElement(currentPanel);
-    const minWidth = 440;
+    const minWidth = 360;
     const maxWidth = window.innerWidth * 0.875;
 
     const deltaX = e.clientX - ResizeManager.startMouseX;
