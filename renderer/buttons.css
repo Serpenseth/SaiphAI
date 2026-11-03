@@ -102,44 +102,12 @@
   margin-bottom: 2px;
   padding: 0.5rem;
   transition: all 0.1s;
+  cursor: pointer;
 }
 
 .sidebar-action-btn:hover {
   background: var(--bg-tertiary);
   filter: brightness(0.9);
-}
-
-#no-ai-panel {
-  position: absolute;
-  width: 1px;
-  padding-top: calc(100vh/2);
-  z-index: 1000;
-  right: 33%;
-}
-
-#show-panel,
-#hide-panel {
-  background: var(--bg-primary);
-  opacity: 10%;
-  border-radius: 50%;
-  border: 1px solid rgba(41, 128, 168);
-  z-index: 1000;
-  position: relative;
-  padding: 0.5em 1rem;
-  transition: opacity 0.5s;
-}
-
-#show-ai-panel {
-  position: absolute;
-  width: 2px;
-  padding-top: calc(100vh/2);
-  z-index: 1000;
-  right: 3%;
-}
-
-#hide-panel:hover,
-#show-panel:hover {
-  opacity: 1;
 }
 
 .chat-action {
