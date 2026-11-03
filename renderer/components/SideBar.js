@@ -90,6 +90,12 @@ const ResizeManager = {
 
 const Ui = {
   async showSidebar(state) {
+    const prevAiPanelState = DomQuery.getElement('.ai-panel-container').style.display === 'none'
+    const prevText = prevAiPanelState === true
+      ? 'Show AI Panel'
+      :  'Hide AI Panel';
+
+
     Config.saveSidebarVisibility(state).then(_ => {
       DomQuery.toggleVisibility('file-tree', state);
       DomQuery.showElement('show-sidebar', !state);
@@ -101,6 +107,7 @@ const Ui = {
         DomQuery.setWidth('sidebar-container', savedWidth);
         DomQuery.updateText('settings-text', 'Settings');
         DomQuery.updateText('open-workspace-text', 'Open workspace');
+        DomQuery.updateText('show-ai-panel-text', prevText);
       }
 
       else {
@@ -108,6 +115,7 @@ const Ui = {
         DomQuery.setWidth('sidebar-container', '40px');
         DomQuery.updateText('settings-text', '');
         DomQuery.updateText('open-workspace-text', '');
+        DomQuery.updateText('show-ai-panel-text', '');
       }
     });
   },
