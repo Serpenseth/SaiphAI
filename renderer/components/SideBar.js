@@ -99,12 +99,14 @@ const Ui = {
         DomQuery.setWidth('sidebar', savedWidth);
         DomQuery.setWidth('sidebar-container', savedWidth);
         DomQuery.updateText('settings-text', 'Settings');
+        DomQuery.updateText('open-workspace-text', 'Open workspace');
       }
 
       else {
         DomQuery.setWidth('sidebar', '40px');
         DomQuery.setWidth('sidebar-container', '40px');
         DomQuery.updateText('settings-text', '');
+        DomQuery.updateText('open-workspace-text', '');
       }
     });
   },
