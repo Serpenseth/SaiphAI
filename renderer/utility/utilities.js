@@ -178,6 +178,13 @@ export const DomQuery = {
   setWidth(id, newWidth) {
     const el = this.getElement(id);
     el.style.width = newWidth;
-  }
+  },
+
+  getWidth(id) {
+    const el = this.getElement(id);
+    if (el) {
+      return el.style.width;
+    }
+  },
 };
 
