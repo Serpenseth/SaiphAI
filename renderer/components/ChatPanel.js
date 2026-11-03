@@ -488,9 +488,9 @@ const ResizeManager = {
     box.style.height = newHeight + 'px';
 
     const allChatArea = document.querySelectorAll('.chat-input');
-    Array.from(allChatArea).forEach(ca => {
+    for (const chatArea of allChatArea) {
       ca.style.height = box.style.height;
-    });
+    }
 
     ChatAreaHeight.set(box.style.height);
   },
