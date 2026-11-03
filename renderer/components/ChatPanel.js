@@ -175,8 +175,6 @@ const ChatAreaHeight = {
 const Ui = {
   showPanel(state) {
     DomQuery.showElement('.ai-panel-container', state);
-    DomQuery.showElement('no-ai-panel', state);
-    DomQuery.showElement('show-ai-panel', state === true ? false : true);
     DomQuery.showElement('tabs-section', state);
   },
 
@@ -512,10 +510,12 @@ const EventSetup = {
       controller.signal,
     );
 
+    /*
     EventHandler.setupShowPanelEvent([
       { id: 'show-ai-panel', fn: () => chatPanel.show(true) },
       { id: 'no-ai-panel', fn: () => chatPanel.show(false) },
     ]);
+    */
 
     EventHandler.setupClickEvents([
       { id: 'new-chat-tab', fn: () => chatPanel.newChatTab() },
@@ -523,8 +523,8 @@ const EventSetup = {
         const inputData = Ui.getUserPrompt(`user-prompt-${id}`);
         chatPanel.displayAiResponse(inputData);
       }},
-      { id: `show-ai-panel-${id}`, fn: () => chatPanel.show(true) },
-      { id: `no-ai-panel-${id}`, fn: () => chatPanel.show(false) },
+      //{ id: `show-ai-panel-${id}`, fn: () => chatPanel.show(true) },
+      //{ id: `no-ai-panel-${id}`, fn: () => chatPanel.show(false) },
       controller.signal
     ]);
 
@@ -812,6 +812,13 @@ const AiResponse = {
 const ChatPanel = {
   async show(shouldShow) {
     Ui.showPanel(shouldShow);
+
+    const state = DomQuery.getElement('.ai-panel-container').style.display === 'none';
+
+    shouldShow !== true
+      ? DomQuery.updateText('show-ai-panel-text', 'Show AI Panel')
+      : DomQuery.updateText('show-ai-panel-text', 'Hide AI Panel')
+
     await Config.saveToConfig({ showChatPanel: shouldShow });
   },
 

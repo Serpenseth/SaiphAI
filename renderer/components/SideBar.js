@@ -6,6 +6,7 @@ import {
 import { IndexWorkspaceModal } from './IndexWorkspaceModal.js';
 import { FileEditor } from './FileEditor.js';
 import { FileTab } from './FileTab.js';
+import { ChatPanel } from './ChatPanel.js';
 
 const IndexingService = {
   async index(workspacePath) {
@@ -113,7 +114,7 @@ const Ui = {
 
   removeEmptyMessage() {
     DomQuery.removeElement('sidebar-empty');
-  }
+  },
 }
 
 const FileTree = {
@@ -257,6 +258,15 @@ const EventFunctions = {
     IndexWorkspaceModal.show(false);
     setTimeout(() => alert('Indexing aborted'), 250);
   },
+
+  showChatPanel() {
+    const state = DomQuery.getElement('.ai-panel-container').style.display === 'none';
+    ChatPanel.show(state);
+
+    state !== true
+      ? DomQuery.updateText('show-ai-panel-text', 'Show AI Panel')
+      : DomQuery.updateText('show-ai-panel-text', 'Hide AI Panel')
+  },
 }
 
 const Events = {
@@ -268,6 +278,7 @@ const Events = {
       { id: 'abort-index-btn', fn: () => EventFunctions.stopIndexing() },
       { id: 'hide-sidebar', fn: () => Ui.showSidebar(false) },
       { id: 'show-sidebar', fn: () => Ui.showSidebar(true) },
+      { id: 'show-ai-panel-btn', fn: () => EventFunctions.showChatPanel() },
     ]);
 
     EventHandler.setupResizeEvent(
