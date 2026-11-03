@@ -95,7 +95,6 @@ const Ui = {
       ? 'Show AI Panel'
       :  'Hide AI Panel';
 
-
     Config.saveSidebarVisibility(state).then(_ => {
       DomQuery.toggleVisibility('file-tree', state);
       DomQuery.showElement('show-sidebar', !state);
@@ -270,6 +269,13 @@ const EventFunctions = {
   showChatPanel() {
     const state = DomQuery.getElement('.ai-panel-container').style.display === 'none';
     ChatPanel.show(state);
+
+    const isSidebarHidden = DomQuery.getWidth('.sidebar') === '40px'
+
+    if (isSidebarHidden)  {
+      DomQuery.updateText('show-ai-panel-text', '');
+      return;
+    }
 
     state !== true
       ? DomQuery.updateText('show-ai-panel-text', 'Show AI Panel')
