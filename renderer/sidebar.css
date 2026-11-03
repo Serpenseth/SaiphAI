@@ -1,22 +1,25 @@
-.btn-icon {
+.sidebar-action-btn {
   display: flex;
-  align-items: center;
+  justify-content: flex-start;
   background: none;
+  align-items: center;
+  font-size: 0.8rem;
   border: none;
-  color: var(--text-primary);
-  cursor: pointer;
-  padding: 0.25rem;
-  border-radius: 32px;
-  font-size: 1rem;
+  border-radius: 4px;
+  margin-bottom: 2px;
+  padding: 0.3rem;
   margin-top: 0.5em;
+  color: var(--text-primary);
+  transition: all 0.1s;
 }
 
-.btn-icon:hover {
-  filter: brightness(1.2);
-}
-
-.btn-icon:focus {
+.sidebar-action-btn:focus {
   outline: none;
+}
+
+.sidebar-action-btn:hover {
+  background: var(--bg-tertiary);
+  filter: brightness(1.1);
 }
 
 .sidebar-container {
@@ -41,21 +44,6 @@
 .sidebar-actions {
   padding: 8px 5px 0.5rem;
   border-bottom: 1px solid var(--border-color);
-}
-
-.sidebar-action-btn {
-  display: flex;
-  justify-content: flex-start;
-  font-size: 0.8rem;
-  border-radius: 4px;
-  margin-bottom: 2px;
-  padding: 0.5rem;
-  transition: all 0.1s;
-}
-
-.sidebar-action-btn:hover {
-  background: var(--bg-tertiary);
-  filter: brightness(0.9);
 }
 
 .file-tree {
