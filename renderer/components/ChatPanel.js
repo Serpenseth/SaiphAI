@@ -108,14 +108,6 @@ const Config = {
   },
 }
 
-const EnvHandler = {
-  /*
-  async getEnvEntry(key) {
-    return winow.electronAPI.readEnvKey(key)
-  },
-  */
-}
-
 const AiBackend = {
   async sendOllamaChat(message, chosenModel) {
     return window.electronAPI.chatOllama(message, chosenModel);
