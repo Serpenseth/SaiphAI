@@ -48,10 +48,12 @@ const ChatPanelUi = {
           <button id="attach-file-${id}" class="chat-action attach-file-action" data-tooltip='Attach a file'>
             <img style='height: 16px; width: 16px;' src='../assets/add-file.png'></img>
           </button>
-          <!-- Send prompt button -->
-          <button id="send-chat-${id}" class="chat-action send-action">
-            <img style='height: 16px; width: 16px;' src='../assets/send.png'></img>
-          </button>
+
+            <select class='select-model-ai-panel'></select>
+            <!-- Send prompt button -->
+            <button id="send-chat-${id}" class="chat-action send-action">
+              <img style='height: 16px; width: 16px;' src='../assets/send.png'></img>
+            </button>
         </div>
       </div>`;
   },
@@ -448,9 +450,9 @@ const ResizeManager = {
 
     // Set width for all panels
     const allPanels = document.querySelectorAll('.ai-panel');
-    Array.from(allPanels).forEach(p => {
-      p.style.width = box.style.width;
-    });
+    for (const panel of allPanels) {
+      panel.style.width = box.style.width;
+    }
 
     PanelWidth.set(box.style.width);
 
