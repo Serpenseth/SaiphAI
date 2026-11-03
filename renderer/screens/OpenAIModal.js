@@ -4,8 +4,8 @@ import { FrameworkSelection } from './FrameworkSelection.js';
 import { DomQuery } from '../utility/utilities.js';
 
 const OpenAiBackend = {
-  async getModels(apiKey) {
-    return window.electronAPI.getAllOpenAiModels(apiKey);
+  async getModels() {
+    return window.electronAPI.getAllOpenAiModels();
   },
 
   async isKeyValid(apiKey) {
@@ -342,10 +342,9 @@ const OpenAiModaI = {
 
       if (result.success) {
         await Env.write(key);
-
-        const allModels = await OpenAiBackend.getModels(key);
         key = null;
 
+        const allModels = await OpenAiBackend.getModels();
         Ui.show('openai-stats-container');
         Ui.showContinueButton('continue-openai-setup');
         Ui.hideKeyInterface('api-key-container');
