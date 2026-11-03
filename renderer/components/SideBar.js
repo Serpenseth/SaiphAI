@@ -175,6 +175,10 @@ const EventHandler = {
     });
   },
 
+  setupShowAiPanelShortcut(fn, abortSignal) {
+    document.addEventListener('keydown', fn, { signal: abortSignal });
+  },
+
   setupResizeEvent(elem, fn, abortSignal) {
     const el = DomQuery.getElement(elem);
     el.addEventListener('mousedown', fn, { signal: abortSignal });
@@ -266,7 +270,10 @@ const EventFunctions = {
     setTimeout(() => alert('Indexing aborted'), 250);
   },
 
-  showChatPanel() {
+  showChatPanel(e) {
+    if (e)
+      e.preventDefault();
+
     const state = DomQuery.getElement('.ai-panel-container').style.display === 'none';
     ChatPanel.show(state);
 
@@ -298,6 +305,14 @@ const Events = {
     EventHandler.setupResizeEvent(
       'handle-sidebar',
       (e) => EventFunctions.resize(e),
+      Controller.abortController.signal,
+    );
+
+    EventHandler.setupShowAiPanelShortcut(
+      (e) => {
+        if (e.ctrlKey && e.shiftKey && e.key === 'A')
+          EventFunctions.showChatPanel(e)
+      },
       Controller.abortController.signal,
     );
 
