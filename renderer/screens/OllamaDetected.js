@@ -25,7 +25,7 @@ const ConfigFile = {
   async saveToConfig(data) {
     await window.electronAPI.writeToConfigFile({
       selectedModel: data.selectedModel,
-      ollamaModelCount: data.ollamaModelCount,
+      ollamaModels: data.ollamaModels,
       modelFramework: "ollama"
     });
   }
@@ -108,6 +108,7 @@ const NavigationHandler = {
 }
 
 const Models = {
+  allModels: null,
   selected: null,
   count: 0,
 }
@@ -371,6 +372,15 @@ const ModelDownloadManager = {
   },
 }
 
+const ModelsObject = {
+  handle(modelObject) {
+    const modelNames = [];
+    modelObject.forEach(({ name }) => modelNames.push(name));
+
+    return modelNames;
+  },
+}
+
 const OllamaDetected = {
   registerEventListeners() {
     const inputField = 'ollama-model-to-pull';
@@ -409,6 +419,7 @@ const OllamaDetected = {
     const hasModels = models && models.length > 0;
 
     if (hasModels) {
+      Models.allModels = models;
       ModelSelector.populate(models, models[0].name);
       Ui.updateSuccessText(Models.count);
       Ui.showOllamaStatsContainer();
@@ -432,10 +443,12 @@ const OllamaDetected = {
   async handleContinue() {
     this.destroy();
 
+    const allModels = ModelsObject.handle(Models.allModels);
+
     ConfigFile.create().then(_ => {
       ConfigFile.saveToConfig({
         selectedModel: Models.selected,
-        ollamaModelCount: Models.count
+        ollamaModels: allModels,
       });
     });
 
