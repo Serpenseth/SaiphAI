@@ -840,7 +840,7 @@ const ChatPanel = {
 
     shouldShow !== true
       ? DomQuery.updateText('show-ai-panel-text', 'Show AI Panel')
-      : DomQuery.updateText('show-ai-panel-text', 'Hide AI Panel')
+      : DomQuery.updateText('show-ai-panel-text', 'Hide AI Panel');
 
     await Config.saveToConfig({ showChatPanel: shouldShow });
   },
