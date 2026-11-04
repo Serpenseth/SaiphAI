@@ -753,6 +753,8 @@ const AiResponse = {
     const selectedModel = await Config.getSelectedModel();
     const selectedFramework = await Config.getSelectedFramework();
 
+    console.log(selectedModel);
+
     if (attachedFiles) {
       try {
         let supportsVision;
@@ -844,13 +846,13 @@ const ModelSelector = {
         const s = document.createElement('option');
         s.value = m;
         s.textContent = m;
-        s.selected = selectedModel;
         s.style.background = '#18181C';
 
         return s;
       });
 
     selector.replaceChildren(...options);
+    selector.value = selectedModel;
   },
 }
 
