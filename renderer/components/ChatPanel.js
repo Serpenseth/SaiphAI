@@ -49,11 +49,11 @@ const ChatPanelUi = {
             <img style='height: 16px; width: 16px;' src='../assets/add-file.png'></img>
           </button>
 
-            <select class='select-model-ai-panel'></select>
-            <!-- Send prompt button -->
-            <button id="send-chat-${id}" class="chat-action send-action">
-              <img style='height: 16px; width: 16px;' src='../assets/send.png'></img>
-            </button>
+          <select class='select-model-ai-panel'></select>
+          <!-- Send prompt button -->
+          <button id="send-chat-${id}" class="chat-action send-action">
+            <img style='height: 16px; width: 16px;' src='../assets/send.png'></img>
+          </button>
         </div>
       </div>`;
   },
@@ -101,6 +101,13 @@ const Config = {
   async getSelectedModel() {
     const config = await window.electronAPI.readConfigFile();
     return config.selectedModel;
+  },
+
+  async getUserModels(framework) {
+    const config = await window.electronAPI.readConfigFile();
+    return framework === 'ollama'
+      ? config.ollamaModels
+      : config.openaiModels;
   },
 
   async saveToConfig(data) {
