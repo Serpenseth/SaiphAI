@@ -378,6 +378,11 @@ const EventHandler = {
       FilePreview.init(rawID, fileArray);
     }, { signal: abortSignal });
   },
+
+  setupModelSelectorEvent(selector, fn, abortSignal) {
+    const sel = DomQuery.getElement(element);
+    sel.addEventListener('change', fn, { signal: abortSignal });
+  },
 }
 
 const ChatsHandler = {
