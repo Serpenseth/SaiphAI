@@ -45,6 +45,7 @@ class MainWindowUI {
 
   init() {
     ChatPanel.newChatTab();
+    ChatPanel.populateModelSelector();
   }
 
   show() {
