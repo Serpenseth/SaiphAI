@@ -49,7 +49,7 @@ const ChatPanelUi = {
             <img style='height: 16px; width: 16px;' src='../assets/add-file.png'></img>
           </button>
 
-          <select class='select-model-ai-panel'></select>
+          <select id='select-model-ai-panel-${id}' class='select-model-ai-panel'></select>
           <!-- Send prompt button -->
           <button id="send-chat-${id}" class="chat-action send-action">
             <img style='height: 16px; width: 16px;' src='../assets/send.png'></img>
@@ -576,7 +576,7 @@ const EventSetup = {
     );
 
     EventHandler.setupModelSelectorEvent(
-      '.select-model-ai-panel',
+      `select-model-ai-panel-${id}`,
       (e) => ModelSelectorHandler.handleChange(e),
       controller.signal,
     );
@@ -833,8 +833,8 @@ const AiResponse = {
 }
 
 const ModelSelector = {
-  async populate() {
-    const selector = DomQuery.getElement('.select-model-ai-panel');
+  async populate(id) {
+    const selector = DomQuery.getElement(`select-model-ai-panel-${id}`);
     const framework = await Config.getSelectedFramework();
     const selectedModel = await Config.getSelectedModel();
     const models = await Config.getUserModels(framework);
@@ -871,10 +871,6 @@ const ChatPanel = {
     EventSetup.init(rawID, this);
   },
 
-  populateModelSelector() {
-    ModelSelector.populate();
-  },
-
   newChatTab() {
     const tabCount = ChatTab.getTabCount();
 
@@ -889,8 +885,9 @@ const ChatPanel = {
 
     Ui.attachPanel(newPanel);
     this.createEvents(id);
-  },
 
+    ModelSelector.populate(id);
+  },
 
   switchToTab(fullTabID) {
     const oldID = ChatTab.getActiveTabRawID();
