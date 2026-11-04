@@ -810,6 +810,28 @@ const AiResponse = {
   },
 }
 
+const ModelSelector = {
+  async populate() {
+    const selector = DomQuery.getElement('.select-model-ai-panel');
+    const framework = await Config.getSelectedFramework();
+    const selectedModel = await Config.getSelectedModel();
+    const models = await Config.getUserModels(framework);
+
+    const options = models
+      .map(m => {
+        const s = document.createElement('option');
+        s.value = m;
+        s.textContent = m;
+        s.selected = selectedModel;
+        s.style.background = '#18181C';
+
+        return s;
+      });
+
+    selector.replaceChildren(...options);
+  },
+}
+
 const ChatPanel = {
   async show(shouldShow) {
     Ui.showPanel(shouldShow);
@@ -827,6 +849,9 @@ const ChatPanel = {
     EventSetup.init(rawID, this);
   },
 
+  populateModelSelector() {
+    ModelSelector.populate();
+  },
 
   newChatTab() {
     const tabCount = ChatTab.getTabCount();
