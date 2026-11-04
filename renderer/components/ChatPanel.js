@@ -113,6 +113,10 @@ const Config = {
   async saveToConfig(data) {
     await window.electronAPI.writeToConfigFile({ showChatPanel: data.showChatPanel });
   },
+
+  async saveSelectedModel(modelName) {
+    await window.electronAPI.writeToConfigFile({ selectedModel: modelName });
+  },
 }
 
 const AiBackend = {
@@ -380,7 +384,7 @@ const EventHandler = {
   },
 
   setupModelSelectorEvent(selector, fn, abortSignal) {
-    const sel = DomQuery.getElement(element);
+    const sel = DomQuery.getElement(selector);
     sel.addEventListener('change', fn, { signal: abortSignal });
   },
 }
@@ -505,6 +509,13 @@ const ResizeManager = {
   },
 }
 
+const ModelSelectorHandler = {
+  async handleChange(e) {
+    const selected = e.target.value;
+    await Config.saveSelectedModel(selected);
+  },
+}
+
 const EventSetup = {
   init(rawID, chatPanel) {
     const id = rawID;
@@ -562,6 +573,12 @@ const EventSetup = {
         ResizeManager.startResizeChatArea(e);
       },
       controller.signal
+    );
+
+    EventHandler.setupModelSelectorEvent(
+      '.select-model-ai-panel',
+      (e) => ModelSelectorHandler.handleChange(e),
+      controller.signal,
     );
   },
 }
