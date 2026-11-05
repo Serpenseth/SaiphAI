@@ -170,7 +170,7 @@ select > option {
   transform: translateZ(0);
   backface-visibility: hidden;
   perspective: 1000px;
-  animation: spin 1.2s linear infinite;
+  animation: spin 2s linear infinite;
 }
 
 .mini-spinner {
@@ -181,7 +181,7 @@ select > option {
   border: 1px solid rgba(236, 235, 234, 0.5);
   border-top: 4px solid #3498db;
   border-radius: 50%;
-  animation: spin 1.2s linear infinite;
+  animation: spin 2s linear infinite;
 }
 
 @keyframes spin {
