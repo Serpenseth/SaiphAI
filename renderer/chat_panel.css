@@ -161,6 +161,22 @@
   border-top: none;
 }
 
+.select-model-ai-panel {
+  background: none;
+  border: none;
+  margin-right: 16px;
+  margin-bottom: 8px;
+  min-width: auto;
+  max-width: 140px;
+  text-overflow: ellipsis;
+  font-weight: 400;
+  transition: all 0.2s;
+}
+
+.select-model-ai-panel:hover {
+  background: var(--bg-tertiary);
+}
+
 .chat-file-item {
   display: flex;
 /*   flex-direction: column; */
@@ -400,8 +416,5 @@
   cursor: pointer;
   transform: translate(60%, -210%);
 }
-
-
-
 
 
