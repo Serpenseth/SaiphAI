@@ -51,4 +51,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Summarize text
   summarizeText: (text, includeText) => ipcRenderer.invoke('summarize-text', text, includeText),
+
+  // Launch process
+  launchProcess: (progName, args, options) => ipcRenderer.invoke('launch-process', progName, args, options),
 });

@@ -228,6 +228,9 @@ const {
 ipcMain.handle('index-workspace', indexWorkspace);
 ipcMain.handle('search-workspace', searchWorkspace);
 
+// process launcher
+const { launchProcess } = require('./process_launcher_ipc_handlers.js');
+ipcMain.handle('launch-process', launchProcess);
 
 /**
  *  Downloads SaiphAI update.
