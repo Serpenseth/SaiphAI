@@ -385,6 +385,7 @@ const summarizeText = async (event, textToSum, textToInclude) => {
 ipcMain.handle('summarize-text', summarizeText);
 
 app.whenReady().then( () => {
+    app.commandLine.appendSwitch('single-process');
     createMainWindow();
 });
 
@@ -480,6 +481,8 @@ app.on('window-all-closed', async () => {
 });
 
 app.on('activate', async () => {
+  app.commandLine.appendSwitch('single-process');
+
   if (BrowserWindow.getAllWindows().length === 0)
     createMainWindow();
 });
