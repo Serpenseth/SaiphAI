@@ -6,7 +6,7 @@ class ConfigManager {
   }
 
   async readConfigFile() {
-    const data = await fs.readFile(this.config, 'utf8');
+    const data = await fs.readFile(this.config, { encoding: 'utf8' });
     return JSON.parse(data);
   }
 
