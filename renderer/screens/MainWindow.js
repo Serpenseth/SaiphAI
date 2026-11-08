@@ -165,11 +165,8 @@ const MainWindow = {
     this.registerEventListeners();
 
     Sidebar.init();
-    ChatPanel.newChatTab();
-
-    configFile.showChatPanel
-      ? ChatPanel.show(true)
-      : ChatPanel.show(false);
+    ChatPanel.init(configFile).then(_ => ChatPanel.newChatTab());
+    ChatPanel.show(configFile.showChatPanel);
   },
 
   show() {
