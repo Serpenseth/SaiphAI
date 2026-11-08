@@ -935,57 +935,6 @@ const ChatPanel = {
     ChatTab.remove(fullTabID);
   },
 
-  /*
-  closeTab(fullTabID) {
-    const tabCount = ChatTab.getTabCount();
-
-    if (tabCount === 1) {
-      const firstTab = ChatTab.getFirstTab();
-      const firstTabID = ChatTab.getTabRawID(firstTab);
-
-      ChatsHandler.addChatForTab(firstTabID, {
-        title: 'Untitled',
-        user: [],
-        system: []
-      });
-
-      Ui.clearChatbox(firstTabID);
-      Ui.clearChats(firstTabID);
-      TabHandler.setTabTitle(firstTabID, 'Untitled');
-    }
-
-    const tabToRemoveRawID = ChatTab.getTabRawID(fullTabID);
-
-    if (tabCount > 1) {
-      if (ChatTab.getFirstTab() !== fullTabID) {
-        const prev = ChatTab.getPreviousTabFrom(fullTabID);
-        const prevRawID = ChatTab.getTabRawID(prev);
-
-        if (ChatTab.getActiveTab() === fullTabID) {
-          ChatTab.switchChatTabs(tabToRemoveRawID, prevRawID);
-        }
-
-        DomQuery.showElement(`ai-panel-${prevRawID}`, true);
-      }
-
-      else {
-        const next = ChatTab.getNextTabFrom(fullTabID);
-        const nextRawID = ChatTab.getTabRawID(next);
-
-        if (ChatTab.getActiveTab() === fullTabID) {
-          ChatTab.switchChatTabs(tabToRemoveRawID, nextRawID);
-        }
-
-        DomQuery.showElement(`ai-panel-${nextRawID}`, true);
-      }
-
-      Ui.removePanel(fullTabID);
-      Controller.abort(tabToRemoveRawID);
-      ChatTab.remove(fullTabID);
-    }
-  },
-  */
-
   displayAiResponse(message) {
     if (!message || message.length === 0)
       return;
