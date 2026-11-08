@@ -97,8 +97,7 @@ const TabHandler = {
     let prevTabToSwitchTo;
     const allTabs = Ui.getAllTabs();
     const index = allTabs.findIndex(el => el.id === fullTabID);
-
-    return allTabs[index-1].id;
+    return index === 0 ? allTabs[0].id : allTabs[index-1].id;
   },
 }
 
