@@ -513,6 +513,7 @@ const ModelSelectorHandler = {
   async handleChange(e) {
     const selected = e.target.value;
     await Config.saveSelectedModel(selected);
+    ChatPanelData.config.selectedModel = selected;
   },
 }
 
@@ -735,7 +736,7 @@ const AiResponse = {
     }
   },
 
-  async generate(prevChats, message, attachedFiles=null) {
+  async generate(config, prevChats, message, attachedFiles=null) {
     let history = [];
 
     for (let i = 0; i < prevChats.user.length; i++) {
@@ -750,8 +751,8 @@ const AiResponse = {
       });
     }
 
-    const selectedModel = await Config.getSelectedModel();
-    const selectedFramework = await Config.getSelectedFramework();
+    const selectedFramework = config.modelFramework;
+    const selectedModel = config.selectedModel;
 
     console.log(selectedModel);
 
@@ -834,12 +835,18 @@ const AiResponse = {
   },
 }
 
+const ChatPanelData = {
+  config: null,
+}
+
 const ModelSelector = {
-  async populate(id) {
+  async populate(config, id) {
     const selector = DomQuery.getElement(`select-model-ai-panel-${id}`);
-    const framework = await Config.getSelectedFramework();
-    const selectedModel = await Config.getSelectedModel();
-    const models = await Config.getUserModels(framework);
+    const framework = config.modelFramework;
+    const selectedModel = config.selectedModel;
+    const models = framework === 'ollama'
+      ? config.ollamaModels
+      : config.openaiModels;
 
     const options = models
       .map(m => {
@@ -857,6 +864,10 @@ const ModelSelector = {
 }
 
 const ChatPanel = {
+  async init(configFile) {
+    ChatPanelData.config = configFile;
+  },
+
   async show(shouldShow) {
     Ui.showPanel(shouldShow);
 
@@ -888,7 +899,7 @@ const ChatPanel = {
     Ui.attachPanel(newPanel);
     this.createEvents(id);
 
-    ModelSelector.populate(id);
+    ModelSelector.populate(ChatPanelData.config, id);
   },
 
   switchToTab(fromFullID, toFullID) {
@@ -926,8 +937,8 @@ const ChatPanel = {
       if (id === ChatTab.getActiveTabRawID()) {
         const prevTab = ChatTab.getTabFrom(fullTabID);
 
-        this.switchToTab(fullTabID, prevTab);
         Controller.abort(ChatTab.getTabRawID(prevTab));
+        this.switchToTab(fullTabID, prevTab);
       }
     }
 
@@ -950,24 +961,25 @@ const ChatPanel = {
     Ui.displayThinkingDiv(id);
     TabHandler.setTabTitle(id, title);
 
-    AiResponse.generate(chats, message, attachedFiles).then(aiReply => {
-      Ui.removeThinkingDiv(id);
+    AiResponse.generate(ChatPanelData.config, chats, message, attachedFiles)
+      .then(aiReply => {
+        Ui.removeThinkingDiv(id);
 
-      const aiMsg = aiReply.message.content;
-      Ui.displayAiResponse(id, aiMsg);
-      chats.system.push(aiMsg);
+        const aiMsg = aiReply.message.content;
+        Ui.displayAiResponse(id, aiMsg);
+        chats.system.push(aiMsg);
 
-      ChatsHandler.addChatForTab(id, {
-        title: title,
-        user: chats.user,
-        system: chats.system
+        ChatsHandler.addChatForTab(id, {
+          title: title,
+          user: chats.user,
+          system: chats.system
+        });
+      })
+      .catch(e => {
+        console.error(e);
+        Ui.removeThinkingDiv(id);
+        Ui.displayErrorMessage(id, e);
       });
-    })
-    .catch(e => {
-      console.error(e);
-      Ui.removeThinkingDiv(id);
-      Ui.displayErrorMessage(id, e);
-    });
   },
 }
 
