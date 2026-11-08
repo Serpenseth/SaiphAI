@@ -128,48 +128,6 @@ const ChatTab = {
     ChatsHandler.removeChat(idOfTabToRemove);
   },
 
-  /*
-  getPreviousTabFrom(fullTabID) {
-    const count = Ui.getTabCount();
-
-    if (count === 1) {
-      return Ui.getAllTabs()[0].id;
-    }
-
-    const allTabs = Ui.getAllTabs();
-    let prevTabToSwitchTo;
-
-    for (let i = 0; i < allTabs.length; i++) {
-      if (allTabs[i].id === fullTabID) {
-        if (i - 1 > 0) {
-          prevTabToSwitchTo = allTabs[i-1].id;
-        }
-      }
-    }
-
-    return prevTabToSwitchTo;
-  },
-
-  getNextTabFrom(fullTabID) {
-    const count = Ui.getTabCount();
-
-    if (count === 1) {
-      return;
-    }
-
-    const allTabs = Ui.getAllTabs();
-    let nextTabToSwitchTo;
-
-    for (let i = 0; i < allTabs.length; i++) {
-      if (allTabs[i].id === fullTabID) {
-        nextTabToSwitchTo = allTabs[i+1].id;
-      }
-    }
-
-    return nextTabToSwitchTo;
-  },
-  */
-
   switchChatTabs(fromFullID, toFullID) {
     const fromID = TabID.get(fromFullID);
     const toID = TabID.get(toFullID);
