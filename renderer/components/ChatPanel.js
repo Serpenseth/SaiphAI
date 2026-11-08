@@ -528,21 +528,12 @@ const EventSetup = {
       controller.signal,
     );
 
-    /*
-    EventHandler.setupShowPanelEvent([
-      { id: 'show-ai-panel', fn: () => chatPanel.show(true) },
-      { id: 'no-ai-panel', fn: () => chatPanel.show(false) },
-    ]);
-    */
-
     EventHandler.setupClickEvents([
       { id: 'new-chat-tab', fn: () => chatPanel.newChatTab() },
       { id: `send-chat-${id}`, fn: () => {
         const inputData = Ui.getUserPrompt(`user-prompt-${id}`);
         chatPanel.displayAiResponse(inputData);
       }},
-      //{ id: `show-ai-panel-${id}`, fn: () => chatPanel.show(true) },
-      //{ id: `no-ai-panel-${id}`, fn: () => chatPanel.show(false) },
       controller.signal
     ]);
 
