@@ -64,10 +64,12 @@ const EventFunctions = {
     const closeButton = e.target.closest('.tab-close');
 
     if (closeButton)
-      ChatPanel.closeChatTab(StringUtils.getRawID(tab.id));
+      ChatPanel.closeTab(tab.id);
 
-    else if (tab)
-      ChatPanel.switchToChatTab(tab.id);
+    else if (tab) {
+      const active = ChatTab.getActiveTab();
+      ChatPanel.switchToTab(active, tab.id);
+    }
   },
 
   floatingButtonsClickHandler(e) {

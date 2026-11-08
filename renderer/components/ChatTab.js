@@ -92,6 +92,16 @@ const TabID = {
   },
 }
 
+const TabHandler = {
+  getTabFrom(fullTabID) {
+    let prevTabToSwitchTo;
+    const allTabs = Ui.getAllTabs();
+    const index = allTabs.findIndex(el => el.id === fullTabID);
+
+    return allTabs[index-1].id;
+  },
+}
+
 const ChatTab = {
   create() {
     const id = UuidGenerator.generate();
@@ -118,6 +128,7 @@ const ChatTab = {
     ChatsHandler.removeChat(idOfTabToRemove);
   },
 
+  /*
   getPreviousTabFrom(fullTabID) {
     const count = Ui.getTabCount();
 
@@ -157,10 +168,14 @@ const ChatTab = {
 
     return nextTabToSwitchTo;
   },
+  */
 
-  switchChatTabs(currentTabRawID, newTabRawID) {
-    Ui.setActiveState(currentTabRawID, false);
-    Ui.setActiveState(newTabRawID, true);
+  switchChatTabs(fromFullID, toFullID) {
+    const fromID = TabID.get(fromFullID);
+    const toID = TabID.get(toFullID);
+
+    Ui.setActiveState(fromID, false);
+    Ui.setActiveState(toID, true);
   },
 
   removeChatsFromTab(fullTabID) {
@@ -198,6 +213,10 @@ const ChatTab = {
   getTab(fullTabID) {
     const id = TabID.get(fullTabID);
     return Ui.getTab(id);
+  },
+
+  getTabFrom(fullTabID) {
+    return TabHandler.getTabFrom(fullTabID);
   },
 
   getTabCount() {

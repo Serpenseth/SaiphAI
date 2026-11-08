@@ -891,20 +891,51 @@ const ChatPanel = {
     ModelSelector.populate(id);
   },
 
-  switchToTab(fullTabID) {
-    const oldID = ChatTab.getActiveTabRawID();
-    DomQuery.showElement(`ai-panel-${oldID}`, false);
+  switchToTab(fromFullID, toFullID) {
+    const fromID = ChatTab.getTabRawID(fromFullID);
+    const toID = ChatTab.getTabRawID(toFullID);
 
-    const newID = ChatTab.getTabRawID(fullTabID);
-    DomQuery.showElement(`ai-panel-${newID}`, true);
+    DomQuery.showElement(`ai-panel-${fromID}`, false);
+    DomQuery.showElement(`ai-panel-${toID}`, true);
 
-    ChatTab.switchChatTabs(oldID, newID);
+    ChatTab.switchChatTabs(fromFullID, toFullID);
   },
 
   clearChats(fullTabID) {
     Ui.clearChats(fullTabID);
   },
 
+  closeTab(fullTabID) {
+    const tabCount = ChatTab.getTabCount();
+    const id = ChatTab.getTabRawID(fullTabID);
+
+    if (tabCount === 1) {
+      ChatsHandler.addChatForTab(id, {
+        title: 'Untitled',
+        user: [],
+        system: []
+      });
+
+      Ui.clearChatbox(id);
+      Ui.clearChats(id);
+      TabHandler.setTabTitle(id, 'Untitled');
+      return;
+    }
+
+    else {
+      if (id === ChatTab.getActiveTabRawID()) {
+        const prevTab = ChatTab.getTabFrom(fullTabID);
+
+        this.switchToTab(fullTabID, prevTab);
+        Controller.abort(ChatTab.getTabRawID(prevTab));
+      }
+    }
+
+    Ui.removePanel(fullTabID);
+    ChatTab.remove(fullTabID);
+  },
+
+  /*
   closeTab(fullTabID) {
     const tabCount = ChatTab.getTabCount();
 
@@ -953,6 +984,7 @@ const ChatPanel = {
       ChatTab.remove(fullTabID);
     }
   },
+  */
 
   displayAiResponse(message) {
     if (!message || message.length === 0)
