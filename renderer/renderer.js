@@ -1,5 +1,6 @@
 import { Intro } from './screens/Intro.js';
-import { createMainWindow } from './screens/MainWindow.js';
+import { MainWindow } from './screens/MainWindow.js';
+//import { createMainWindow } from './screens/MainWindow.js';
 
 function destroyIntroModal() {
   document.getElementById("intro-model-instructions").remove();
@@ -40,9 +41,7 @@ function initApp() {
     else {
       // Remove the intro-related modals, as they are not needed
       destroyIntroModal();
-
-      const mainWindow = createMainWindow(config);
-      mainWindow.show();
+      MainWindow.init(config).then(_ => MainWindow.show());
     }
   });
 }
