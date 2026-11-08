@@ -1,5 +1,4 @@
-import { createMainWindow } from './MainWindow.js';
-
+import { MainWindow } from './MainWindow.js';
 import { DomQuery } from '../utility/utilities.js';
 
 const Config = {
@@ -83,10 +82,11 @@ const NavigationHandler = {
     prevModal.show();
   },
 
-  completeSetup() {
-    Config.read()
-      .then(config => createMainWindow(config).show());
-  }
+  async completeSetup() {
+    const config = await Config.read();
+    await MainWindow.init(config);
+    MainWindow.show();
+  },
 }
 
 const Ui = {
