@@ -254,9 +254,8 @@ const EventFunctions = {
 
     if (workspace) {
       await WorkspaceConfig.setWorkspacePath(workspace);
-      await SideBar.populate(workspace);
+      await SideBar.populate(null, workspace);
 
-      SidebarConfig.projectPath = workspace;
       Ui.removeEmptyMessage();
 
       IndexWorkspaceModal.show(true);
@@ -323,29 +322,16 @@ const Events = {
   },
 }
 
-const SidebarConfig = {
-  projectPath: null,
-  isHidden: false
-}
-
 const SideBar = {
-  init() {
+  init(config) {
+    Ui.showSidebar(config.showSidebar);
     Controller.init();
     Events.init();
-
-    Config.getSidebarVisibility().then(shouldShow => {
-      Ui.showSidebar(shouldShow);
-      SidebarConfig.isHidden = shouldShow;
-    });
-
-    WorkspaceConfig.getWorkspacePath().then(path => {
-      this.populate(path);
-      SidebarConfig.projectPath = path;
-    });
+    this.populate(config, null);
   },
 
-  async populate(path) {
-    const projectPath = path || SidebarConfig.projectPath;
+  async populate(config, path) {
+    const projectPath = path || config.workspacePath;
     const projectContents = await FileHandler.loadFileTree(projectPath);
     FileTree.populate(projectContents);
   },
