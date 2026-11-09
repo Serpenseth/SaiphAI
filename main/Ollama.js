@@ -37,6 +37,19 @@ const OllamaManager = {
     }
   },
 
+  async isLoggedInToOllama() {
+    try {
+      const response = await fetch("http://127.0.0.1:11434/api/me", {
+        method: "POST",
+      });
+
+      return response.ok;
+    }
+    catch(_) {
+      return false;
+    }
+  },
+
   async isModelInstalled(event, modelName) {
     try {
       const response = await fetch(`${baseUrl}/api/tags`);

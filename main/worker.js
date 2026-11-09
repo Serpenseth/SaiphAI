@@ -40,8 +40,10 @@ async function indexWorkspace(workspacePath, userDataPath) {
   const baseName = path.basename(workspacePath);
   const chunksDir = path.join(userDataPath, `${baseName}_index`, 'chunks');
 
+  //if (fsSync.readdirSync(chunksDir).length === 0) {
   console.log('Indexing workspace...');
   await indexAllFiles(manager, workspacePath);
+  //}
 }
 
 async function searchIndex(searchQuery, userDataPath) {
@@ -66,6 +68,10 @@ function summarizeText(textToSum, textToInclude) {
 
 module.exports = async ({ taskName, payload }) => {
   switch(taskName) {
+    case 'isLoggedInToOllama':
+      return ollama.isLoggedInToOllama();
+      break;
+
     case 'checkOllama':
       return ollama.checkConnection();
       break;

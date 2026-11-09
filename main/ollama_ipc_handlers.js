@@ -26,6 +26,18 @@ const chatOllama = async (event, message, model) => {
 }
 
 /**
+ *  Checks if user is logged in.
+ *
+ *  @returns {bool} True if logged in, false otherwise.
+*/
+const isLoggedInToOllama = async () => {
+  return await piscina.run({
+    taskName: 'isLoggedInToOllama',
+    payload: {},
+  });
+}
+
+/**
  *  Checks if Ollama is running or not.
  *
  *  @returns {bool} True if connection exists, false otherwise.
@@ -78,6 +90,7 @@ const abortModelDownload = () => {
 }
 
 module.exports = {
+  isLoggedInToOllama,
   downloadOllamaModel,
   chatOllama,
   checkOllama,

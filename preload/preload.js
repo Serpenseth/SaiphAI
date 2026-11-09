@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   isImage: (filePath) => ipcRenderer.invoke('is-image', filePath),
 
   // Ollama
+  isLoggedInToOllama: () => ipcRenderer.invoke('is-logged-in-to-ollama'),
   checkOllama: () => ipcRenderer.invoke('check-ollama'),
   getOllamaModels: () => ipcRenderer.invoke('get-ollama-models'),
   downloadOllamaModel: (model) => ipcRenderer.invoke('download-ollama-model', model),
