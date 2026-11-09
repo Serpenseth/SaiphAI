@@ -18,15 +18,9 @@ function initApp() {
             mutation.removedNodes.forEach((node) => {
               if (node.id === 'ollama-success') {
                 setTimeout(() => {
-                  window.electronAPI.readConfigFile()
-                    .then(config => {
-                      const mainWindow = createMainWindow(config);
-                      mainWindow.show();
-
-                      observer.disconnect();
-                      observer = null;
-                      destroyIntroModal();
-                    });
+                  observer.disconnect();
+                  observer = null;
+                  destroyIntroModal();
                 }, 200);
               }
             })
