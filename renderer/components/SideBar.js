@@ -7,6 +7,7 @@ import { IndexWorkspaceModal } from './IndexWorkspaceModal.js';
 import { FileEditor } from './FileEditor.js';
 import { FileTab } from './FileTab.js';
 import { ChatPanel } from './ChatPanel.js';
+import { Settings } from './Settings.js';
 
 const IndexingService = {
   async index(workspacePath) {
@@ -91,7 +92,7 @@ const ResizeManager = {
 const Ui = {
   async showSidebar(state) {
     const prevAiPanelState = DomQuery.getElement('.ai-panel-container').style.display === 'none'
-    const prevText = prevAiPanelState === true
+    const prevText = prevAiPanelState !== true
       ? 'Show AI Panel'
       :  'Hide AI Panel';
 
