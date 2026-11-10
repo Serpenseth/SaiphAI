@@ -314,7 +314,6 @@
 .tabs {
   display: flex;
   background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-color);
   position: relative;
   z-index: 40;
   flex-wrap: nowrap;
