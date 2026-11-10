@@ -38,7 +38,6 @@
   background: var(--sidebar);
   flex-direction: column;
   height: 100%;
-  border-right: 1px solid var(--border);
 }
 
 .sidebar-actions {
