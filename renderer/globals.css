@@ -9,8 +9,8 @@
   --bg-secondary: linear-gradient(#161718, #171717);
   --bg-tertiary: #2F3031;
   --text-primary: #ECEBEA;
-  --text-secondary: rgba(236, 235, 234, 0.8);
-  --border-color: #242B34;
+  --text-secondary: rgba(236, 235, 234, 0.7);
+  --border-color: rgba(36, 43, 52, 0.25);
   --border: rgba(236, 235, 234, 0.1);
   --accent-color: #396396;
   --accent-hover: #2F68C4;
