@@ -264,6 +264,10 @@ const EventFunctions = {
     }
   },
 
+  openSettings() {
+    Settings.show(true);
+  },
+
   async stopIndexing() {
     await IndexingService.stop();
     IndexWorkspaceModal.show(false);
@@ -296,6 +300,7 @@ const Events = {
       { id: 'file-tree', fn: (e) => EventFunctions.fileTreeItemClick(e) },
       { id: 'handle-sidebar', fn: (e) => EventFunctions.resize(e) },
       { id: 'open-workspace', fn: () => EventFunctions.openWorkspace() },
+      { id: 'btn-settings', fn: () => EventFunctions.openSettings() },
       { id: 'abort-index-btn', fn: () => EventFunctions.stopIndexing() },
       { id: 'hide-sidebar', fn: () => Ui.showSidebar(false) },
       { id: 'show-sidebar', fn: () => Ui.showSidebar(true) },
