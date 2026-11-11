@@ -6,7 +6,7 @@ import { FloatingButtons } from '../components/FloatingButtons.js';
 
 import { ChatPanel } from '../components/ChatPanel.js';
 import { ChatTab } from '../components/ChatTab.js';
-import { Sett } from '../components/Settings.js';
+import { Settings } from '../components/Settings.js';
 
 import {
   StringUtils,
@@ -161,6 +161,8 @@ const MainWindow = {
   },
 
   async init(configFile) {
+    Settings.init(configFile);
+
     this.config = configFile;
     this.registerEventListeners();
 
