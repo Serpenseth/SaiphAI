@@ -342,4 +342,54 @@
   color: var(--text-secondary);
 }
 
+.settings-button:enabled {
+  color: rgba(236, 235, 234, 0.9);
+  margin-left: auto;
+  min-width: 15%;
+  height: 34px;
+}
 
+.settings-button:disabled {
+  margin-left: auto;
+  min-width: 15%;
+  height: 34px;
+  cursor: unset;
+  color: rgba(236, 235, 234, 0.5);
+  background: rgba(236, 235, 234, 0.1);
+  border: 1px solid rgba(236, 235, 234, 0.05);
+}
+
+.close-modal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  outline: none;
+  margin-left: auto;
+  margin-top: 0.5rem;
+  margin-right: 2rem;
+  padding: 0.5rem;
+  height: 32px;
+  width: 32px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.close-modal:hover {
+  background: #2B2C2E;
+}
+
+.settings-download-model {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  width: 32px;
+  padding: 0;
+  margin-left: auto;
+  margin-right: 3.5rem;
+  border: 1.4px solid rgba(96, 170, 206, 0.5);
+}
