@@ -30,7 +30,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onDLModelProgress: (callback) => ipcRenderer.on('download-model-progress', (event, data) => callback(data)),
   abortModelDownload: () => ipcRenderer.invoke('abort-ollama-model-dl'),
   modelSupportsImages: (model) => ipcRenderer.invoke('does-model-support-images', model),
-  removeDownloadProgress: (callback) => ipcRenderer.removeListener('download-ollama-model-progress', callback),
+  removeDownloadProgress: (callback) => ipcRenderer.removeListener('download-model-progress', callback),
   chatOllama: (message, model) => ipcRenderer.invoke('chat-ollama', message, model),
 
   // OpenAI
