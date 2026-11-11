@@ -93,6 +93,10 @@ const ChatPanelUi = {
 }
 
 const Config = {
+  async get() {
+    return window.electronAPI.readConfigFile();
+  },
+
   async getSelectedFramework() {
     const config = await window.electronAPI.readConfigFile();
     return config.modelFramework;
@@ -935,6 +939,11 @@ const ChatPanel = {
 
     Ui.removePanel(fullTabID);
     ChatTab.remove(fullTabID);
+  },
+
+  populateModelSelector(data) {
+    const id = ChatTab.getActiveTabRawID();
+    ModelSelector.populate(data, id);
   },
 
   displayAiResponse(message) {
