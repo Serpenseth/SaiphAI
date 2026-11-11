@@ -150,6 +150,7 @@ function createMainWindow() {
 
 // Ollama
 const {
+  isLoggedInToOllama,
   downloadOllamaModel,
   chatOllama,
   checkOllama,
@@ -158,6 +159,7 @@ const {
   abortModelDownload,
 } = require('./ollama_ipc_handlers');
 
+ipcMain.handle('is-logged-in-to-ollama', isLoggedInToOllama);
 ipcMain.handle('download-ollama-model', downloadOllamaModel);
 ipcMain.handle('chat-ollama', chatOllama);
 ipcMain.handle('check-ollama', checkOllama);
