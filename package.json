@@ -22,8 +22,7 @@
     "sacss": "^1.1.0",
     "sass": "^1.102.0",
     "scss": "^0.2.4",
-    "sharp": "^0.35.3",
-    "sql.js": "^1.14.1"
+    "sharp": "^0.35.3"
   },
   "devDependencies": {
     "electron": "^28.0.0",
