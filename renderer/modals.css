@@ -111,6 +111,7 @@
 
 .modal-content.small {
   max-width: 500px;
+  height: 75%;
 }
 
 .modal-content h3 {
@@ -340,13 +341,13 @@
 #update-available-modal h2 {
   color: var(--text-primary);
   margin-bottom: -1em;
-  margin-top: -1em;
+  margin-top: -1.5em;
 }
 
 #update-available-modal ol,
 #update-available-modal ul {
   margin-bottom: -0.5em;
-  margin-top: -0.5em;
+  margin-top: -0.75em;
 }
 
 
@@ -589,4 +590,42 @@
   background: transparent;
   image-rendering: crisp-edges;
   pointer-events: none;
+}
+
+.update-release-notes {
+  background: rgba(235, 240, 243, 0.02);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  max-height: 300px;
+  overflow-y: auto;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.progress-bar {
+  width: 320px;
+}
+
+.progress-fill {
+  height: 32px;
+  border-radius: 4px;
+  background: var(--send-btn);
+  width: 0%;
+  z-index: inherit;
+
+  will-change: transform;
+  backface-visibility: hidden;
+  perspective: 1000px;
+  transition: width 0.2s;
+}
+
+.update-progress {
+  text-align: center;
 }
