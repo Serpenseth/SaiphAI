@@ -79,7 +79,7 @@ const Update = {
       return;
     }
 
-    if (currentVersion === githubVersion) {
+    if (currentVersion !== githubVersion) {
       const githubData = await GithubHandler.getGithubPackageData(event);
       event.send('update-available', {
         localVersion: currentVersion,
