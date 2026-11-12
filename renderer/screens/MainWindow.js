@@ -7,6 +7,7 @@ import { FloatingButtons } from '../components/FloatingButtons.js';
 import { ChatPanel } from '../components/ChatPanel.js';
 import { ChatTab } from '../components/ChatTab.js';
 import { Settings } from '../components/Settings.js';
+import { UpdateModal } from '../components/UpdateModal.js';
 
 import {
   StringUtils,
@@ -149,6 +150,36 @@ const EventHandler = {
   },
 }
 
+const UpdateHandler = {
+  data: null,
+}
+
+let UpdateEventHandler = {
+  registerEvents() {
+    window.electronAPI.onUpdateAvailable((data) => {
+      UpdateModal.init(this, data).then(_ => UpdateModal.show());
+    });
+
+    window.electronAPI.onUpdateError((data) => {
+      console.error(data);
+    });
+
+    window.electronAPI.onUpdateNotAvailable(async () => {
+      console.log('no updates');
+      await window.electronAPI.removeUpdateListeners();
+      // Remove UpdateModal DOM element
+      UpdateModal.remove();
+      /* Remove UpdateEventHandler completely,
+       * because it isn't needed if no updates are available.*/
+      UpdateEventHandler.destroy();
+    });
+  },
+
+  destroy() {
+    UpdateEventHandler = null;
+  }
+}
+
 const MainWindow = {
   config: null,
 
@@ -161,6 +192,7 @@ const MainWindow = {
   },
 
   async init(configFile) {
+    UpdateEventHandler.registerEvents();
     Settings.init(configFile);
 
     this.config = configFile;
