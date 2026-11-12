@@ -1,11 +1,26 @@
 const { contextBridge, ipcRenderer } = require('electron');
-const path = require('path');
+// const path = require('path');
 
 contextBridge.exposeInMainWorld('electronAPI', {
   // Config
   readConfigFile: () => ipcRenderer.invoke('read-config-file'),
   createConfigFile: () => ipcRenderer.invoke('create-config-file'),
   writeToConfigFile: (data) => ipcRenderer.invoke('write-to-config-file', data),
+
+  // Updates
+  onUpdateAvailable: (callback) => ipcRenderer.on('update-available', (_, data) => callback(data)),
+  onUpdateNotAvailable: (callback) => ipcRenderer.on('update-not-available', (_, data) => callback(data)),
+  onUpdateError: (callback) => ipcRenderer.on('update-error', (_, error) => callback(error)),
+  onUpdateDownloadProgress: (callback) => ipcRenderer.on('update-download-progress', (event, data) => callback(data)),
+  downloadUpdate: (data) => ipcRenderer.invoke('download-update', data),
+  installUpdate: () => ipcRenderer.invoke('install-update'),
+  removeUpdateListeners: () => {
+    ipcRenderer.removeAllListeners('update-available');
+    ipcRenderer.removeAllListeners('update-not-available');
+    ipcRenderer.removeAllListeners('update-error');
+    ipcRenderer.removeAllListeners('update-download-progress');
+    ipcRenderer.removeAllListeners('download-update');
+  },
 
   // Env
   createEnvFile: () => ipcRenderer.invoke('create-env-file'),
@@ -45,9 +60,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Indexing
   indexWorkspace: (path) => ipcRenderer.invoke('index-workspace', path),
   searchWorkspace: (manager, query) => ipcRenderer.invoke('search-workspace', manager, query),
-  onIndexingProgress: (callback) => {
-    ipcRenderer.on('indexing-progress', (event, data) => callback(data));
-  },
+  onIndexingProgress: (callback) => ipcRenderer.on('indexing-progress', (event, data) => callback(data)),
   abortIndexing: () => ipcRenderer.invoke('abort-indexing'),
 
   // Summarize text
