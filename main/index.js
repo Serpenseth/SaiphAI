@@ -13,6 +13,7 @@ const dotenv = require('dotenv');
 const os = require('os');
 
 const { piscina } = require('./piscina_instance.js');
+const { Update } = require('./Update.js');
 
 /*
 const SETTINGS_FILE = path.join(app.getPath('userData'), 'settings.json');
@@ -237,124 +238,24 @@ ipcMain.handle('launch-process', launchProcess);
 /**
  *  Downloads SaiphAI update.
  *
- *  @param {string} downloadUrl - The Github url.
- *  @param {string} expectedDigest - The expected digest.
+ *  @param {string} data - Data obtained from Github
  *
  *  @returns {null}
 */
-const downloadUpdate = async (downloadUrl, expectedDigest) => {
-  const userDataPath = app.getPath('userData');
-  const updateDir = path.join(userDataPath, 'updates');
-  const fileName = path.basename(downloadUrl);
-  const filePath = path.join(updateDir, fileName);
-
-  // Ensure update directory exists
-  await fs.mkdir(updateDir, { recursive: true });
-
-  return new Promise((resolve) => {
-    const file = fsSync.createWriteStream(filePath);
-    let downloadedBytes = 0;
-    let totalBytes = 0;
-    const hash = crypto.createHash('sha256');
-
-    https.get(downloadUrl, (response) => {
-        totalBytes = parseInt(response.headers['content-length'] || '0', 10);
-
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('update-download-progress', {
-            downloaded: 0,
-            total: totalBytes,
-            percent: 0
-          });
-        }
-
-        response.on('data', (chunk) => {
-            downloadedBytes += chunk.length;
-            hash.update(chunk);
-
-            const percent = Math.round((downloadedBytes / totalBytes) * 100);
-
-            // Send progress to renderer
-            if (mainWindow && !mainWindow.isDestroyed()) {
-                mainWindow.webContents.send('update-download-progress', {
-                    downloaded: downloadedBytes,
-                    total: totalBytes,
-                    percent: Math.round((downloadedBytes / totalBytes) * 100)
-                });
-            }
-        });
-
-        response.pipe(file);
-
-        file.on('close', () => {
-            // Verify digest if provided
-            if (expectedDigest) {
-                const normalizedExpected = expectedDigest.replace(/^sha256:/, '').toLowerCase();
-                const fileBuffer = fsSync.readFileSync(filePath);
-                const actualDigest = crypto.createHash('sha256').update(fileBuffer).digest('hex');
-
-                if (actualDigest !== normalizedExpected) {
-                    fs.unlink(filePath, () => {});
-                    resolve({
-                        success: false,
-                        error: 'Digest verification failed',
-                        expected: expectedDigest,
-                        actual: actualDigest
-                    });
-                    return;
-                }
-            }
-
-            // Auto-execute based on OS
-            const platform = process.platform;
-            if (platform === 'win32' && fileName.endsWith('.exe')) {
-                const child = spawn(filePath, [], { detached: true }, (err) => {
-                    if (err) {
-                      fs.unlink(filePath, () => {});
-                      resolve({ success: false, error: err.message });
-                      return;
-                    }
-                    child.unref();
-                });
-                resolve({ success: true, filePath, action: 'executing' });
-            }
-            else if (platform === 'darwin' && fileName.endsWith('.dmg')) {
-                shell.openPath(filePath);
-                resolve({ success: true, filePath, action: 'opened' });
-            }
-            else if (platform === 'linux' && fileName.endsWith('.AppImage')) {
-                fs.chmod(filePath, 0o755, () => {
-                  const child = spawn(filePath, [], { detached: true }, (err) => {
-                  if (err) {
-                      fs.unlink(filePath, () => {});
-                      resolve({ success: false, error: err.message });
-                      return;
-                    }
-                  });
-                  child.unref();
-                });
-                resolve({ success: true, filePath, action: 'executing' });
-            }
-            else {
-                shell.showItemInFolder(filePath);
-                resolve({ success: true, filePath, action: 'downloaded' });
-            }
-
-            app.quit()
-        })
-
-        file.on('error', (e) => {
-          fs.unlink(filePath, () => {});
-          resolve({ success: false, error: e.message });
-        });
-    })
-    .on('error', (err) => {
-        fs.unlink(filePath, () => {});
-        resolve({ success: false, error: err.message });
-    });
-  });
+const downloadUpdate = (event, data) => {
+  Update.downloadUpdate(mainWindow.webContents, data);
 }
 ipcMain.handle('download-update', downloadUpdate);
+
+/**
+ *  Installs SaiphAI update.
+ *
+ *  @returns {null}
+*/
+const installUpdate = () => {
+  Update.installUpdate();
+}
+ipcMain.handle('install-update', installUpdate);
 
 /**
  *  Gets the current platform.
@@ -391,78 +292,6 @@ app.whenReady().then( () => {
     createMainWindow();
 });
 
-async function getGithubVersion() {
-  const request = await fetch("https://raw.githubusercontent.com/Serpenseth/SaiphAI/refs/heads/main/package.json");
-
-  if (!request.ok) {
-    mainWindow.webContents.send("update-error", "Failed to fetch remote version");
-    return '0.0.0';
-  }
-
-  const data = await request.json();
-
-  return data.version;
-}
-
-async function getGithubPackageData() {
-  try {
-    const request = await fetch("https://api.github.com/repos/serpenseth/saiphai/releases/latest");
-
-    if (!request.ok) {
-      mainWindow.webContents.send(
-        "date-error",
-        "Seems like either you have internet problems, "
-        + "or you've been downloading/canceling a little too often.\n"
-        + "Try again later"
-      );
-      return;
-    }
-
-    const data = await request.json();
-
-    // Data obtained from Github
-    const os = process.platform;
-    const isWindows = process.platform === "win32";
-    const extension = isMac ? ".dmg" : isWindows ? ".exe" : ".AppImage";
-    const tag = data.tag_name;
-    const version = tag.replace("v", "");
-    const baseDownloadUrl = "https://github.com/Serpenseth/SaiphAI/releases/download";
-    const digest = data.assets.find(x => x.name.includes(extension)).digest;
-
-    return {
-      releaseNotes: data.body,
-      tag: tag,
-      downloadUrl: `${baseDownloadUrl}/${tag}/SaiphAI-${version}${extension}`,
-      digest: digest
-    }
-  }
-  catch(e) {
-    console.error(e);
-    throw e;
-  }
-}
-
-async function checkForUpdates() {
-  const currentVersion = app.getVersion();
-  const githubVersion = await getGithubVersion();
-
-  if (githubVersion === '0.0.0') {
-    mainWindow.webContents.send("date-error", "Failed to fetch remote version");
-    return;
-  }
-
-  if (currentVersion !== githubVersion) {
-    const githubData = await getGithubPackageData();
-
-    mainWindow.webContents.send('update-available', {
-      localVersion: currentVersion,
-      remoteVersion: githubVersion,
-      githubData: githubData
-      });
-    }
-    else { mainWindow.webContents.send('update-not-available') }
-}
-
 app.on('window-all-closed', async () => {
   if (!isMac) {
     try {
@@ -480,6 +309,13 @@ app.on('window-all-closed', async () => {
     */
     catch (_) { process.kill(process.pid, 'SIGKILL') }
   }
+});
+
+app.on("ready", () => {
+  setTimeout(() => {
+    const currentVersion = app.getVersion();
+    Update.checkForUpdates(mainWindow.webContents, currentVersion);
+  }, 500);
 });
 
 app.on('activate', async () => {
