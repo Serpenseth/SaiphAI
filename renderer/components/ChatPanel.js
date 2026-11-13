@@ -138,7 +138,7 @@ const ChatStorage = {
 
   async get(id) {
     const savedChat = await window.electronAPI.getSavedChat(id);
-    return JSON.parse(savedChat);
+    return savedChat ? JSON.parse(savedChat) : undefined;
   },
 }
 
@@ -284,7 +284,7 @@ const Ui = {
   getUserPrompt(fullTabID) {
     const id = ChatTab.getTabRawID(fullTabID);
     return DomQuery.getElement(`user-prompt-${id}`).value.trim();
-  }
+  },
 }
 
 const Controller = {
