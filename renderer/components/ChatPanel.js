@@ -123,6 +123,17 @@ const Config = {
   },
 }
 
+const ChatStorage = {
+  save(id, chat) {
+    window.electronAPI.saveChat(id, JSON.stringify(chat));
+  },
+
+  async getChat(id) {
+    const savedChat = await window.electronAPI.getSavedChat(id);
+    return JSON.parse(savedChat);
+  },
+}
+
 const AiBackend = {
   async sendOllamaChat(message, chosenModel) {
     return window.electronAPI.chatOllama(message, chosenModel);
@@ -946,7 +957,7 @@ const ChatPanel = {
     ModelSelector.populate(data, id);
   },
 
-  displayAiResponse(message) {
+  async displayAiResponse(message) {
     if (!message || message.length === 0)
       return;
 
@@ -961,25 +972,31 @@ const ChatPanel = {
     Ui.displayThinkingDiv(id);
     TabHandler.setTabTitle(id, title);
 
-    AiResponse.generate(ChatPanelData.config, chats, message, attachedFiles)
-      .then(aiReply => {
-        Ui.removeThinkingDiv(id);
+    try {
+      const aiReply = await AiResponse.generate(ChatPanelData.config, chats, message, attachedFiles);
+      Ui.removeThinkingDiv(id);
 
-        const aiMsg = aiReply.message.content;
-        Ui.displayAiResponse(id, aiMsg);
-        chats.system.push(aiMsg);
+      const aiMsg = aiReply.message.content;
+      Ui.displayAiResponse(id, aiMsg);
+      chats.system.push(aiMsg);
 
-        ChatsHandler.addChatForTab(id, {
-          title: title,
-          user: chats.user,
-          system: chats.system
-        });
-      })
-      .catch(e => {
-        console.error(e);
-        Ui.removeThinkingDiv(id);
-        Ui.displayErrorMessage(id, e);
+      ChatsHandler.addChatForTab(id, {
+        title: title,
+        user: chats.user,
+        system: chats.system,
       });
+
+      ChatStorage.save(id, {
+        title: title,
+        user: chats.user,
+        system: chats.system,
+      });
+    }
+    catch(e) {
+      console.error(e);
+      Ui.removeThinkingDiv(id);
+      Ui.displayErrorMessage(id, e);
+    }
   },
 }
 
