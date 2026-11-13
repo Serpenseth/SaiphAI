@@ -60,6 +60,11 @@ const SqlManager = {
     this._persistToDisk();
   },
 
+  deleteChat(id) {
+    SqlManager.db.run("DELETE FROM items WHERE id = ?", [id]);
+    this._persistToDisk();
+  },
+
   getChat(id) {
     const getChatPrep = SqlManager.db.prepare(
       "SELECT content FROM items WHERE id = ?"
