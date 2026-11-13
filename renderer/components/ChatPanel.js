@@ -226,7 +226,6 @@ const Ui = {
     DomQuery.updateInputValue(`user-prompt-${id}`, '');
   },
 
-  // Probably won't be used
   clearChats(fullTabID) {
     const id = ChatTab.getTabRawID(fullTabID);
     DomQuery.updateInnerHTML(`chat-content-${id}`, '');
