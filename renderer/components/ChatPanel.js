@@ -97,6 +97,10 @@ const Config = {
     return window.electronAPI.readConfigFile();
   },
 
+  async save(data) {
+    await window.electronAPI.writeToConfigFile(data);
+  },
+
   async getSelectedFramework() {
     const config = await window.electronAPI.readConfigFile();
     return config.modelFramework;
@@ -126,6 +130,10 @@ const Config = {
 const ChatStorage = {
   save(id, chat) {
     window.electronAPI.saveChat(id, JSON.stringify(chat));
+  },
+
+  remove(id) {
+    window.electronAPI.deleteChat(id);
   },
 
   async get(id) {
@@ -906,6 +914,7 @@ const ChatPanel = {
     this.createEvents(id);
 
     ModelSelector.populate(ChatPanelData.config, id);
+    Config.save({ lastTab: `ai-tab-${id}` });
   },
 
   switchToTab(fromFullID, toFullID) {
