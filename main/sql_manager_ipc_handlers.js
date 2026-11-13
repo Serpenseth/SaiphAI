@@ -4,7 +4,7 @@ const saveChat = (event, id, chatContent) => {
   SqlManager.saveChat(id, chatContent);
 }
 
-const deleteChat = (event, id) =. {
+const deleteChat = (event, id) => {
   SqlManager.deleteChat(id);
 }
 
