@@ -199,7 +199,7 @@ const ChatTab = {
   },
 
   getAllChats() {
-    return ChatsHandler.geAllChats();
+    return ChatsHandler.getAllChats();
   },
 
   getAllTabs() {
