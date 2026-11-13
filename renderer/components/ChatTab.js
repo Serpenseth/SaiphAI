@@ -121,6 +121,19 @@ const ChatTab = {
     Ui.setActiveState(id, true);
   },
 
+  createFromID(fullTabID) {
+    const id = TabID.get(fullTabID);
+    const tab = ChatTabUi.create(id);
+    const active = Ui.getActiveTab();
+
+    if (active) {
+      Ui.setActiveState(TabID.get(active), false);
+    }
+
+    Ui.attachTab(tab);
+    Ui.setActiveState(id, true);
+  },
+
   remove(fullTabID) {
     const idOfTabToRemove = TabID.get(fullTabID);
     Ui.removeTab(idOfTabToRemove);
