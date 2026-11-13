@@ -68,4 +68,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Launch process
   launchProcess: (progName, args, options) => ipcRenderer.invoke('launch-process', progName, args, options),
+
+  // SQL
+  saveChat: (id, chat) => ipcRenderer.invoke('save-chat', id, chat),
+  getSavedChat: (id) => ipcRenderer.invoke('get-saved-chat', id),
 });

@@ -5,7 +5,6 @@ const fsSync = require('fs');
 const http = require('http');
 const ignore = require('ignore');
 const chokidar = require('chokidar');
-const Database = require("better-sqlite3");
 const { spawn, execFile } = require('child_process');
 const { https } = require('follow-redirects');
 const crypto = require('crypto');
@@ -14,6 +13,7 @@ const os = require('os');
 
 const { piscina } = require('./piscina_instance.js');
 const { Update } = require('./Update.js');
+const { SqlManager } = require('./SqlManager.js');
 
 /*
 const SETTINGS_FILE = path.join(app.getPath('userData'), 'settings.json');
@@ -235,6 +235,11 @@ ipcMain.handle('search-workspace', searchWorkspace);
 const { launchProcess } = require('./process_launcher_ipc_handlers.js');
 ipcMain.handle('launch-process', launchProcess);
 
+// SQL
+const { saveChat, getSavedChat } = require('./sql_manager_ipc_handlers.js');
+ipcMain.handle('save-chat', saveChat);
+ipcMain.handle('get-saved-chat', getSavedChat);
+
 /**
  *  Downloads SaiphAI update.
  *
@@ -301,6 +306,9 @@ app.on('window-all-closed', async () => {
           setTimeout(() => reject(new Error('Timeout')), 400)
         })
       ]);
+      // Close SQL chat database
+      SqlManager.destroy();
+      // Quit SaiphAI
       app.quit();
     }
     /*  Sometimes, the program will hang after close.
@@ -312,6 +320,9 @@ app.on('window-all-closed', async () => {
 });
 
 app.on("ready", () => {
+  const db = path.join(app.getPath('userData'), 'chats.db');
+  SqlManager.init(db);
+
   setTimeout(() => {
     const currentVersion = app.getVersion();
     Update.checkForUpdates(mainWindow.webContents, currentVersion);
