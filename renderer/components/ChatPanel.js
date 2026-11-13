@@ -128,7 +128,7 @@ const ChatStorage = {
     window.electronAPI.saveChat(id, JSON.stringify(chat));
   },
 
-  async getChat(id) {
+  async get(id) {
     const savedChat = await window.electronAPI.getSavedChat(id);
     return JSON.parse(savedChat);
   },
