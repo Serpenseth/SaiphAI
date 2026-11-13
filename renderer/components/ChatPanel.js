@@ -285,6 +285,13 @@ const Ui = {
     const id = ChatTab.getTabRawID(fullTabID);
     return DomQuery.getElement(`user-prompt-${id}`).value.trim();
   },
+
+  renderPreviousChats(fullTabID, chats) {
+    for (let i = 0; i < chats.user.length; i++) {
+      Ui.displayUserMessage(fullTabID, chats.user[i]);
+      Ui.displayAiResponse(fullTabID, chats.system[i]);
+    }
+  },
 }
 
 const Controller = {
@@ -897,23 +904,41 @@ const ChatPanel = {
     EventSetup.init(rawID, this);
   },
 
-  newChatTab() {
+  async newChatTab(tabID=null) {
     const tabCount = ChatTab.getTabCount();
+    let id;
 
     if (tabCount !== 0) {
       const oldID = TabHandler.getActiveTabRawID();
       DomQuery.showElement(`ai-panel-${oldID}`, false);
     }
 
-    ChatTab.create();
-    const id = TabHandler.getActiveTabRawID();
-    const newPanel = ChatPanelUi.create(id);
+    const chats = await ChatStorage.get(tabID);
 
-    Ui.attachPanel(newPanel);
-    this.createEvents(id);
+    if (tabID && chats) {
+      ChatTab.createFromID(tabID);
+      id = TabHandler.getActiveTabRawID();
+
+      const newPanel = ChatPanelUi.create(id);
+      Ui.attachPanel(newPanel);
+      Ui.renderPreviousChats(tabID, chats);
+      this.createEvents(id);
+
+      Config.save({ tabID });
+    }
+
+    else {
+      ChatTab.create();
+      id = TabHandler.getActiveTabRawID();
+
+      const newPanel = ChatPanelUi.create(id);
+      Ui.attachPanel(newPanel);
+
+      this.createEvents(id);
+      Config.save({ lastTab: `ai-tab-${id}` });
+    }
 
     ModelSelector.populate(ChatPanelData.config, id);
-    Config.save({ lastTab: `ai-tab-${id}` });
   },
 
   switchToTab(fromFullID, toFullID) {
