@@ -238,11 +238,13 @@ ipcMain.handle('launch-process', launchProcess);
 // SQL
 const {
   saveChat,
+  getAllChats,
   deleteChat,
   getSavedChat
 } = require('./sql_manager_ipc_handlers.js');
 
 ipcMain.handle('save-chat', saveChat);
+ipcMain.handle('get-all-chats', getAllChats);
 ipcMain.handle('delete-chat', deleteChat);
 ipcMain.handle('get-saved-chat', getSavedChat);
 

@@ -79,6 +79,12 @@ const SqlManager = {
     finally { getChatPrep.free() };
   },
 
+  getAllChats() {
+    const result = SqlManager.db.exec("SELECT * FROM items");
+    const chats = result[0]?.values || [];
+    return chats;
+  },
+
   destroy() {
     SqlManager.db.close();
   },

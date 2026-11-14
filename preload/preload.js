@@ -71,6 +71,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // SQL
   saveChat: (id, chat) => ipcRenderer.invoke('save-chat', id, chat),
+  getAllChats: () => ipcRenderer.invoke('get-all-chats'),
   deleteChat: (id) => ipcRenderer.invoke('get-saved-chat', id),
   getSavedChat: (id) => ipcRenderer.invoke('get-saved-chat', id),
 });
