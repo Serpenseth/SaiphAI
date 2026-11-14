@@ -124,14 +124,25 @@ const ChatTab = {
   createFromID(fullTabID) {
     const id = TabID.get(fullTabID);
     const tab = ChatTabUi.create(id);
+    /*
     const active = Ui.getActiveTab();
-
     if (active) {
       Ui.setActiveState(TabID.get(active), false);
     }
+    */
 
     Ui.attachTab(tab);
     Ui.setActiveState(id, true);
+
+    ChatsHandler.addChat(id, {
+      title: 'Untitled',
+      user: [],
+      system: []
+    });
+  },
+
+  setActive(id, state) {
+    Ui.setActiveState(id, state);
   },
 
   remove(fullTabID) {
