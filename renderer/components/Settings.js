@@ -103,11 +103,6 @@ const Config = {
   },
 }
 
-/* TODO: Feature
- * Download button handler that attaches only when ollama is selected.
- * If Ollama is not selected, destroy (via abort) the handler to free memory
- */
-
 const AiBackend = {
   async getOpenAiModels() {
     return window.electronAPI.getAllOpenAiModels();
