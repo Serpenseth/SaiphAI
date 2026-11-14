@@ -140,6 +140,10 @@ const ChatStorage = {
     const savedChat = await window.electronAPI.getSavedChat(id);
     return savedChat ? JSON.parse(savedChat) : undefined;
   },
+
+  async getAll() {
+    return window.electronAPI.getAllChats();
+  },
 }
 
 const AiBackend = {
@@ -286,7 +290,7 @@ const Ui = {
     return DomQuery.getElement(`user-prompt-${id}`).value.trim();
   },
 
-  renderPreviousChats(fullTabID, chats) {
+  renderPreviousChatsForTab(fullTabID, chats) {
     for (let i = 0; i < chats.user.length; i++) {
       Ui.displayUserMessage(fullTabID, chats.user[i]);
       Ui.displayAiResponse(fullTabID, chats.system[i]);
@@ -886,6 +890,21 @@ const ModelSelector = {
 const ChatPanel = {
   async init(configFile) {
     ChatPanelData.config = configFile;
+    const lastTab = configFile.lastTab;
+
+    const allTabs = await ChatStorage.getAll();
+
+    switch(allTabs.length) {
+      case 0:
+        ChatPanel.newChatTab();
+        break;
+
+      case 1:
+        ChatPanel.restoreLastTab(lastTab);
+        break;
+
+      default: ChatPanel.restoreAllChats(allTabs, lastTab);
+    }
   },
 
   async show(shouldShow) {
@@ -904,39 +923,71 @@ const ChatPanel = {
     EventSetup.init(rawID, this);
   },
 
-  async newChatTab(tabID=null) {
+  async restoreLastTab(tabID) {
+    const chats = await ChatStorage.get(tabID);
     const tabCount = ChatTab.getTabCount();
-    let id;
+    const id = ChatTab.getTabRawID(tabID);
+
+    ChatTab.createFromID(tabID);
+
+    const newPanel = ChatPanelUi.create(id);
+    Ui.attachPanel(newPanel);
+
+    if (chats)
+      Ui.renderPreviousChatsForTab(tabID, chats);
+
+    this.createEvents(id);
+    Config.save({ lastTab: tabID });
+  },
+
+  async restoreAllChats(allTabs, lastTab) {
+    const prevTabs = { id: [], chats: [] };
+
+    for (let i = 0; i < allTabs.length; i++) {
+      prevTabs.id.push(allTabs[i][0]);
+      prevTabs.chats.push(JSON.parse(allTabs[i][1]));
+    }
+
+    for (let i = 0; i < prevTabs.chats.length; i++) {
+      const id = prevTabs.id[i];
+      const chats = prevTabs.chats[i];
+      const rawID = ChatTab.getTabRawID(id);
+
+      ChatTab.createFromID(id);
+
+      const newPanel = ChatPanelUi.create(rawID);
+      Ui.attachPanel(newPanel);
+      this.createEvents(rawID);
+
+      if (id !== lastTab) {
+        DomQuery.showElement(`ai-panel-${rawID}`, false);
+        ChatTab.setActive(rawID, false);
+      }
+
+      else {
+        DomQuery.showElement(`ai-panel-${rawID}`, true);
+        ChatTab.setActive(rawID, true);
+      }
+
+      Ui.renderPreviousChatsForTab(rawID, chats);
+      ModelSelector.populate(ChatPanelData.config, rawID);
+    }
+  },
+
+  async newChatTab() {
+    const tabCount = ChatTab.getTabCount();
 
     if (tabCount !== 0) {
       const oldID = TabHandler.getActiveTabRawID();
       DomQuery.showElement(`ai-panel-${oldID}`, false);
     }
 
-    const chats = await ChatStorage.get(tabID);
+    ChatTab.create();
+    const id = TabHandler.getActiveTabRawID();
+    const newPanel = ChatPanelUi.create(id);
 
-    if (tabID && chats) {
-      ChatTab.createFromID(tabID);
-      id = TabHandler.getActiveTabRawID();
-
-      const newPanel = ChatPanelUi.create(id);
-      Ui.attachPanel(newPanel);
-      Ui.renderPreviousChats(tabID, chats);
-      this.createEvents(id);
-
-      Config.save({ tabID });
-    }
-
-    else {
-      ChatTab.create();
-      id = TabHandler.getActiveTabRawID();
-
-      const newPanel = ChatPanelUi.create(id);
-      Ui.attachPanel(newPanel);
-
-      this.createEvents(id);
-      Config.save({ lastTab: `ai-tab-${id}` });
-    }
+    Ui.attachPanel(newPanel);
+    this.createEvents(id);
 
     ModelSelector.populate(ChatPanelData.config, id);
   },
@@ -949,6 +1000,7 @@ const ChatPanel = {
     DomQuery.showElement(`ai-panel-${toID}`, true);
 
     ChatTab.switchChatTabs(fromFullID, toFullID);
+    Config.save({ lastTab: toFullID });
   },
 
   clearChats(fullTabID) {
@@ -1019,11 +1071,7 @@ const ChatPanel = {
         system: chats.system,
       });
 
-      ChatStorage.save(id, {
-        title: title,
-        user: chats.user,
-        system: chats.system,
-      });
+      ChatStorage.save(id, chats);
     }
     catch(e) {
       console.error(e);
