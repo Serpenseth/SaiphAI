@@ -887,12 +887,26 @@ const ModelSelector = {
   },
 }
 
+const ChatStorageObject = {
+  handle(savedChats) {
+    const prevTabs = { id: [], chats: [] };
+
+    for (let i = 0; i < savedChats.length; i++) {
+      prevTabs.id.push(savedChats[i][0]);
+      prevTabs.chats.push(JSON.parse(savedChats[i][1]));
+    }
+
+    return prevTabs;
+  },
+}
+
 const ChatPanel = {
   async init(configFile) {
     ChatPanelData.config = configFile;
-    const lastTab = configFile.lastTab;
 
+    const lastTab = configFile.lastTab;
     const allTabs = await ChatStorage.getAll();
+    const prevTabs = ChatStorageObject.handle(allTabs);
 
     switch(allTabs.length) {
       case 0:
@@ -903,7 +917,7 @@ const ChatPanel = {
         ChatPanel.restoreLastTab(lastTab);
         break;
 
-      default: ChatPanel.restoreAllChats(allTabs, lastTab);
+      default: ChatPanel.restoreAllChats(prevTabs, lastTab);
     }
   },
 
@@ -940,14 +954,7 @@ const ChatPanel = {
     Config.save({ lastTab: tabID });
   },
 
-  async restoreAllChats(allTabs, lastTab) {
-    const prevTabs = { id: [], chats: [] };
-
-    for (let i = 0; i < allTabs.length; i++) {
-      prevTabs.id.push(allTabs[i][0]);
-      prevTabs.chats.push(JSON.parse(allTabs[i][1]));
-    }
-
+  async restoreAllChats(prevTabs, lastTab) {
     for (let i = 0; i < prevTabs.chats.length; i++) {
       const id = prevTabs.id[i];
       const chats = prevTabs.chats[i];
