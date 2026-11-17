@@ -8,6 +8,7 @@ import { FileEditor } from './FileEditor.js';
 import { FileTab } from './FileTab.js';
 import { ChatPanel } from './ChatPanel.js';
 import { Settings } from './Settings.js';
+import { HistoryModal } from './History.js';
 
 const IndexingService = {
   async index(workspacePath) {
@@ -305,6 +306,7 @@ const Events = {
       { id: 'hide-sidebar', fn: () => Ui.showSidebar(false) },
       { id: 'show-sidebar', fn: () => Ui.showSidebar(true) },
       { id: 'show-ai-panel-btn', fn: () => EventFunctions.showChatPanel() },
+      { id: 'chat-history', fn: () => HistoryModal.show(true) },
     ]);
 
     EventHandler.setupResizeEvent(
