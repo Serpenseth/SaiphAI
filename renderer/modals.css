@@ -629,3 +629,69 @@
 .update-progress {
   text-align: center;
 }
+
+.history-sidebar {
+  height: 100%;
+  border-radius: 5px;
+  background: rgba(235, 240, 243, 0.02);
+  padding: 0.5rem;
+  overflow-y: auto;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  border-radius: 5px;
+  text-overflow: ellipsis;
+}
+
+.history-item-actions {
+  margin: 0.25rem;
+  padding: 0.5em 0.5rem;
+}
+
+.history-item:hover {
+  background: var(--bg-tertiary);
+}
+
+.preview-chats {
+  background: transparent;
+  pointer-events: auto;
+  overflow-y: auto;
+  white-space: pre;
+  user-select: text;
+}
+
+.history-user-msg-bubble {
+  display: flex;
+  flex-wrap: wrap;
+  margin-left: 1rem;
+  width: 95%;
+  align-items: start;
+  margin-bottom: 1.5rem;
+  padding: 0;
+  overflow-y: auto;
+  background: var(--user-chat-bubble);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+
+.history-user-msg-bubble pre .hljs,
+.history-ai-response pre .hljs {
+  font-family: var(--font-sans) !important;
+  border-radius: 4px;
+}
+
+.history-user-msg-bubble code:not(pre code),
+.history-user-msg-bubble .hljs.inline,
+.history-ai-response code:not(pre code),
+.history-ai-response .hljs.inline {
+  background: rgba(232, 232, 232, 0.1);
+  margin-left: 1.5px;
+  margin-right: 1.5px;
+  padding: 0.1rem 0.25rem;
+  border-radius: 4px;
+  font-family: var(--font-sans) !important;
+  font-size: 0.9rem;
+}
