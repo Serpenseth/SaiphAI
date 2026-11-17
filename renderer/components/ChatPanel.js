@@ -7,6 +7,7 @@ import {
 
 import { ChatTab } from './ChatTab.js';
 import { FilePreview } from './FilePreview.js';
+import { HistoryModal } from './History.js';
 
 const ChatPanelUi = {
   create(id) {
@@ -132,8 +133,8 @@ const ChatStorage = {
     window.electronAPI.saveChat(id, JSON.stringify(chat));
   },
 
-  remove(id) {
-    window.electronAPI.deleteChat(id);
+  async remove(id) {
+    await window.electronAPI.deleteChat(id);
   },
 
   async get(id) {
@@ -907,8 +908,9 @@ const ChatPanel = {
     const lastTab = configFile.lastTab;
     const allTabs = await ChatStorage.getAll();
     const prevTabs = ChatStorageObject.handle(allTabs);
+    HistoryModal.init(prevTabs);
 
-    switch(allTabs.length) {
+    switch(prevTabs.chats.length) {
       case 0:
         ChatPanel.newChatTab();
         break;
@@ -917,7 +919,9 @@ const ChatPanel = {
         ChatPanel.restoreLastTab(lastTab);
         break;
 
-      default: ChatPanel.restoreAllChats(prevTabs, lastTab);
+      default:
+        ChatPanel.restoreAllChats(prevTabs, lastTab);
+        break;
     }
   },
 
@@ -937,8 +941,8 @@ const ChatPanel = {
     EventSetup.init(rawID, this);
   },
 
-  async restoreLastTab(tabID) {
-    const chats = await ChatStorage.get(tabID);
+  async restoreLastTab(tabID, prevChats=null) {
+    const chats = prevChats || await ChatStorage.get(tabID);
     const tabCount = ChatTab.getTabCount();
     const id = ChatTab.getTabRawID(tabID);
 
@@ -951,7 +955,9 @@ const ChatPanel = {
       Ui.renderPreviousChatsForTab(tabID, chats);
 
     this.createEvents(id);
-    Config.save({ lastTab: tabID });
+    ChatTab.setActive(id, true);
+    ModelSelector.populate(ChatPanelData.config, id);
+    ChatTab.addTabToHistory(id, chats);
   },
 
   async restoreAllChats(prevTabs, lastTab) {
@@ -978,6 +984,7 @@ const ChatPanel = {
 
       Ui.renderPreviousChatsForTab(rawID, chats);
       ModelSelector.populate(ChatPanelData.config, rawID);
+      ChatTab.addTabToHistory(id, chats);
     }
   },
 
@@ -1028,6 +1035,7 @@ const ChatPanel = {
       Ui.clearChatbox(id);
       Ui.clearChats(id);
       TabHandler.setTabTitle(id, 'Untitled');
+      ChatStorage.remove(fullTabID);
       return;
     }
 
@@ -1042,6 +1050,7 @@ const ChatPanel = {
 
     Ui.removePanel(fullTabID);
     ChatTab.remove(fullTabID);
+    ChatStorage.remove(fullTabID);
   },
 
   populateModelSelector(data) {
