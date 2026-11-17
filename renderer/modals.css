@@ -365,7 +365,7 @@
 
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.05s !important;
+  transition: all 0.1s !important;
 }
 
 .modal-content-small {
