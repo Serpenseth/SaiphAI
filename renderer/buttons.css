@@ -79,6 +79,16 @@
 /*   filter: brightness(1.2); */
 }
 
+.btn-delete {
+  background: transparent;
+  border: 1.4px solid rgba(239, 68, 68, 0.4);
+  color: var(--error-color);
+}
+
+.btn-delete:hover {
+  background: linear-gradient(rgba(80, 80, 78, 0.2), rgba(58, 59, 60, 0.2));
+}
+
 .modal-nav-button {
   width: 25%;
 }
