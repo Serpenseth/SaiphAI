@@ -128,6 +128,12 @@ const Config = {
   },
 }
 
+const Workspace = {
+  async search(query) {
+    return window.electronAPI.searchWorkspace(query);
+  },
+}
+
 const ChatStorage = {
   save(id, chat) {
     window.electronAPI.saveChat(id, JSON.stringify(chat));
@@ -942,7 +948,12 @@ const ChatPanel = {
   },
 
   async restoreLastTab(tabID, prevChats=null) {
-    const chats = prevChats || await ChatStorage.get(tabID);
+    const defaultChatObject = {
+      title: 'Untitled',
+      user: [],
+      system: []
+    }
+    const chats = prevChats || await ChatStorage.get(tabID)  || defaultChatObject;
     const tabCount = ChatTab.getTabCount();
     const id = ChatTab.getTabRawID(tabID);
 
@@ -1004,6 +1015,7 @@ const ChatPanel = {
     this.createEvents(id);
 
     ModelSelector.populate(ChatPanelData.config, id);
+    Config.save({ lastTab: `ai-tab-${id}` });
   },
 
   switchToTab(fromFullID, toFullID) {
@@ -1021,7 +1033,7 @@ const ChatPanel = {
     Ui.clearChats(fullTabID);
   },
 
-  closeTab(fullTabID) {
+  async closeTab(fullTabID) {
     const tabCount = ChatTab.getTabCount();
     const id = ChatTab.getTabRawID(fullTabID);
 
@@ -1036,6 +1048,7 @@ const ChatPanel = {
       Ui.clearChats(id);
       TabHandler.setTabTitle(id, 'Untitled');
       ChatStorage.remove(fullTabID);
+      await Config.save({ lastTab: null });
       return;
     }
 
@@ -1066,15 +1079,32 @@ const ChatPanel = {
     const chats = ChatTab.getTabChats(id);
     const title = message.substring(0, 12);
     const rawID = ChatTab.getTabRawID(id);
-    const attachedFiles = AttachedFilesHandler.handleAttachedFiles(rawID);
 
     Ui.clearChatbox(id);
     Ui.displayUserMessage(id, message);
     Ui.displayThinkingDiv(id);
     TabHandler.setTabTitle(id, title);
 
+    let searchQuery = await Workspace.search(message);
+    let msgWithWorkspace;
+    const resultsFound = searchQuery.length > 0;
+
+    if (resultsFound) {
+      searchQuery = JSON.stringify(searchQuery);
+      msgWithWorkspace = `User message: ${message}`;
+      msgWithWorkspace = `${msgWithWorkspace}\n\nIndexed project: ${searchQuery}`;
+    }
+
+    const attachedFiles = AttachedFilesHandler.handleAttachedFiles(rawID);
+
     try {
-      const aiReply = await AiResponse.generate(ChatPanelData.config, chats, message, attachedFiles);
+      const aiReply = await AiResponse.generate(
+        ChatPanelData.config,
+        chats,
+        msgWithWorkspace || message,
+        attachedFiles
+      );
+
       Ui.removeThinkingDiv(id);
 
       const aiMsg = aiReply.message.content;
