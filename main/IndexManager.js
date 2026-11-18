@@ -10,14 +10,13 @@ const embeddingModel = {
   extractor: null,
 
   async embed(text) {
-    const modelName =  'Salesforce/SFR-Embedding-Code-400M_R';
+    const modelName =  'isuruwijesiri/all-MiniLM-L6-v2-code-search-512';
 
     if (!this.extractor) {
       try {
         this.extractor = await pipeline('feature-extraction', modelName, {
-                                        // 'Snowflake/snowflake-arctic-embed-m', {
           device: 'webgpu', // GPU-accelerated
-          revision: 'main' // for Salesforce
+          revision: 'main'
         });
       }
 
@@ -31,16 +30,13 @@ const embeddingModel = {
     }
 
     const output = await this.extractor(text, { pooling: 'mean', normalize: true });
-    return output.data instanceof Float32Array
-      ? output.data
-      : new Float32Array(output.data);
-
-    // return new Float32Array(output.data);
+    const isFloat32Array = output.data instanceof Float32Array;
+    return isFloat32Array ? output.data : new Float32Array(output.data);
   }
 };
 
 class SmartChunker {
-  constructor(chunkSize = 1028, overlap = 64) {
+  constructor(chunkSize = 1024, overlap = 128) {
       this.chunkSize = chunkSize;
       this.overlap = overlap;
       // Priority of separators for recursive splitting
@@ -135,20 +131,18 @@ class DiskIndexManager {
     this.metaIndexFile = path.join(storageDir, 'metadata.idx');
 
     this.minQualityFloor = 0.5;
-    this.maxResults = 20;
+    this.maxResults = 40;
 
-    this.stopWords = new Set([
-      'a','an','the','and','or','but','if','then','else','for','of','on','in','at',
-      'to','from','by','with','as','is','are','was','were','be','been','being',
-      'have','has','had','do','does','did','will','would','should','can','could',
-      'may','might','must','shall','this','that','these','those','there','here',
-      'where','when','why','how','what','which','who','whom','whose',
-      'your','my','his','her','its','our','their','i','you','he','she','we','they',
-      'me','him','them','us','it','not','no','so','than','too','very','just','also',
-      'only','any','some','all','each','every','own','same','into','onto','upon',
-      'about','above','below','after','before','during','through','over','under',
-      'again','further','once','up','down','off','out','id',
+    this.structuralFile = path.join(storageDir, 'structural.txt');
+    this.structuralNames = new Set([
+      'readme.md', 'readme.txt', 'readme',
+      'package.json', 'pyproject.toml', 'setup.py', 'cargo.toml', 'go.mod',
+      'index.js', 'index.ts', 'main.js', 'main.ts', 'main.py', '__main__.py',
+      'app.py', 'server.js', 'server.ts', 'cli.js', 'main.go', 'main.rs', 'lib.rs'
     ]);
+
+    // Phrases that signal a broad question about the whole project
+    this.overviewPattern = /\b(what (does|is) (this|it|the)|what'?s this|overview|summar(y|ize|ise)|purpose|how does (this|it) work|(explain|describe) (this|the))\b/i;
 
     new Set([this.indexDir, this.dataDir, this.vectorDir])
       .forEach(dir => {
@@ -328,6 +322,10 @@ class DiskIndexManager {
         const vector = await embeddingModel.embed(chunkWithFileName);
 
         await fs.writeFile(path.join(this.vectorDir, `${chunkId}.vec`), Buffer.from(vector.buffer));
+        if (this._isStructuralFile(fileName) && i < 3) {
+          await fs.appendFile(this.structuralFile, chunkId + '\n');
+        }
+
 
         // Extract keywords from enhanced chunk + file name parts
         const keywords = this._tokenize(chunkWithFileName);
@@ -352,13 +350,43 @@ class DiskIndexManager {
     }
   }
 
+  _isOverviewQuery(queryText) {
+      if (!queryText || queryText.length > 500)
+        return false;
+
+      const text = queryText.toLowerCase();
+
+      // Explicit overview wording
+      if (/\b(overview|purpose|summar(y|ize|ise)|tell me about)\b/.test(text))
+        return true;
+
+      // A question word plus a reference to the project as a whole
+      const asksQuestion = /\b(what|how|why|explain|describe)\b/.test(text);
+      const refersToProject = /\b(this|the|my|our)\s+(\w+\s+){0,2}(program|project|code|codebase|repo|repository|app|application|library|module|script|tool|software|system|package)\b/.test(text);
+      const refersToIt = /\b(what|how)\s+(does|do|is)\s+(it|this)\b/.test(text);
+
+      return asksQuestion && (refersToProject || refersToIt);
+    }
+
+  _isStructuralFile(fileName) {
+    return this.structuralNames.has(fileName.toLowerCase());
+  }
+
+  async _loadStructuralIds() {
+    if (!fsSync.existsSync(this.structuralFile))
+      return [];
+
+    const text = await fs.readFile(this.structuralFile, 'utf8');
+    return [...new Set(text.split('\n').filter(Boolean))];
+  }
+
   _tokenize(text) {
     const split = text
       .replace(/([a-z])([A-Z])/g, '$1 $2')
       .replace(/[_\-]/g, ' ');
 
     const words = split.toLowerCase().match(/\b\w{2,}\b/g) || [];
-    return [...new Set(words.filter(word => !this.stopWords.has(word)))];
+    return words;
   }
 
   async _addToIndex(word, chunkId) {
@@ -380,11 +408,6 @@ class DiskIndexManager {
   }
 
   async query(queryText) {
-    /*
-    if (this._hasCodeSignals(queryText))
-      return [];
-    */
-
     const queryVector = await embeddingModel.embed(queryText);
     const keywords = this._tokenize(queryText);
     const candidateChunks = new Map();
@@ -416,22 +439,28 @@ class DiskIndexManager {
 
         if (semanticScore >= this.minQualityFloor) {
           const keywordBoost = Math.min((keywordScore / keywords.length) * 0.5, 0.5);
-
-        // Only include results that meet the minimum semantic similarity threshold
-       // if (semanticScore >= this.similarityThreshold) {
-          // Normalize keyword score to prevent it from dominating semantic relevance
-          //const normalizedKeywordScore = Math.min(keywordScore / 10, 0.2);
           scoredResults.push({ id, score: semanticScore + keywordBoost });
-            //normalizedKeywordScore });
         //}
         }
       }
     }
 
-    const sortedIds = scoredResults
+    let sortedIds = scoredResults
       .sort((a, b) => b.score - a.score)
       .slice(0, this.maxResults) // Limit to Top-K
       .map(item => item.id);
+
+    if (this._isOverviewQuery(queryText)) {
+      const structuralIds = await this._loadStructuralIds();
+      const merged = [...structuralIds];
+
+      for (const id of sortedIds) {
+        if (!merged.includes(id))
+          merged.push(id);
+      }
+
+      sortedIds = merged.slice(0, this.maxResults);
+    }
 
     const results = [];
 
