@@ -59,7 +59,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Indexing
   indexWorkspace: (path) => ipcRenderer.invoke('index-workspace', path),
-  searchWorkspace: (manager, query) => ipcRenderer.invoke('search-workspace', manager, query),
+  searchWorkspace: (query) => ipcRenderer.invoke('search-workspace', query),
   onIndexingProgress: (callback) => ipcRenderer.on('indexing-progress', (event, data) => callback(data)),
   abortIndexing: () => ipcRenderer.invoke('abort-indexing'),
 
