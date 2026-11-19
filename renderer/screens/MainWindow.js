@@ -8,6 +8,7 @@ import { ChatPanel } from '../components/ChatPanel.js';
 import { ChatTab } from '../components/ChatTab.js';
 import { Settings } from '../components/Settings.js';
 import { UpdateModal } from '../components/UpdateModal.js';
+import { BuildPanel } from '../components/BuildPanel.js';
 
 import {
   StringUtils,
@@ -194,6 +195,7 @@ const MainWindow = {
   async init(configFile) {
     UpdateEventHandler.registerEvents();
     Settings.init(configFile);
+    BuildPanel.init(configFile.workspacePath);
 
     this.config = configFile;
     this.registerEventListeners();

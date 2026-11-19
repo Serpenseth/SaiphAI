@@ -1,0 +1,12 @@
+#terminal-workspace-path {
+  margin: 0.75rem 0.35rem 0rem;
+  color: #96B4D3;
+}
+
+#terminal-cmd {
+  border: none;
+  color: var(--text-primary);
+  outline: none;
+  background: transparent;
+  margin: 0.35rem;
+}
