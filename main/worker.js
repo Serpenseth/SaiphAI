@@ -1,0 +1,115 @@
+const path = require('path');
+const fs = require('fs').promises;
+const fsSync = require('fs');
+const { parentPort } = require('worker_threads');
+
+const { OllamaManager } = require('./Ollama.js');
+const ollama = OllamaManager;
+
+const { OpenAI } = require('./OpenAI.js');
+const openAi = OpenAI;
+
+const { TextSummarization } = require('./TextSummarization.js');
+const { DiskIndexManager } = require('./IndexManager');
+
+// Helper to send progress back to main thread via Piscina's parentPort
+function sendProgress(filePath) {
+  if (parentPort) {
+    parentPort.postMessage({ type: 'indexing-progress', filePath });
+  }
+}
+
+async function getManager(workspacePath, userDataPath) {
+  const baseName = path.basename(workspacePath);
+  const storagePath = path.join(userDataPath, `${baseName}_index`);
+
+  return new DiskIndexManager(storagePath);
+}
+
+async function indexAllFiles(manager, directoryPath) {
+  const files = fsSync.readdirSync(directoryPath);
+
+  for (const file of files) {
+    const fullPath = path.join(directoryPath, file);
+    await manager.indexFile(fullPath, sendProgress);
+  }
+}
+
+async function indexWorkspace(workspacePath, userDataPath) {
+  const manager = await getManager(workspacePath, userDataPath);
+  const baseName = path.basename(workspacePath);
+  const chunksDir = path.join(userDataPath, `${baseName}_index`, 'chunks');
+
+  //if (fsSync.readdirSync(chunksDir).length === 0) {
+  console.log('Indexing workspace...');
+  await indexAllFiles(manager, workspacePath);
+  //}
+}
+
+async function searchIndex(searchQuery, userDataPath) {
+  try {
+    const manager = new DiskIndexManager(userDataPath);
+    // await getManager(userDataPath);
+    console.log(`Querying: ${searchQuery}`);
+    const relevantChunks = await manager.query(searchQuery);
+    console.log('Number of relevent chunks found:', relevantChunks.length);
+    return relevantChunks;
+  }
+  catch (error) {
+    console.error('System Error:', error);
+    throw error;
+  }
+}
+
+function summarizeText(textToSum, textToInclude) {
+  const textSummarization = new TextSummarization();
+  return textSummarization.summarize(textToSum, textToInclude);
+}
+
+module.exports = async ({ taskName, payload }) => {
+  switch(taskName) {
+    case 'isLoggedInToOllama':
+      return ollama.isLoggedInToOllama();
+      break;
+
+    case 'checkOllama':
+      return ollama.checkConnection();
+      break;
+
+    case 'getOllamaModels':
+      const models = await ollama.getInstalledModels();
+      return models;
+      break;
+
+    case 'isOpenAiApiKeyValid':
+      const isValid = await openAi.isApiKeyValid(payload.key);
+      return isValid;
+      break;
+
+    case 'getAllOpenAiModels':
+      const openAiModels = await openAi.getAllModels();
+      return openAiModels;
+      break;
+
+    case 'chatOpenai':
+      const result = await openAi.sendChat(payload.message, payload.selectedModel);
+      return result;
+      break;
+
+    case 'doesModelSupportImages':
+      return await ollama.doesModelSupportImages(payload.modelName);
+      break;
+
+    case 'indexWorkspace':
+      return await indexWorkspace(payload.workspace, payload.userDataPath, payload.event);
+      break;
+
+    case 'searchWorkspace':
+      return await searchIndex(payload.searchQuery, payload.userDataPath);
+      break;
+
+    case 'summarizeText':
+      return summarizeText(payload.textToSum, payload.textToInclude);
+      break;
+  }
+};

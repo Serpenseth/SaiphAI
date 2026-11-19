@@ -1,0 +1,104 @@
+const { piscina } = require('./piscina_instance.js');
+
+const { OllamaManager } = require('./Ollama.js');
+const ollama = OllamaManager;
+
+/**
+ *  Downloads Ollama model.
+ *
+ *  @param {string} modelName - The model name to download.
+ *  @returns {bool || Array} True if everything goes as planned, or false with error message.
+*/
+const downloadOllamaModel = async (event, modelName) => {
+  try {
+    await ollama.pullModel(event, modelName, (progress) => {
+      event.sender.send('download-model-progress', progress);
+    });
+    return { success: true };
+  }
+  catch (e) {
+    return { success: false, error: e };
+  }
+}
+
+const chatOllama = async (event, message, model) => {
+  return await ollama.chat(event, message, model);
+}
+
+/**
+ *  Checks if user is logged in.
+ *
+ *  @returns {bool} True if logged in, false otherwise.
+*/
+const isLoggedInToOllama = async () => {
+  return await piscina.run({
+    taskName: 'isLoggedInToOllama',
+    payload: {},
+  });
+}
+
+/**
+ *  Checks if Ollama is running or not.
+ *
+ *  @returns {bool} True if connection exists, false otherwise.
+*/
+const checkOllama = async () => {
+  return await piscina.run({
+    taskName: 'checkOllama',
+    payload: {},
+  });
+}
+
+/**
+ *  Gets all installed models.
+ *
+ *  @returns {Arrray< Object >} bool and models, or bool, error, and empty model list.
+*/
+const getOllamaModels = async () => {
+  try {
+    const models = await piscina.run({
+      taskName: 'getOllamaModels',
+      payload: {},
+    });
+    return { success: true, models: models };
+  }
+  catch (e) {
+    return { success: false, error: e.message, models: [] };
+  }
+}
+
+/**
+ *  Checks if model has vision capability.
+ *
+ *  @param {string} modelName - The model name to check..
+ *  @returns {bool} True if model supports vision, false otherwise.
+*/
+const modelSupportsImages = async (event, modelName) => {
+  return await piscina.run({
+    taskName: 'doesModelSupportImages',
+    payload: { modelName: modelName }
+  });
+}
+
+/**
+ *  Aborts model download.
+ *
+ *  @returns {null}
+*/
+const abortModelDownload = () => {
+  ollama.abortDownload();
+}
+
+module.exports = {
+  isLoggedInToOllama,
+  downloadOllamaModel,
+  chatOllama,
+  checkOllama,
+  getOllamaModels,
+  modelSupportsImages,
+  abortModelDownload,
+};
+
+
+
+
