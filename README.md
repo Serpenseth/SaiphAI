@@ -1,21 +1,6 @@
 [![Build and Release Electron App](https://github.com/Serpenseth/SaiphAI/actions/workflows/main.yml/badge.svg)](https://github.com/Serpenseth/SaiphAI/actions/workflows/main.yml)
 [![Github All Releases](https://img.shields.io/github/downloads/serpenseth/SaiphAI/total.svg)](https://github.com/serpenseth/SaiphAI/releases)
 
-[!IMPORTANT]
-
-**Current Refactoring Effort**:
-SaiphAI is currently being restructured to improve [Maintainability/Performance].
-
-**Key Changes**:
-*   **Architecture:** Moving from Monolith classes to Modular objects, while also separating responsibilities.
-*   **Chunking/Indexing:** Moving to embedding model and a smarter indexing system.
-
-Many new features are being developped as well!
-
-**Contribution Guide during Refactor**:
-*   **Do not** submit PRs or issues to `main` during the refactoring.
-*   Target all new contributions to the `refactor/saiphai` branch.
-
 SaiphAI is a desktop AI coding assistant built on Electron, designed for flexible operation via integration with OpenAI and local AI instances. The application provides integrated codebase indexing, persistent chat history, and a built-in code editor with context-aware retrieval.
 
 # Core Capabilities
