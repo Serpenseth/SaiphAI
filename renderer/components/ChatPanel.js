@@ -503,13 +503,6 @@ const ResizeManager = {
     }
 
     PanelWidth.set(box.style.width);
-
-    const showPanelBtn = DomQuery.getElement('show-panel');
-
-    if (showPanelBtn) {
-      showPanelBtn.style.right = '13px';
-      DomQuery.getElement('no-ai-panel').style.right = newWidth + 'px';
-    }
   },
 
   stopResize() {
