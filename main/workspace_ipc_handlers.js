@@ -41,7 +41,7 @@ const indexWorkspace = async (event, workspace) => {
 
       else if (message.type === 'done') {
         cleanup();
-        resolve({ aborted: false });
+        resolve({ done: true, aborted: false });
       }
 
       else if (message.type === 'error') {

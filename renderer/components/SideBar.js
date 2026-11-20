@@ -261,7 +261,11 @@ const EventFunctions = {
       Ui.removeEmptyMessage();
 
       IndexWorkspaceModal.show(true);
-      await IndexingService.index(workspace);
+      const res = await IndexingService.index(workspace);
+      if (res.done) {
+        alert('Indexing complete');
+        IndexWorkspaceModal.show(false);
+      }
     }
   },
 
