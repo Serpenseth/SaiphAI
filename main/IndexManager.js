@@ -121,6 +121,19 @@ class SmartChunker {
   }
 }
 
+const BadEntries = {
+  folders: new Set([
+    'node_modules',  '__pycache__' , 'assets',
+    '.git', '.github', 'dist', 'build',
+    'target', 'android', 'ios', '__tests__',
+  ]),
+  extensions: new Set([
+    '7z', 'zip', 'rar', 'exe', 'dll', 'so', 'bin', 'png',
+    'jpg', 'jpeg', 'gif', 'pdf', 'ico', 'icns', 'bak', 'sql',
+  ]),
+  other: ['copy', 'package-lock'],
+}
+
 class DiskIndexManager {
   constructor(storageDir) {
     this.indexDir = path.join(storageDir, 'index');
@@ -255,20 +268,7 @@ class DiskIndexManager {
       const stats = await fs.stat(filePath);
 
       if (stats.isDirectory()) {
-        const badFolders = new Set([
-          'node_modules',
-          '__pycache__',
-          'assets',
-          '.git',
-          '.github',
-          'dist',
-          'build',
-          'target',
-          'android',
-          'ios'
-        ]);
-
-        if (badFolders.has(baseName)) {
+        if (BadEntries.folders.has(baseName)) {
           console.log('Folder skipped:', baseName);
           return;
         }
@@ -281,17 +281,14 @@ class DiskIndexManager {
         return;
       }
 
-      const badExt = new Set(['7z', 'zip', 'rar', 'exe', 'dll', 'so', 'bin', 'png', 'jpg', 'jpeg', 'gif', 'pdf', 'ico', 'icns', 'bak', 'sql']);
-      const exclude = ['copy', 'package-lock'];
-
-      for (const ext of badExt) {
+      for (const ext of BadEntries.extensions) {
         if (filePath.toLowerCase().endsWith(`.${ext}`)) {
           console.log('File skipped:', filePath)
           return
         }
       }
 
-      if (exclude.some(p => filePath.toLowerCase().includes(p))) {
+      if (BadEntries.other.some(p => filePath.toLowerCase().includes(p))) {
         console.log('File skipped:', filePath)
         return;
       }
