@@ -90,7 +90,8 @@
 }
 
 #chat-tabs {
-  flex-wrap: wrap;
+  overflow-x: auto;
+  overflow-y: none;
   height: auto;
   width: 396px;
 }

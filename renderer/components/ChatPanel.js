@@ -997,11 +997,6 @@ const ChatPanel = {
   async newChatTab() {
     const tabCount = ChatTab.getTabCount();
 
-    if (tabCount === 40) {
-      alert("Can't have more than 40 chat tabs opened at once");
-      return;
-    }
-
     if (tabCount !== 0) {
       const oldID = TabHandler.getActiveTabRawID();
       DomQuery.showElement(`ai-panel-${oldID}`, false);
@@ -1016,6 +1011,9 @@ const ChatPanel = {
 
     ModelSelector.populate(ChatPanelData.config, id);
     Config.save({ lastTab: `ai-tab-${id}` });
+
+    const tabs = DomQuery.getElement('chat-tabs');
+    tabs.scrollLeft = tabs.scrollWidth;
   },
 
   switchToTab(fromFullID, toFullID) {
