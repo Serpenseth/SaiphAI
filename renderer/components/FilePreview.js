@@ -16,7 +16,7 @@ const PathUtils = {
     const extension = filePath.split('.').pop().toLowerCase();
     const extToLang = {
       js: 'javascript', ts: 'typescript', jsx: 'javascript',
-      tsx: 'typescript', py: 'python', java: 'java',
+      tsx: 'typescript', py: 'python', pyw: 'python', java: 'java',
       c: 'c', cpp: 'cpp', cs: 'csharp',
       html: 'xml', css: 'css', json: 'json',
       md: 'markdown',xml: 'xml', yml: 'yaml',
