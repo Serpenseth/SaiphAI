@@ -13,9 +13,25 @@ const scanFolder = async (event, folder) => {
 }
 
 const showFileDialog = async () => {
+  const textArray = [
+    'js', 'jsx', 'ts', 'tsx', 'mjs', 'cjs','py', 'pyw',
+    'pyi','java', 'cpp', 'cc', 'cxx', 'hpp', 'hxx', 'c',
+    'h', 'cs', 'go', 'rs', 'php', 'rb', 'swift', 'kt',
+    'scala', 'r', 'lua', 'pl', 'pm', 'html','htm', 'xhtml',
+    'css', 'scss', 'sass', 'less', 'sql', 'sh', 'bash', 'ps1',
+    'yaml', 'yml', 'json', 'xml', 'md', 'markdown', 'txt', 'vue',
+    'svelte', 'jsx', 'tsx', 'env', 'config', 'conf', 'ini', 'gitignore',
+    'gitattributes', 'editorconfig', 'eslintrc', 'prettierrc', 'log',
+    'lock', 'babelrc', 'tsconfig', 'jsconfig', 'webpack',
+    'rollup', 'vite',
+  ];
+
   const { canceled, filePaths } = await dialog.showOpenDialog({
     properties: ['openFile', 'multiSelections'],
-    filters: [{ name: 'All Files', extensions: ['*'] }],
+    filters: [
+      { name: 'Text files', extensions: textArray },
+      { name: 'Images', extensions: ['jpg', 'png', 'gif', 'jpeg', 'webp'] },
+    ],
   });
 
   if (canceled)
