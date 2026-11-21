@@ -487,7 +487,7 @@ const ResizeManager = {
   resize(e) {
     const currentPanel = `ai-panel-${TabHandler.getActiveTabRawID()}`;
     const box = DomQuery.getElement(currentPanel);
-    const minWidth = 360;
+    const minWidth = 396;
     const maxWidth = window.innerWidth * 0.875;
 
     const deltaX = e.clientX - ResizeManager.startMouseX;
@@ -503,7 +503,9 @@ const ResizeManager = {
     }
 
     PanelWidth.set(box.style.width);
+    DomQuery.getElement('chat-tabs').style.width = box.style.width;
   },
+
 
   stopResize() {
     window.removeEventListener('mousemove', ResizeManager.resize);
@@ -994,6 +996,11 @@ const ChatPanel = {
 
   async newChatTab() {
     const tabCount = ChatTab.getTabCount();
+
+    if (tabCount === 40) {
+      alert("Can't have more than 40 chat tabs opened at once");
+      return;
+    }
 
     if (tabCount !== 0) {
       const oldID = TabHandler.getActiveTabRawID();

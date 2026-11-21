@@ -69,22 +69,35 @@
 }
 
 .ai-panel-container {
-  height: 100vh;
+  height: 100%;
+  min-height: 0;
   width: 100%;
 }
 
 .ai-panel {
   position: relative;
   height: 100%;
-  width: 360px;
+  width: 396px;
   background: var(--sidebar);
   display: flex;
   flex-direction: column;
-  padding-bottom: 2.5rem;
+  padding-bottom: 0.05rem;
+}
+
+.content-chat {
+  width: 100%;
+  height: auto;
+}
+
+#chat-tabs {
+  flex-wrap: wrap;
+  height: auto;
+  width: 396px;
 }
 
 .chat-history {
   flex: 1;
+  min-height: 0;
   padding: 15px;
   overflow-y: auto;
   font-size: 0.85rem;
@@ -303,7 +316,6 @@
   background: rgba(26, 116, 158, 0.4);
   height: 5px;
 }
-
 
 .chat-tab {
   background: var(--bg-secondary);
