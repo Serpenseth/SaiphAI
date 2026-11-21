@@ -108,6 +108,7 @@ const Ui = {
         DomQuery.setWidth('sidebar-container', savedWidth);
         DomQuery.updateText('settings-text', 'Settings');
         DomQuery.updateText('open-workspace-text', 'Open workspace');
+        DomQuery.updateText('chat-history-text', 'History');
         DomQuery.updateText('show-ai-panel-text', prevText);
       }
 
@@ -115,6 +116,7 @@ const Ui = {
         DomQuery.setWidth('sidebar', '40px');
         DomQuery.setWidth('sidebar-container', '40px');
         DomQuery.updateText('settings-text', '');
+        DomQuery.updateText('chat-history-text', '');
         DomQuery.updateText('open-workspace-text', '');
         DomQuery.updateText('show-ai-panel-text', '');
       }
