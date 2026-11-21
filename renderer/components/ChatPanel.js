@@ -1077,13 +1077,16 @@ const ChatPanel = {
 
     const id = TabHandler.getActiveTab();
     const chats = ChatTab.getTabChats(id);
+
     const title = message.substring(0, 12);
     const rawID = ChatTab.getTabRawID(id);
 
     Ui.clearChatbox(id);
     Ui.displayUserMessage(id, message);
     Ui.displayThinkingDiv(id);
-    TabHandler.setTabTitle(id, title);
+
+    if (chats.title === 'Untitled' && chats.user.length === 0)
+      TabHandler.setTabTitle(id, title);
 
     let searchQuery = await Workspace.search(message);
     let msgWithWorkspace;
