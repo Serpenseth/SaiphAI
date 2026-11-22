@@ -46,7 +46,18 @@ const PreviewModal = {
     const fileElement = document.createElement('div');
     fileElement.id = 'expanded-file-contents';
     fileElement.className = 'expanded-file-contents';
-    fileElement.innerHTML = `<pre><code class="hljs language-${language}">${highlighted}</code></pre>`;
+    fileElement.innerHTML = `<pre><code class="hljs language-${language}">${highlighted}</code></pre>`
+
+    if (DomQuery.getElement('close-preview')) {
+      DomQuery.removeElement('close-preview');
+    }
+
+    const closeBtn = document.createElement('button');
+    closeBtn.id = 'close-preview';
+    closeBtn.textContent = 'X';
+    closeBtn.className = 'close-preview';
+
+    DomQuery.getElement('display-selected-files').appendChild(closeBtn);
 
     return fileElement;
   },
@@ -57,6 +68,17 @@ const PreviewModal = {
     imageElement.className = 'expanded-image-contents';
     imageElement.setAttribute("src", imageBlob);
     imageElement.onload = () => URL.revokeObjectURL(imageElement.src);
+
+    if (DomQuery.getElement('close-preview')) {
+      DomQuery.removeElement('close-preview');
+    }
+
+    const closeBtn = document.createElement('button');
+    closeBtn.id = 'close-preview';
+    closeBtn.textContent = 'X';
+    closeBtn.className = 'close-preview';
+
+    DomQuery.getElement('display-selected-files').appendChild(closeBtn);
 
     return imageElement;
   },
@@ -147,6 +169,7 @@ const Ui = {
   },
 }
 
+/*
 const HoverState = {
   hovering: false,
 
@@ -158,6 +181,7 @@ const HoverState = {
     return HoverState.hovering;
   },
 }
+*/
 
 const TimeoutHandler = {
   showTimeout: null,
@@ -181,6 +205,7 @@ const TimeoutHandler = {
     TimeoutHandler.hideTimeout = null;
   },
 }
+
 
 const FilePreviewData = {
   fileData: new Map(),
@@ -304,12 +329,30 @@ const EventHandler = {
         HoverHandler.onHover();
       }
     }, { signal: abortSignal });
+  },
 
+  setupCloseButtonEvent(element, abortSignal) {
+    const elem = DomQuery.getElement(element);
+    elem.addEventListener('click', (e) => {
+      if (e.target.id === 'close-preview') {
+        Ui.showPreviewModal(false);
+      }
+    }, { signal: abortSignal });
+  },
+}
+
+/*
     elem.addEventListener('mouseleave', () => {
       HoverHandler.onHoverLeave();
     }, { signal: abortSignal });
-  },
+    },
+  */
 
+
+  //setupCloseEvent(element, abortSignal) {
+
+
+  /*
   setupPreviewHoverEvent(previewModalElement, abortSignal) {
     const previewModal = DomQuery.getElement(previewModalElement);
 
@@ -322,7 +365,8 @@ const EventHandler = {
       Ui.showPreviewModal(false);
     }, { signal: abortSignal });
   },
-}
+}*/
+
 
 const FilePreviewManager = {
   async init(id, fileData) {
@@ -341,7 +385,8 @@ const FilePreviewManager = {
     Ui.showFilePreviewContainer(id, true);
 
     const controller = Controller.add(id);
-    EventHandler.setupPreviewHoverEvent('display-selected-files', controller.signal);
+    EventHandler.setupCloseButtonEvent('display-selected-files', controller.signal);
+    //EventHandler.setupPreviewHoverEvent('display-selected-files', controller.signal);
     EventHandler.setupButtonEvents(`chat-file-container-${id}`, controller.signal);
   },
 
