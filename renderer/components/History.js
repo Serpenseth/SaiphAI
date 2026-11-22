@@ -88,12 +88,13 @@ const Ui = {
   },
 
   removeEntry(id) {
-    console.log(id);
     DomQuery.removeElement(id);
     DomQuery.updateInnerHTML('preview-chats', '');
   },
 
   populateHistory(chatsData) {
+    DomQuery.updateInnerHTML('history-list', '');
+
     const fragment = new DocumentFragment();
     const chats = chatsData.chats;
 
@@ -209,7 +210,7 @@ const EventHandler = {
       if (target) {
         const targetID = target.id.replace('history-', '');
         const index = data.id.findIndex(id => id === targetID);
-        console.log(target.classList);
+
         Ui.renderChatHistoryPreview(data.chats[index]);
         ChatPreview.hovered = {
           id: targetID,
@@ -259,6 +260,11 @@ const HistoryModal = {
   appendEntry(title, id) {
     const chatElement = Ui.createEntry(title, id);
     Ui.appendEntry(chatElement);
+  },
+
+  populateHistory(data) {
+    Ui.populateHistory(data);
+    EventHandler.setupMouseOverEvent('history-list', data);
   },
 }
 

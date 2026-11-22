@@ -1127,6 +1127,14 @@ const ChatPanel = {
       });
 
       ChatStorage.save(id, chats);
+
+      setTimeout(() => {
+        ChatStorage.getAll()
+          .then(allChats => {
+            const prevTabs = ChatStorageObject.handle(allChats);
+            HistoryModal.populateHistory(prevTabs);
+          });
+      }, 250);
     }
     catch(e) {
       console.error(e);
