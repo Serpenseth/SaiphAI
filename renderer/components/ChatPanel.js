@@ -1060,7 +1060,7 @@ const ChatPanel = {
       if (id === ChatTab.getActiveTabRawID()) {
         const prevTab = ChatTab.getTabFrom(fullTabID);
 
-        Controller.abort(ChatTab.getTabRawID(prevTab));
+        Controller.abort(ChatTab.getTabRawID(fullTabID));
         this.switchToTab(fullTabID, prevTab);
       }
     }
