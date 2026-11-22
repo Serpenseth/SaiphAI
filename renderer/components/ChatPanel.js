@@ -303,6 +303,10 @@ const Ui = {
       Ui.displayAiResponse(fullTabID, chats.system[i]);
     }
   },
+
+  clearInputFocus(id) {
+    DomQuery.getElement(`user-prompt-${id}`).blur();
+  },
 }
 
 const Controller = {
@@ -568,6 +572,7 @@ const EventSetup = {
       { id: `send-chat-${id}`, fn: () => {
         const inputData = Ui.getUserPrompt(`user-prompt-${id}`);
         chatPanel.displayAiResponse(inputData);
+        Ui.clearInputFocus(id);
       }},
       controller.signal
     ]);
@@ -579,6 +584,7 @@ const EventSetup = {
           e.preventDefault();
           const inputData = Ui.getUserPrompt(`user-prompt-${id}`);
           chatPanel.displayAiResponse(inputData);
+          Ui.clearInputFocus(id);
         }
       },
       controller.signal
