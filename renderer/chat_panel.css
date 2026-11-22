@@ -69,8 +69,7 @@
 }
 
 .ai-panel-container {
-  height: 100%;
-  min-height: 0;
+  height: 100vh;
   width: 100%;
 }
 
@@ -81,12 +80,7 @@
   background: var(--sidebar);
   display: flex;
   flex-direction: column;
-  padding-bottom: 0.05rem;
-}
-
-.content-chat {
-  width: 100%;
-  height: auto;
+  padding-bottom: 2.5rem;
 }
 
 #chat-tabs {
