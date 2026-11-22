@@ -164,7 +164,7 @@ const LoadHistory = {
       }
 
       else {
-        const { id, chats } = ChatPreview.hovered;
+        const { id, chats, title } = ChatPreview.hovered;
         const active = ChatTab.getActiveTab();
         const activeTabChats = ChatTab.getTabChats(active);
 
@@ -180,6 +180,7 @@ const LoadHistory = {
             await ChatPanel.restoreLastTab(id, chats);
           }
           ChatPanel.switchToTab(active, id);
+          ChatTab.updateTabTitle(id, title);
           historyModal.show(false);
         }
       }

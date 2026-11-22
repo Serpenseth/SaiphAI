@@ -970,6 +970,7 @@ const ChatPanel = {
     ChatTab.setActive(id, true);
     ModelSelector.populate(ChatPanelData.config, id);
     ChatTab.addTabToHistory(id, chats);
+    ChatTab.updateTabTitle(id, chats.title);
   },
 
   async restoreAllChats(prevTabs, lastTab) {
@@ -997,6 +998,7 @@ const ChatPanel = {
       Ui.renderPreviousChatsForTab(rawID, chats);
       ModelSelector.populate(ChatPanelData.config, rawID);
       ChatTab.addTabToHistory(id, chats);
+      ChatTab.updateTabTitle(id, chats.title);
     }
   },
 
