@@ -6,7 +6,7 @@ import {
 import { IndexWorkspaceModal } from './IndexWorkspaceModal.js';
 import { FileEditor } from './FileEditor.js';
 import { FileTab } from './FileTab.js';
-import { ChatPanel } from './ChatPanel.js';
+import { ChatPanel } from './ChatPanel/ChatPanel.js';
 import { Settings } from './Settings.js';
 import { HistoryModal } from './History.js';
 

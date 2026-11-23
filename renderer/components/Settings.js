@@ -3,7 +3,7 @@ import {
   DomQuery,
 } from '../utility/utilities.js';
 
-import { ChatPanel } from '../components/ChatPanel.js';
+import { ChatPanel } from './ChatPanel/ChatPanel.js';
 
 const SettingsModal = {
   ui() {

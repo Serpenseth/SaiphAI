@@ -4,7 +4,7 @@ import {
   StringUtils,
 } from '../utility/utilities.js';
 
-import { ChatPanel } from './ChatPanel.js';
+import { ChatPanel } from './ChatPanel/ChatPanel.js';
 import { ChatTab } from './ChatTab.js';
 
 const HistoryModalUI = {
