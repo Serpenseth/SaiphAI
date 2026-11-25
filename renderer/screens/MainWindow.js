@@ -3,9 +3,9 @@ import { SideBar as Sidebar } from '../components/SideBar.js';
 import { FileTab } from '../components/FileTab.js';
 import { FloatingWindow } from '../components/FloatingWindow.js';
 import { FloatingButtons } from '../components/FloatingButtons.js';
-import { ChatPanel } from '../components/ChatPanel/ChatPanel.js';
-import { ChatTab } from '../components/ChatTab/ChatTab.js';
-import { Settings } from '../components/Settings/Settings.js';
+import { ChatPanel } from '../components/ChatPanel.js';
+import { ChatTab } from '../components/ChatTab.js';
+import { Settings } from '../components/Settings.js';
 import { UpdateModal } from '../components/UpdateModal.js';
 
 import {

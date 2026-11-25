@@ -2,7 +2,7 @@ import { AiBackend } from './WindowAPI.js';
 import { AttachedFiles } from './AttachedFiles.js';
 
 import { FilePreview } from '../FilePreview.js';
-import { ChatTab } from '../ChatTab/ChatTab.js';
+import { ChatTab } from '../ChatTab.js';
 
 const BlobHandler = {
   convertToBase64(blob) {

@@ -1,5 +1,5 @@
 import { DomQuery } from '../../utility/utilities.js';
-import { ChatPanel } from '../ChatPanel/ChatPanel.js';
+import { ChatPanel } from '../ChatPanel.js';
 import { SettingsUiHelper as Ui } from './SettingsUiHelper.js';
 import { AiBackend, EnvHandler, Config } from './WindowAPI.js';
 import { ModelsObject } from './ModelsObject.js';
