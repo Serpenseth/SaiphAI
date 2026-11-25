@@ -1,8 +1,6 @@
 import { DomQuery } from '../../utility/utilities.js';
-
 import { PanelWidth } from './PanelWidth.js';
-
-import { ChatTab } from '../ChatTab.js';
+import { ChatTab } from '../ChatTab/ChatTab.js';
 
 
 const ResizeManager = {

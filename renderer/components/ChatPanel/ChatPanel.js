@@ -17,7 +17,7 @@ import { AiResponse } from './AiResponse.js';
 import { ModelSelector } from './ModelSelector.js';
 import { ChatStorageObject } from './ChatStorageObject.js';
 
-import { ChatTab } from '../ChatTab.js';
+import { ChatTab } from '../ChatTab/ChatTab.js';
 import { HistoryModal } from '../History.js';
 
 const ChatPanelData = {
